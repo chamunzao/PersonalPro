@@ -32,8 +32,12 @@ function useTheme() {
 }
 
 // ==================== CONSTANTS ====================
-const DAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
-const DAY_ABBR = ["Seg", "Ter", "Qua", "Qui", "Sex"];
+const DAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+const DAY_ABBR = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+// Maps JS Date.getDay() (0=Sun..6=Sat) to our index (0=Mon..6=Sun)
+function jsDayToIndex(jsDay) {
+  return jsDay === 0 ? 6 : jsDay - 1;
+}
 const HOURS = Array.from({ length: 15 }, (_, i) => {
   const h = 6 + i;
   return `${String(h).padStart(2, "0")}:00`;
@@ -74,11 +78,7 @@ function getClassesForDate(dateISO, students, scheduleOverrides) {
   const [year, month, day] = dateISO.split("-").map(Number);
   const dateObj = new Date(year, month - 1, day);
   const dayOfWeek = dateObj.getDay();
-
-  // Skip weekends
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
-    return [];
-  }
+  const dayIndex = jsDayToIndex(dayOfWeek);
 
   const classes = [];
   students.forEach(student => {
@@ -93,7 +93,7 @@ function getClassesForDate(dateISO, students, scheduleOverrides) {
     } else {
       // Use base schedule filtered by day of week
       times = student.schedule
-        .filter(s => s.day === dayOfWeek - 1)
+        .filter(s => s.day === dayIndex)
         .map(s => s.time);
     }
 
@@ -411,41 +411,26 @@ function StudentsTab({ students, setStudents, scheduleOverrides, setScheduleOver
                       ))}
                     </div>
                     <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                      <select
+                      <input
+                        type="time"
                         value={newTime[dayIdx] || ""}
                         onChange={(e) => setNewTime(prev => ({ ...prev, [dayIdx]: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === "Enter") addScheduleTime(dayIdx); }}
                         disabled={saving}
                         style={{
-                          flex: 1,
-                          padding: "6px 8px",
-                          border: "1px solid #d1d5db",
-                          borderRadius: "4px",
-                          fontSize: "12px",
-                          fontFamily: "inherit",
-                          boxSizing: "border-box"
+                          flex: 1, padding: "6px 8px", border: "1px solid #d1d5db",
+                          borderRadius: "6px", fontSize: "13px", fontFamily: "inherit"
                         }}
-                      >
-                        <option value="">Selecionar horário</option>
-                        {HOURS.map(h => (
-                          <option key={h} value={h}>{h}</option>
-                        ))}
-                      </select>
+                      />
                       <button
                         onClick={() => addScheduleTime(dayIdx)}
-                        disabled={saving}
+                        disabled={saving || !newTime[dayIdx]}
                         style={{
-                          padding: "6px 10px",
-                          background: theme.primary,
-                          color: "white",
-                          border: "none",
-                          borderRadius: "4px",
-                          fontSize: "12px",
-                          fontWeight: "600",
-                          cursor: "pointer"
+                          padding: "6px 12px", background: newTime[dayIdx] ? theme.primary : "#d1d5db",
+                          color: "white", border: "none", borderRadius: "6px",
+                          fontSize: "12px", fontWeight: "600", cursor: newTime[dayIdx] ? "pointer" : "default"
                         }}
-                      >
-                        Adicionar
-                      </button>
+                      >+ Adicionar</button>
                     </div>
                   </div>
                 );
@@ -564,10 +549,11 @@ function AgendaTab({ students, records, scheduleOverrides }) {
   const [selectedDayModal, setSelectedDayModal] = useState(null);
 
   const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
-  const firstDay = getDayOfWeek(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const firstDayJS = getDayOfWeek(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const firstDayIdx = jsDayToIndex(firstDayJS);
 
   const days = [];
-  for (let i = 0; i < firstDay - 1; i++) days.push(null);
+  for (let i = 0; i < firstDayIdx; i++) days.push(null);
   for (let i = 1; i <= daysInMonth; i++) days.push(i);
 
   const getClassesForDay = (dayNum) => {
@@ -679,7 +665,7 @@ function AgendaTab({ students, records, scheduleOverrides }) {
 
       <div style={{
         display: "grid",
-        gridTemplateColumns: "repeat(5, 1fr)",
+        gridTemplateColumns: "repeat(7, 1fr)",
         gap: "8px",
         marginBottom: "20px"
       }}>
@@ -894,23 +880,21 @@ function AttendanceTab({ students, records, setRecords, scheduleOverrides, loadi
 
   const classesForDate = [];
 
-  if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-    const classes = getClassesForDate(dateISO, students, scheduleOverrides);
-    classes.forEach(cls => {
-      const key = `${selectedDate.split("/")[0]}/${selectedDate.split("/")[1]}/${selectedDate.split("/")[2]}_${cls.studentId}_${cls.time}`;
-      const record = records.find(r => r.key === key);
-      classesForDate.push({
-        key,
-        studentId: cls.studentId,
-        studentName: cls.studentName,
-        time: cls.time,
-        defaultPrice: cls.pricePerClass,
-        status: record?.status || null,
-        activity: record?.activity || null,
-        customPrice: record?.customPrice || null
-      });
+  const classes = getClassesForDate(dateISO, students, scheduleOverrides);
+  classes.forEach(cls => {
+    const key = `${selectedDate.split("/")[0]}/${selectedDate.split("/")[1]}/${selectedDate.split("/")[2]}_${cls.studentId}_${cls.time}`;
+    const record = records.find(r => r.key === key);
+    classesForDate.push({
+      key,
+      studentId: cls.studentId,
+      studentName: cls.studentName,
+      time: cls.time,
+      defaultPrice: cls.pricePerClass,
+      status: record?.status || null,
+      activity: record?.activity || null,
+      customPrice: record?.customPrice || null
     });
-  }
+  });
 
   classesForDate.sort((a, b) => a.time.localeCompare(b.time));
 
@@ -1012,17 +996,7 @@ function AttendanceTab({ students, records, setRecords, scheduleOverrides, loadi
 
       {loadingData && <p style={{ color: "#9ca3af", fontSize: "14px", textAlign: "center" }}>Carregando...</p>}
 
-      {dayOfWeek === 0 || dayOfWeek === 6 ? (
-        <div style={{
-          textAlign: "center",
-          padding: "40px 20px",
-          background: "#f9fafb",
-          borderRadius: "8px",
-          color: "#9ca3af"
-        }}>
-          <p style={{ fontSize: "14px", margin: "0" }}>Nenhuma aula neste dia (fim de semana)</p>
-        </div>
-      ) : classesForDate.length === 0 ? (
+      {classesForDate.length === 0 ? (
         <div style={{
           textAlign: "center",
           padding: "40px 20px",
