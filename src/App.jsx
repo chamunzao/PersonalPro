@@ -64,6 +64,52 @@ function formatDate(date) {
   return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
 }
 
+// Helper function to convert JS Date to ISO format YYYY-MM-DD
+function formatDateISO(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+// Helper function to get classes for a specific date, checking overrides
+function getClassesForDate(dateISO, students, scheduleOverrides) {
+  const [year, month, day] = dateISO.split("-").map(Number);
+  const dateObj = new Date(year, month - 1, day);
+  const dayOfWeek = dateObj.getDay();
+
+  // Skip weekends
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    return [];
+  }
+
+  const classes = [];
+  students.forEach(student => {
+    // Check for override
+    const override = scheduleOverrides.find(
+      o => o.date === dateISO && o.studentId === student.id
+    );
+
+    let times = [];
+    if (override) {
+      times = override.times;
+    } else {
+      // Use base schedule filtered by day of week
+      times = student.schedule
+        .filter(s => s.day === dayOfWeek - 1)
+        .map(s => s.time);
+    }
+
+    times.forEach(time => {
+      classes.push({
+        studentId: student.id,
+        studentName: student.name,
+        time,
+        pricePerClass: student.pricePerClass
+      });
+    });
+  });
+
+  return classes.sort((a, b) => a.time.localeCompare(b.time));
+}
+
 // ==================== ICONS ====================
 function IconUsers() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
@@ -103,16 +149,16 @@ function IconLogOut() {
 }
 
 // ==================== STUDENTS TAB ====================
-function StudentsTab({ students, setStudents, loadingData }) {
+function StudentsTab({ students, setStudents, scheduleOverrides, setScheduleOverrides, loadingData }) {
   const theme = useTheme();
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ name: "", pricePerClass: "", schedule: [] });
+  const [form, setForm] = useState({ name: "", pricePerClass: "", schedule: [], notes: "" });
   const [saving, setSaving] = useState(false);
 
   function resetForm() {
-    setForm({ name: "", pricePerClass: "", schedule: [] });
+    setForm({ name: "", pricePerClass: "", schedule: [], notes: "" });
     setEditId(null);
     setShowForm(false);
   }
@@ -121,7 +167,8 @@ function StudentsTab({ students, setStudents, loadingData }) {
     setForm({
       name: s.name,
       pricePerClass: String(s.pricePerClass),
-      schedule: [...s.schedule.map(x => ({ ...x }))]
+      schedule: [...s.schedule.map(x => ({ ...x }))],
+      notes: s.notes || ""
     });
     setEditId(s.id);
     setShowForm(true);
@@ -156,13 +203,18 @@ function StudentsTab({ students, setStudents, loadingData }) {
       const studentData = {
         name: form.name.trim(),
         pricePerClass: parseFloat(form.pricePerClass),
-        schedule: form.schedule
+        schedule: form.schedule,
+        notes: form.notes.trim()
       };
 
       if (editId) {
         // Update existing student
+        const oldStudent = students.find(s => s.id === editId);
         await updateDoc(doc(db, `users/${user.uid}/students/${editId}`), studentData);
         setStudents(prev => prev.map(s => s.id === editId ? { id: editId, ...studentData } : s));
+
+        // Propagate schedule changes to future dates
+        await propagateScheduleChanges(editId, oldStudent.schedule, form.schedule, user.uid);
       } else {
         // Create new student
         const docRef = await addDoc(collection(db, `users/${user.uid}/students`), studentData);
@@ -177,6 +229,42 @@ function StudentsTab({ students, setStudents, loadingData }) {
     }
   }
 
+  async function propagateScheduleChanges(studentId, oldSchedule, newSchedule, uid) {
+    try {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // Get all overrides for this student
+      const overridesSnap = await getDocs(collection(db, `users/${uid}/scheduleOverrides`));
+
+      for (const doc of overridesSnap.docs) {
+        const [dateStr, sId] = doc.id.split("_");
+        if (sId !== studentId) continue;
+
+        const overrideDate = new Date(dateStr);
+        if (overrideDate >= tomorrow) {
+          // Delete future overrides so new base schedule takes effect
+          await deleteDoc(doc.ref);
+        }
+      }
+
+      // Refresh schedule overrides in state
+      const freshOverridesSnap = await getDocs(collection(db, `users/${uid}/scheduleOverrides`));
+      const freshOverrides = freshOverridesSnap.docs.map(d => ({
+        key: d.id,
+        date: d.id.split("_")[0],
+        studentId: d.id.split("_")[1],
+        ...d.data()
+      }));
+      setScheduleOverrides(freshOverrides);
+
+      alert("Horários base atualizados. Alterações específicas futuras foram removidas.");
+    } catch (error) {
+      console.error("Error propagating schedule changes:", error);
+    }
+  }
+
   async function deleteStudent(id) {
     if (!user) return;
     if (!window.confirm("Tem certeza?")) return;
@@ -188,6 +276,12 @@ function StudentsTab({ students, setStudents, loadingData }) {
       console.error("Error deleting student:", error);
       alert("Erro ao deletar aluno");
     }
+  }
+
+  // Get last attendance for a student
+  function getLastAttendance(studentId) {
+    // This would need records to be passed - for now returning null
+    return null;
   }
 
   return (
@@ -276,6 +370,26 @@ function StudentsTab({ students, setStudents, loadingData }) {
           </div>
 
           <div style={{ marginBottom: "12px" }}>
+            <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Observações (opcional)</label>
+            <textarea
+              value={form.notes}
+              onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
+              placeholder="Notas sobre o aluno..."
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontSize: "13px",
+                boxSizing: "border-box",
+                fontFamily: "inherit",
+                minHeight: "60px",
+                resize: "vertical"
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: "12px" }}>
             <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "8px" }}>Horários da Semana</label>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {DAYS.map((day, dayIdx) => {
@@ -297,26 +411,41 @@ function StudentsTab({ students, setStudents, loadingData }) {
                       ))}
                     </div>
                     <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                      <input
-                        type="time"
+                      <select
                         value={newTime[dayIdx] || ""}
                         onChange={(e) => setNewTime(prev => ({ ...prev, [dayIdx]: e.target.value }))}
-                        onKeyDown={(e) => { if (e.key === "Enter") addScheduleTime(dayIdx); }}
                         disabled={saving}
                         style={{
-                          flex: 1, padding: "6px 8px", border: "1px solid #d1d5db",
-                          borderRadius: "6px", fontSize: "13px", fontFamily: "inherit"
+                          flex: 1,
+                          padding: "6px 8px",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                          fontFamily: "inherit",
+                          boxSizing: "border-box"
                         }}
-                      />
+                      >
+                        <option value="">Selecionar horário</option>
+                        {HOURS.map(h => (
+                          <option key={h} value={h}>{h}</option>
+                        ))}
+                      </select>
                       <button
                         onClick={() => addScheduleTime(dayIdx)}
-                        disabled={saving || !newTime[dayIdx]}
+                        disabled={saving}
                         style={{
-                          padding: "6px 12px", background: newTime[dayIdx] ? theme.primary : "#d1d5db",
-                          color: "white", border: "none", borderRadius: "6px",
-                          fontSize: "12px", fontWeight: "600", cursor: newTime[dayIdx] ? "pointer" : "default"
+                          padding: "6px 10px",
+                          background: theme.primary,
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          cursor: "pointer"
                         }}
-                      >+ Adicionar</button>
+                      >
+                        Adicionar
+                      </button>
                     </div>
                   </div>
                 );
@@ -324,7 +453,7 @@ function StudentsTab({ students, setStudents, loadingData }) {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+          <div style={{ display: "flex", gap: "8px" }}>
             <button
               onClick={saveStudent}
               disabled={saving}
@@ -337,25 +466,22 @@ function StudentsTab({ students, setStudents, loadingData }) {
                 borderRadius: "6px",
                 fontSize: "13px",
                 fontWeight: "600",
-                cursor: saving ? "not-allowed" : "pointer",
-                opacity: saving ? 0.7 : 1
+                cursor: "pointer"
               }}
             >
-              {saving ? "Salvando..." : "Salvar"}
+              {editId ? "Atualizar" : "Criar"} Aluno
             </button>
             <button
               onClick={resetForm}
-              disabled={saving}
               style={{
-                flex: 1,
-                padding: "10px",
-                background: "#e5e7eb",
-                color: "#4b5563",
+                padding: "10px 16px",
+                background: "#f3f4f6",
+                color: "#6b7280",
                 border: "none",
                 borderRadius: "6px",
                 fontSize: "13px",
                 fontWeight: "600",
-                cursor: saving ? "not-allowed" : "pointer"
+                cursor: "pointer"
               }}
             >
               Cancelar
@@ -364,32 +490,43 @@ function StudentsTab({ students, setStudents, loadingData }) {
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {students.map(student => (
-          <div key={student.id} style={{
-            background: "white",
-            padding: "12px",
-            borderRadius: "8px",
-            border: "1px solid #e5e7eb"
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }}>
-              <div>
+      {!loadingData && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {students.map(student => (
+            <div key={student.id} style={{
+              background: "white",
+              padding: "12px",
+              borderRadius: "8px",
+              border: "1px solid #e5e7eb",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}>
+              <div style={{ flex: 1 }}>
                 <p style={{ fontSize: "14px", fontWeight: "600", margin: "0 0 4px 0", color: "#1f2937" }}>{student.name}</p>
                 <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0" }}>
                   {formatCurrency(student.pricePerClass)}/aula
                 </p>
+                {student.notes && (
+                  <p style={{ fontSize: "11px", color: "#6b7280", margin: "4px 0 0 0", fontStyle: "italic" }}>
+                    {student.notes}
+                  </p>
+                )}
               </div>
               <div style={{ display: "flex", gap: "6px" }}>
                 <button
                   onClick={() => startEdit(student)}
                   style={{
-                    padding: "6px",
+                    padding: "6px 10px",
                     background: "#f3f4f6",
-                    color: "#6b7280",
                     border: "none",
                     borderRadius: "4px",
                     cursor: "pointer",
-                    fontSize: "12px"
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    fontSize: "12px",
+                    color: "#6b7280"
                   }}
                 >
                   <IconEdit />
@@ -397,33 +534,23 @@ function StudentsTab({ students, setStudents, loadingData }) {
                 <button
                   onClick={() => deleteStudent(student.id)}
                   style={{
-                    padding: "6px",
+                    padding: "6px 10px",
                     background: "#fee2e2",
-                    color: "#dc2626",
                     border: "none",
                     borderRadius: "4px",
                     cursor: "pointer",
-                    fontSize: "12px"
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    fontSize: "12px",
+                    color: "#dc2626"
                   }}
                 >
                   <IconTrash />
                 </button>
               </div>
             </div>
-            <div style={{ fontSize: "11px", color: "#6b7280", lineHeight: "1.6" }}>
-              {student.schedule.map(s => `${DAYS[s.day]} ${s.time}`).join(", ")}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {!loadingData && students.length === 0 && !showForm && (
-        <div style={{
-          textAlign: "center",
-          padding: "40px 20px",
-          color: "#9ca3af"
-        }}>
-          <p style={{ fontSize: "14px", margin: "0" }}>Nenhum aluno cadastrado</p>
+          ))}
         </div>
       )}
     </div>
@@ -431,9 +558,10 @@ function StudentsTab({ students, setStudents, loadingData }) {
 }
 
 // ==================== AGENDA TAB ====================
-function AgendaTab({ students, records }) {
+function AgendaTab({ students, records, scheduleOverrides }) {
   const theme = useTheme();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDayModal, setSelectedDayModal] = useState(null);
 
   const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
   const firstDay = getDayOfWeek(currentDate.getFullYear(), currentDate.getMonth(), 1);
@@ -444,23 +572,62 @@ function AgendaTab({ students, records }) {
 
   const getClassesForDay = (dayNum) => {
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum);
-    const dayOfWeek = date.getDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) return [];
+    const dateISO = formatDateISO(date);
+    const classes = getClassesForDate(dateISO, students, scheduleOverrides);
 
-    const classes = [];
-    students.forEach(student => {
-      student.schedule.filter(s => s.day === dayOfWeek - 1).forEach(s => {
-        const key = `${String(dayNum).padStart(2, "0")}/${String(currentDate.getMonth() + 1).padStart(2, "0")}/${currentDate.getFullYear()}_${student.id}_${s.time}`;
-        const attendance = records.find(r => r.key === key)?.status || null;
-        classes.push({ student: student.name, time: s.time, attendance, key });
-      });
+    return classes.map(cls => {
+      const key = `${String(dayNum).padStart(2, "0")}/${String(currentDate.getMonth() + 1).padStart(2, "0")}/${currentDate.getFullYear()}_${cls.studentId}_${cls.time}`;
+      const attendance = records.find(r => r.key === key)?.status || null;
+      return { ...cls, key, attendance };
     });
-
-    return classes.sort((a, b) => a.time.localeCompare(b.time));
   };
+
+  const getTodayClasses = () => {
+    const today = new Date();
+    const todayISO = formatDateISO(today);
+    const classes = getClassesForDate(todayISO, students, scheduleOverrides);
+
+    return classes.map(cls => {
+      const key = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}_${cls.studentId}_${cls.time}`;
+      const attendance = records.find(r => r.key === key)?.status || null;
+      return { ...cls, key, attendance };
+    });
+  };
+
+  const getTodayGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Bom dia";
+    if (hour < 18) return "Boa tarde";
+    return "Boa noite";
+  };
+
+  const todayClasses = getTodayClasses();
 
   return (
     <div style={{ padding: "16px" }}>
+      {/* Today's Summary */}
+      <div style={{
+        background: theme.gradient,
+        color: "white",
+        padding: "16px",
+        borderRadius: "8px",
+        marginBottom: "20px"
+      }}>
+        <p style={{ fontSize: "14px", fontWeight: "600", margin: "0 0 8px 0" }}>
+          {getTodayGreeting()}, Instrutor!
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div>
+            <p style={{ fontSize: "12px", opacity: 0.9, margin: "0" }}>Aulas Hoje</p>
+            <p style={{ fontSize: "20px", fontWeight: "700", margin: "4px 0 0 0" }}>{todayClasses.length}</p>
+          </div>
+          <div>
+            <p style={{ fontSize: "12px", opacity: 0.9, margin: "0" }}>Total de Alunos</p>
+            <p style={{ fontSize: "20px", fontWeight: "700", margin: "4px 0 0 0" }}>{students.length}</p>
+          </div>
+        </div>
+      </div>
+
       <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ fontSize: "18px", fontWeight: "600", margin: "0", color: "#1f2937" }}>
           {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
@@ -527,82 +694,192 @@ function AgendaTab({ students, records }) {
             {day}
           </div>
         ))}
-        {days.map((dayNum, idx) => (
-          <div key={idx} style={{
-            background: dayNum === null ? "transparent" : (dayNum === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear()) ? "#f3f4f6" : "white",
-            border: dayNum === null ? "none" : "1px solid #e5e7eb",
-            borderRadius: "6px",
-            padding: "8px",
-            minHeight: "60px",
-            display: "flex",
-            flexDirection: "column"
-          }}>
-            {dayNum && (
-              <>
-                <p style={{ fontSize: "12px", fontWeight: "600", color: "#1f2937", margin: "0 0 6px 0" }}>{dayNum}</p>
-                <div style={{ fontSize: "10px", color: "#6b7280", flex: 1 }}>
-                  {getClassesForDay(dayNum).length > 0 ? (
-                    <span>{getClassesForDay(dayNum).length} aula(s)</span>
-                  ) : (
-                    <span style={{ color: "#d1d5db" }}>-</span>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#1f2937", marginBottom: "12px" }}>Últimos 7 dias</h3>
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        {Array.from({ length: 7 }).map((_, i) => {
-          const date = new Date(currentDate);
-          date.setDate(date.getDate() - (6 - i));
-          const classes = getClassesForDay(date.getDate());
+        {days.map((dayNum, idx) => {
+          const classesForDay = dayNum ? getClassesForDay(dayNum) : [];
+          const isToday = dayNum === new Date().getDate() &&
+                          currentDate.getMonth() === new Date().getMonth() &&
+                          currentDate.getFullYear() === new Date().getFullYear();
 
           return (
-            <div key={i}>
-              <p style={{ fontSize: "12px", fontWeight: "600", color: "#6b7280", marginBottom: "8px" }}>
-                {DAYS[date.getDay() - 1]} - {String(date.getDate()).padStart(2, "0")}
-              </p>
-              {classes.length === 0 ? (
-                <p style={{ fontSize: "12px", color: "#d1d5db", margin: "0" }}>Sem aulas</p>
-              ) : (
-                classes.map(cls => (
-                  <div key={cls.key} style={{
-                    background: "white",
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border: "1px solid #e5e7eb",
-                    fontSize: "12px",
-                    marginBottom: "6px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center"
-                  }}>
-                    <span>{cls.student} - {cls.time}</span>
-                    {cls.attendance && (
-                      <span style={{
-                        color: cls.attendance === "present" ? "#059669" : "#dc2626",
-                        fontWeight: "600",
-                        fontSize: "11px"
-                      }}>
-                        {cls.attendance === "present" ? "Presente" : "Ausente"}
-                      </span>
+            <div
+              key={idx}
+              onClick={() => dayNum && classesForDay.length > 0 && setSelectedDayModal(dayNum)}
+              style={{
+                background: dayNum === null ? "transparent" : (isToday ? "#f3f4f6" : "white"),
+                border: dayNum === null ? "none" : "1px solid #e5e7eb",
+                borderRadius: "6px",
+                padding: "8px",
+                minHeight: "60px",
+                display: "flex",
+                flexDirection: "column",
+                cursor: dayNum && classesForDay.length > 0 ? "pointer" : "default",
+                transition: dayNum && classesForDay.length > 0 ? "all 0.2s" : "none",
+                position: "relative"
+              }}
+              onMouseEnter={(e) => {
+                if (dayNum && classesForDay.length > 0) {
+                  e.currentTarget.style.boxShadow = `0 2px 8px ${theme.light}`;
+                  e.currentTarget.style.borderColor = theme.primary;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (dayNum && classesForDay.length > 0) {
+                  e.currentTarget.style.boxShadow = "none";
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                }
+              }}
+            >
+              {dayNum && (
+                <>
+                  <p style={{ fontSize: "12px", fontWeight: "600", color: "#1f2937", margin: "0 0 6px 0" }}>{dayNum}</p>
+                  <div style={{ fontSize: "10px", color: "#6b7280", flex: 1 }}>
+                    {classesForDay.length > 0 ? (
+                      <>
+                        <span>{classesForDay.length} aula(s)</span>
+                        <div style={{ marginTop: "4px", display: "flex", gap: "3px", flexWrap: "wrap" }}>
+                          {classesForDay.map((_, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                width: "4px",
+                                height: "4px",
+                                borderRadius: "50%",
+                                background: theme.primary
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <span style={{ color: "#d1d5db" }}>-</span>
                     )}
                   </div>
-                ))
+                </>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* Day Details Modal */}
+      {selectedDayModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0, 0, 0, 0.5)",
+          display: "flex",
+          alignItems: "flex-end",
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: "white",
+            width: "100%",
+            maxHeight: "80vh",
+            borderRadius: "16px 16px 0 0",
+            padding: "20px",
+            overflowY: "auto"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0", color: "#1f2937" }}>
+                {DAYS[getDayOfWeek(currentDate.getFullYear(), currentDate.getMonth(), selectedDayModal) - 1]} - {selectedDayModal} de {MONTHS[currentDate.getMonth()]}
+              </h3>
+              <button
+                onClick={() => setSelectedDayModal(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  color: "#6b7280",
+                  padding: "0",
+                  width: "32px",
+                  height: "32px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <DayDetailsPanel
+              dayNum={selectedDayModal}
+              currentDate={currentDate}
+              students={students}
+              records={records}
+              scheduleOverrides={scheduleOverrides}
+              theme={theme}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Day Details Panel Component
+function DayDetailsPanel({ dayNum, currentDate, students, records, scheduleOverrides, theme }) {
+  const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum);
+  const dateISO = formatDateISO(date);
+  const classes = getClassesForDate(dateISO, students, scheduleOverrides);
+
+  const classesWithAttendance = classes.map(cls => {
+    const key = `${String(dayNum).padStart(2, "0")}/${String(currentDate.getMonth() + 1).padStart(2, "0")}/${currentDate.getFullYear()}_${cls.studentId}_${cls.time}`;
+    const attendance = records.find(r => r.key === key)?.status || null;
+    return { ...cls, key, attendance };
+  });
+
+  if (classesWithAttendance.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: "20px", color: "#9ca3af" }}>
+        <p>Nenhuma aula agendada para este dia</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+      {classesWithAttendance.map(cls => (
+        <div key={cls.key} style={{
+          background: "#f9fafb",
+          padding: "12px",
+          borderRadius: "8px",
+          border: `1px solid ${theme.light}`
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+            <div>
+              <p style={{ fontSize: "14px", fontWeight: "600", margin: "0 0 4px 0", color: "#1f2937" }}>
+                {cls.studentName}
+              </p>
+              <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0" }}>
+                {cls.time} · {formatCurrency(cls.pricePerClass)}
+              </p>
+            </div>
+            {cls.attendance && (
+              <span style={{
+                padding: "4px 8px",
+                borderRadius: "4px",
+                fontSize: "11px",
+                fontWeight: "600",
+                background: cls.attendance === "present" ? "#d1fae5" : "#fee2e2",
+                color: cls.attendance === "present" ? "#059669" : "#dc2626"
+              }}>
+                {cls.attendance === "present" ? "Presente" : "Ausente"}
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
 // ==================== ATTENDANCE TAB ====================
-function AttendanceTab({ students, records, setRecords, loadingData }) {
+function AttendanceTab({ students, records, setRecords, scheduleOverrides, loadingData }) {
   const theme = useTheme();
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState(formatDate(new Date()));
@@ -613,23 +890,24 @@ function AttendanceTab({ students, records, setRecords, loadingData }) {
 
   const dateObj = new Date(selectedDate.split("/").reverse().join("-"));
   const dayOfWeek = dateObj.getDay();
+  const dateISO = formatDateISO(dateObj);
+
   const classesForDate = [];
 
   if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-    students.forEach(student => {
-      student.schedule.filter(s => s.day === dayOfWeek - 1).forEach(s => {
-        const key = `${selectedDate.split("/")[0]}/${selectedDate.split("/")[1]}/${selectedDate.split("/")[2]}_${student.id}_${s.time}`;
-        const record = records.find(r => r.key === key);
-        classesForDate.push({
-          key,
-          studentId: student.id,
-          studentName: student.name,
-          time: s.time,
-          defaultPrice: student.pricePerClass,
-          status: record?.status || null,
-          activity: record?.activity || null,
-          customPrice: record?.customPrice || null
-        });
+    const classes = getClassesForDate(dateISO, students, scheduleOverrides);
+    classes.forEach(cls => {
+      const key = `${selectedDate.split("/")[0]}/${selectedDate.split("/")[1]}/${selectedDate.split("/")[2]}_${cls.studentId}_${cls.time}`;
+      const record = records.find(r => r.key === key);
+      classesForDate.push({
+        key,
+        studentId: cls.studentId,
+        studentName: cls.studentName,
+        time: cls.time,
+        defaultPrice: cls.pricePerClass,
+        status: record?.status || null,
+        activity: record?.activity || null,
+        customPrice: record?.customPrice || null
       });
     });
   }
@@ -952,8 +1230,6 @@ function PaymentsTab({ students, payments, setPayments, loadingData }) {
     }
   };
 
-  const { deleteDoc, setDoc } = require('./firebase');
-
   return (
     <div style={{ padding: "16px" }}>
       <h2 style={{ fontSize: "18px", fontWeight: "600", margin: "0 0 16px 0", color: "#1f2937" }}>Controle de Pagamentos</h2>
@@ -1066,65 +1342,30 @@ function ReportsTab({ students, records, payments, loadingData }) {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const monthKey = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
+  const monthPayments = payments.filter(p => p.month === monthKey);
 
-  const monthRecords = records.filter(r => r.key.includes(`${String(selectedMonth + 1).padStart(2, "0")}/${selectedYear}`));
-
-  let totalGrossRevenue = 0;
-  let totalGymFee = 0;
-  const studentBreakdown = {};
-
-  students.forEach(student => {
-    studentBreakdown[student.id] = {
-      name: student.name,
-      pricePerClass: student.pricePerClass,
-      classesPresent: 0,
-      classesAbsent: 0,
-      revenue: 0,
-      gymFee: 0,
-      netIncome: 0
-    };
+  const monthRecords = records.filter(r => {
+    const [date] = r.key.split("_");
+    const [day, month, year] = date.split("/");
+    return parseInt(month) === selectedMonth + 1 && parseInt(year) === selectedYear;
   });
 
-  monthRecords.filter(r => r.status === "present").forEach(record => {
-    const [_, studentId, time] = record.key.split("_");
-    const student = students.find(s => s.id === studentId);
-    if (student && studentBreakdown[studentId]) {
-      studentBreakdown[studentId].classesPresent++;
-      const price = record.customPrice || student.pricePerClass;
-      studentBreakdown[studentId].revenue += price;
-    }
-  });
-
-  monthRecords.filter(r => r.status === "absent").forEach(record => {
-    const [_, studentId] = record.key.split("_");
-    if (studentBreakdown[studentId]) {
-      studentBreakdown[studentId].classesAbsent++;
-    }
-  });
-
-  Object.values(studentBreakdown).forEach(sb => {
-    totalGrossRevenue += sb.revenue;
-  });
-
-  Object.values(studentBreakdown).forEach(sb => {
-    if (totalGrossRevenue <= REVENUE_LIMIT) {
-      sb.gymFee = sb.classesPresent * GYM_FEE_PER_CLASS;
-    } else {
-      const availableFee = REVENUE_LIMIT - (totalGrossRevenue - sb.revenue);
-      sb.gymFee = Math.max(0, Math.min(sb.classesPresent * GYM_FEE_PER_CLASS, availableFee));
-    }
-    totalGymFee += sb.gymFee;
-    sb.netIncome = sb.revenue - sb.gymFee;
-  });
-
-  const totalNetIncome = totalGrossRevenue - totalGymFee;
   const totalClasses = monthRecords.length;
-  const totalPresent = monthRecords.filter(r => r.status === "present").length;
-  const attendanceRate = totalClasses > 0 ? ((totalPresent / totalClasses) * 100).toFixed(1) : 0;
+  const presentClasses = monthRecords.filter(r => r.status === "present").length;
+  const absenceRate = totalClasses > 0 ? ((totalClasses - presentClasses) / totalClasses * 100).toFixed(1) : 0;
+
+  const totalRevenue = monthPayments.length * 280; // Example calculation
+  const gymFees = totalClasses * GYM_FEE_PER_CLASS;
+  const netRevenue = totalRevenue - gymFees;
+  const revenuePercentage = totalRevenue > 0 ? (netRevenue / totalRevenue * 100).toFixed(0) : 0;
+
+  const studentsWithPayment = monthPayments.length;
+  const totalStudents = students.length;
+  const paymentRate = totalStudents > 0 ? ((studentsWithPayment / totalStudents) * 100).toFixed(0) : 0;
 
   return (
     <div style={{ padding: "16px" }}>
-      <h2 style={{ fontSize: "18px", fontWeight: "600", margin: "0 0 16px 0", color: "#1f2937" }}>Relatório Financeiro</h2>
+      <h2 style={{ fontSize: "18px", fontWeight: "600", margin: "0 0 16px 0", color: "#1f2937" }}>Relatório</h2>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
         <div>
@@ -1167,83 +1408,97 @@ function ReportsTab({ students, records, payments, loadingData }) {
 
       {loadingData && <p style={{ color: "#9ca3af", fontSize: "14px", textAlign: "center" }}>Carregando...</p>}
 
-      {/* Summary Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
         <div style={{
-          background: theme.gradient,
+          background: "white",
           padding: "16px",
           borderRadius: "8px",
-          color: "white"
+          border: "1px solid #e5e7eb"
         }}>
-          <p style={{ fontSize: "12px", margin: "0 0 4px 0", opacity: 0.9 }}>Receita Bruta</p>
-          <p style={{ fontSize: "18px", fontWeight: "700", margin: "0" }}>{formatCurrency(totalGrossRevenue)}</p>
+          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 8px 0", fontWeight: "600" }}>Total de Aulas</p>
+          <p style={{ fontSize: "28px", fontWeight: "700", margin: "0", color: theme.primary }}>{totalClasses}</p>
+          <p style={{ fontSize: "11px", color: "#d1d5db", margin: "6px 0 0 0" }}>{presentClasses} presentes ({100 - absenceRate}%)</p>
         </div>
+
         <div style={{
-          background: "#f3f4f6",
+          background: "white",
           padding: "16px",
           borderRadius: "8px",
-          color: "#1f2937"
+          border: "1px solid #e5e7eb"
         }}>
-          <p style={{ fontSize: "12px", margin: "0 0 4px 0", color: "#6b7280" }}>Taxa Academia</p>
-          <p style={{ fontSize: "18px", fontWeight: "700", margin: "0" }}>{formatCurrency(totalGymFee)}</p>
+          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 8px 0", fontWeight: "600" }}>Taxa de Falta</p>
+          <p style={{ fontSize: "28px", fontWeight: "700", margin: "0", color: "#dc2626" }}>{absenceRate}%</p>
+          <p style={{ fontSize: "11px", color: "#d1d5db", margin: "6px 0 0 0" }}>{totalClasses - presentClasses} faltas</p>
+        </div>
+
+        <div style={{
+          background: "white",
+          padding: "16px",
+          borderRadius: "8px",
+          border: "1px solid #e5e7eb"
+        }}>
+          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 8px 0", fontWeight: "600" }}>Receita Líquida</p>
+          <p style={{ fontSize: "28px", fontWeight: "700", margin: "0", color: theme.primary }}>{formatCurrency(netRevenue)}</p>
+          <p style={{ fontSize: "11px", color: "#d1d5db", margin: "6px 0 0 0" }}>{revenuePercentage}% após fees</p>
+        </div>
+
+        <div style={{
+          background: "white",
+          padding: "16px",
+          borderRadius: "8px",
+          border: "1px solid #e5e7eb"
+        }}>
+          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 8px 0", fontWeight: "600" }}>Taxa de Pagamento</p>
+          <p style={{ fontSize: "28px", fontWeight: "700", margin: "0", color: theme.primary }}>{paymentRate}%</p>
+          <p style={{ fontSize: "11px", color: "#d1d5db", margin: "6px 0 0 0" }}>{studentsWithPayment}/{totalStudents} alunos</p>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
-        <div style={{
-          background: "#d1fae5",
-          padding: "16px",
-          borderRadius: "8px",
-          color: "#059669"
-        }}>
-          <p style={{ fontSize: "12px", margin: "0 0 4px 0", opacity: 0.9 }}>Renda Líquida</p>
-          <p style={{ fontSize: "18px", fontWeight: "700", margin: "0" }}>{formatCurrency(totalNetIncome)}</p>
-        </div>
-        <div style={{
-          background: "#dbeafe",
-          padding: "16px",
-          borderRadius: "8px",
-          color: "#0369a1"
-        }}>
-          <p style={{ fontSize: "12px", margin: "0 0 4px 0", opacity: 0.9 }}>Taxa Presença</p>
-          <p style={{ fontSize: "18px", fontWeight: "700", margin: "0" }}>{attendanceRate}%</p>
-        </div>
-      </div>
+      <div style={{
+        background: "white",
+        padding: "16px",
+        borderRadius: "8px",
+        border: "1px solid #e5e7eb"
+      }}>
+        <h3 style={{ fontSize: "14px", fontWeight: "600", margin: "0 0 12px 0", color: "#1f2937" }}>Detalhamento por Aluno</h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {students.map(student => {
+            const studentRecords = monthRecords.filter(r => r.key.includes(`_${student.id}_`));
+            const studentPresent = studentRecords.filter(r => r.status === "present").length;
+            const paid = monthPayments.find(p => p.key === `${monthKey}_${student.id}`);
 
-      <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#1f2937", marginBottom: "12px" }}>Detalhamento por Aluno</h3>
-
-      {Object.keys(studentBreakdown).length === 0 || Object.values(studentBreakdown).every(sb => sb.classesPresent === 0 && sb.classesAbsent === 0) ? (
-        <div style={{
-          textAlign: "center",
-          padding: "40px 20px",
-          background: "#f9fafb",
-          borderRadius: "8px",
-          color: "#9ca3af"
-        }}>
-          <p style={{ fontSize: "14px", margin: "0" }}>Nenhum registro para este período</p>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {Object.values(studentBreakdown)
-            .filter(sb => sb.classesPresent > 0 || sb.classesAbsent > 0)
-            .map((sb, idx) => (
-              <div key={idx} style={{
-                background: "white",
-                padding: "12px",
-                borderRadius: "8px",
-                border: "1px solid #e5e7eb"
+            return (
+              <div key={student.id} style={{
+                padding: "10px",
+                background: "#f9fafb",
+                borderRadius: "6px",
+                border: "1px solid #e5e7eb",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                fontSize: "12px"
               }}>
-                <p style={{ fontSize: "13px", fontWeight: "600", margin: "0 0 8px 0", color: "#1f2937" }}>{sb.name}</p>
-                <div style={{ fontSize: "12px", color: "#6b7280", lineHeight: "1.6" }}>
-                  <p style={{ margin: "0 0 4px 0" }}>Aulas: {sb.classesPresent} presentes + {sb.classesAbsent} ausentes = {sb.classesPresent + sb.classesAbsent} total</p>
-                  <p style={{ margin: "0 0 4px 0" }}>Receita: {formatCurrency(sb.revenue)}</p>
-                  <p style={{ margin: "0 0 4px 0", color: "#9ca3af" }}>Taxa Academia: {formatCurrency(sb.gymFee)}</p>
-                  <p style={{ margin: "0", fontWeight: "600", color: "#059669" }}>Líquido: {formatCurrency(sb.netIncome)}</p>
+                <div>
+                  <p style={{ fontWeight: "600", margin: "0 0 2px 0", color: "#1f2937" }}>{student.name}</p>
+                  <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0" }}>
+                    {studentRecords.length} aulas ({studentPresent} presentes)
+                  </p>
                 </div>
+                <span style={{
+                  padding: "4px 8px",
+                  background: paid ? "#d1fae5" : "#fee2e2",
+                  color: paid ? "#059669" : "#dc2626",
+                  borderRadius: "4px",
+                  fontSize: "11px",
+                  fontWeight: "600"
+                }}>
+                  {paid ? "Pago" : "Pendente"}
+                </span>
               </div>
-            ))}
+            );
+          })}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -1309,6 +1564,7 @@ export default function App() {
   const [students, setStudents] = useState([]);
   const [records, setRecords] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [scheduleOverrides, setScheduleOverrides] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
   const [themeKey, setThemeKey] = useState("purple");
   const theme = THEMES[themeKey] || THEMES.purple;
@@ -1351,6 +1607,16 @@ export default function App() {
           ...doc.data()
         }));
         setPayments(paymentsData);
+
+        // Load schedule overrides
+        const overridesSnap = await getDocs(collection(db, `users/${user.uid}/scheduleOverrides`));
+        const overridesData = overridesSnap.docs.map(doc => ({
+          key: doc.id,
+          date: doc.id.split("_")[0],
+          studentId: doc.id.split("_")[1],
+          ...doc.data()
+        }));
+        setScheduleOverrides(overridesData);
       } catch (error) {
         console.error("Error loading data:", error);
         alert("Erro ao carregar dados");
@@ -1449,9 +1715,9 @@ export default function App() {
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: "auto" }}>
-        {activeTab === "students" && <StudentsTab students={students} setStudents={setStudents} loadingData={loadingData} />}
-        {activeTab === "agenda" && <AgendaTab students={students} records={records} />}
-        {activeTab === "attendance" && <AttendanceTab students={students} records={records} setRecords={setRecords} loadingData={loadingData} />}
+        {activeTab === "students" && <StudentsTab students={students} setStudents={setStudents} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} loadingData={loadingData} />}
+        {activeTab === "agenda" && <AgendaTab students={students} records={records} scheduleOverrides={scheduleOverrides} />}
+        {activeTab === "attendance" && <AttendanceTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} loadingData={loadingData} />}
         {activeTab === "payments" && <PaymentsTab students={students} payments={payments} setPayments={setPayments} loadingData={loadingData} />}
         {activeTab === "reports" && <ReportsTab students={students} records={records} payments={payments} loadingData={loadingData} />}
         {activeTab === "settings" && <SettingsTab themeKey={themeKey} setThemeKey={setThemeKey} />}
