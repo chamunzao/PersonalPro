@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 
 export function LoginPage() {
-  const { login, register, error, setError } = useAuth();
+  const { login, register, resetPassword, error, setError } = useAuth();
   const [tab, setTab] = useState('login'); // 'login' or 'register'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLocalError('');
+    setSuccessMessage('');
     if (!email || !password) {
       setLocalError('Preencha todos os campos');
       return;
@@ -20,7 +22,7 @@ export function LoginPage() {
     try {
       await login(email, password);
     } catch (err) {
-      setLocalError(error || 'Erro ao fazer login');
+      setLocalError(err.userMessage || 'Erro ao fazer login');
     } finally {
       setLoading(false);
     }
@@ -29,6 +31,7 @@ export function LoginPage() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setLocalError('');
+    setSuccessMessage('');
     if (!email || !password) {
       setLocalError('Preencha todos os campos');
       return;
@@ -41,7 +44,26 @@ export function LoginPage() {
     try {
       await register(email, password);
     } catch (err) {
-      setLocalError(error || 'Erro ao registrar');
+      setLocalError(err.userMessage || 'Erro ao registrar');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    setLocalError('');
+    setSuccessMessage('');
+    if (!email) {
+      setLocalError('Informe seu e-mail para redefinir a senha');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await resetPassword(email);
+      setSuccessMessage('Enviamos um link de redefinicao de senha para seu e-mail.');
+    } catch (err) {
+      setLocalError(err.userMessage || 'Erro ao enviar redefinicao de senha');
     } finally {
       setLoading(false);
     }
@@ -94,7 +116,7 @@ export function LoginPage() {
           background: '#f9fafb'
         }}>
           <button
-            onClick={() => { setTab('login'); setLocalError(''); setError(null); }}
+            onClick={() => { setTab('login'); setLocalError(''); setSuccessMessage(''); setError(null); }}
             style={{
               flex: 1,
               padding: '16px',
@@ -111,7 +133,7 @@ export function LoginPage() {
             Entrar
           </button>
           <button
-            onClick={() => { setTab('register'); setLocalError(''); setError(null); }}
+            onClick={() => { setTab('register'); setLocalError(''); setSuccessMessage(''); setError(null); }}
             style={{
               flex: 1,
               padding: '16px',
@@ -144,6 +166,20 @@ export function LoginPage() {
               border: '1px solid #fecaca'
             }}>
               {displayError}
+            </div>
+          )}
+
+          {successMessage && (
+            <div style={{
+              background: '#d1fae5',
+              color: '#065f46',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              marginBottom: '20px',
+              border: '1px solid #a7f3d0'
+            }}>
+              {successMessage}
             </div>
           )}
 
@@ -187,13 +223,32 @@ export function LoginPage() {
             </div>
 
             <div style={{ marginBottom: '24px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '13px',
-                fontWeight: '600',
-                color: '#1f2937',
-                marginBottom: '6px'
-              }}>Senha</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: '#1f2937'
+                }}>Senha</label>
+                {tab === 'login' && (
+                  <button
+                    type="button"
+                    onClick={handleResetPassword}
+                    disabled={loading}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: loading ? '#9ca3af' : '#7c3aed',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    Esqueci minha senha
+                  </button>
+                )}
+              </div>
               <input
                 type="password"
                 value={password}
