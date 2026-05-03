@@ -13,6 +13,16 @@ import {
   getScheduleOverrideId
 } from "./scheduleCalculations";
 
+function openWhatsAppMessage(phone, message) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (!digits) {
+    alert("Cadastre o WhatsApp do aluno para usar esta acao.");
+    return;
+  }
+  const phoneWithCountry = digits.startsWith("55") ? digits : `55${digits}`;
+  window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+}
+
 export function AgendaTab({ students, records, scheduleOverrides, setScheduleOverrides, theme }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDayModal, setSelectedDayModal] = useState(null);
@@ -279,6 +289,7 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, scheduleOverr
   const { user } = useAuth();
   const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum);
   const dateISO = formatDateISO(date);
+  const dateLabel = `${String(dayNum).padStart(2, "0")}/${String(currentDate.getMonth() + 1).padStart(2, "0")}/${currentDate.getFullYear()}`;
   const classes = getClassesForDate(dateISO, students, scheduleOverrides);
   const [showAddClass, setShowAddClass] = useState(false);
   const [addForm, setAddForm] = useState({ studentId: "", time: "", type: SCHEDULE_ITEM_TYPES.extra, note: "", pricePerClass: "" });
@@ -532,7 +543,19 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, scheduleOverr
               </span>
             )}
           </div>
-          <div style={{ display: "flex", gap: "6px", marginTop: "10px" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
+            <button
+              onClick={() => openWhatsAppMessage(cls.studentPhone, `Ola, ${cls.studentName}! Confirmando sua aula do dia ${dateLabel} as ${cls.time}. Pode confirmar?`)}
+              style={{ flex: 1, padding: "7px", background: "#dcfce7", border: "none", color: "#166534", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+            >
+              Confirmar
+            </button>
+            <button
+              onClick={() => openWhatsAppMessage(cls.studentPhone, `Ola, ${cls.studentName}! Se precisar trocar o horario da aula do dia ${dateLabel}, me avise por aqui para combinarmos a remarcacao.`)}
+              style={{ flex: 1, padding: "7px", background: "#eff6ff", border: "none", color: "#1d4ed8", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+            >
+              WhatsApp
+            </button>
             <button
               onClick={() => {
                 setRescheduleKey(rescheduleKey === cls.key ? null : cls.key);

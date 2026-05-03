@@ -18,6 +18,7 @@ import {
   getBillingStatusColors,
   getBillingStatusLabel
 } from '../billing/billingCalculations';
+import { EXERCISE_LIBRARY, WORKOUT_TEMPLATES } from '../workouts/workoutPresets';
 
 function IconPlus() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>;
@@ -557,7 +558,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ name: "", active: true, exercises: [] });
-  const [exerciseForm, setExerciseForm] = useState({ name: "", sets: "", reps: "", weight: "", rest: "", notes: "" });
+  const [exerciseForm, setExerciseForm] = useState({ name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" });
 
   async function saveWorkout() {
     if (!formData.name.trim() || formData.exercises.length === 0) return;
@@ -590,7 +591,29 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
       ...f,
       exercises: [...f.exercises, { ...exerciseForm }]
     }));
-    setExerciseForm({ name: "", sets: "", reps: "", weight: "", rest: "", notes: "" });
+    setExerciseForm({ name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" });
+  }
+
+  function applyTemplate(templateId) {
+    const template = WORKOUT_TEMPLATES.find(item => item.id === templateId);
+    if (!template) return;
+    setFormData({
+      name: template.name,
+      active: true,
+      exercises: template.exercises.map(exercise => ({ ...exercise }))
+    });
+  }
+
+  function applyLibraryExercise(exerciseName) {
+    const exercise = EXERCISE_LIBRARY.find(item => item.name === exerciseName);
+    if (!exercise) return;
+    setExerciseForm(form => ({
+      ...form,
+      name: exercise.name,
+      muscleGroup: exercise.muscleGroup,
+      equipment: exercise.equipment,
+      instructions: exercise.instructions
+    }));
   }
 
   function removeExercise(idx) {
@@ -658,6 +681,28 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
       {showNewWorkout && (
         <div style={{ background: "#f9fafb", padding: "16px", borderRadius: "8px", border: `1px solid ${theme.light}` }}>
           <div style={{ marginBottom: "12px" }}>
+            <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Usar template</label>
+            <select
+              onChange={(e) => applyTemplate(e.target.value)}
+              defaultValue=""
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontSize: "12px",
+                boxSizing: "border-box",
+                fontFamily: "inherit"
+              }}
+            >
+              <option value="">Selecionar modelo pronto</option>
+              {WORKOUT_TEMPLATES.map(template => (
+                <option key={template.id} value={template.id}>{template.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ marginBottom: "12px" }}>
             <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Nome do Treino</label>
             <input
               type="text"
@@ -691,18 +736,66 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
           <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "12px" }}>
             {formData.exercises.map((ex, idx) => (
               <div key={idx} style={{ background: "white", padding: "8px", borderRadius: "6px", border: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "12px", color: "#1f2937" }}>{ex.name} ({ex.sets}s x {ex.reps}r)</span>
+                <span style={{ fontSize: "12px", color: "#1f2937" }}>
+                  {ex.name} ({ex.sets}s x {ex.reps}r)
+                  {(ex.muscleGroup || ex.equipment) && <span style={{ color: "#9ca3af" }}> - {[ex.muscleGroup, ex.equipment].filter(Boolean).join(" / ")}</span>}
+                </span>
                 <button onClick={() => removeExercise(idx)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "16px" }}>×</button>
               </div>
             ))}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "12px" }}>
+            <select
+              value={EXERCISE_LIBRARY.some(item => item.name === exerciseForm.name) ? exerciseForm.name : ""}
+              onChange={(e) => applyLibraryExercise(e.target.value)}
+              style={{
+                padding: "8px 10px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontSize: "12px",
+                boxSizing: "border-box",
+                fontFamily: "inherit"
+              }}
+            >
+              <option value="">Biblioteca de exercicios</option>
+              {EXERCISE_LIBRARY.map(exercise => (
+                <option key={exercise.name} value={exercise.name}>{exercise.name}</option>
+              ))}
+            </select>
             <input
               type="text"
               value={exerciseForm.name}
               onChange={(e) => setExerciseForm(f => ({ ...f, name: e.target.value }))}
               placeholder="Nome do exercício"
+              style={{
+                padding: "8px 10px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontSize: "12px",
+                boxSizing: "border-box",
+                fontFamily: "inherit"
+              }}
+            />
+            <input
+              type="text"
+              value={exerciseForm.muscleGroup}
+              onChange={(e) => setExerciseForm(f => ({ ...f, muscleGroup: e.target.value }))}
+              placeholder="Grupo muscular"
+              style={{
+                padding: "8px 10px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontSize: "12px",
+                boxSizing: "border-box",
+                fontFamily: "inherit"
+              }}
+            />
+            <input
+              type="text"
+              value={exerciseForm.equipment}
+              onChange={(e) => setExerciseForm(f => ({ ...f, equipment: e.target.value }))}
+              placeholder="Equipamento"
               style={{
                 padding: "8px 10px",
                 border: "1px solid #d1d5db",
@@ -774,6 +867,21 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
               onChange={(e) => setExerciseForm(f => ({ ...f, notes: e.target.value }))}
               placeholder="Observações"
               style={{
+                padding: "8px 10px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontSize: "12px",
+                boxSizing: "border-box",
+                fontFamily: "inherit"
+              }}
+            />
+            <input
+              type="text"
+              value={exerciseForm.instructions}
+              onChange={(e) => setExerciseForm(f => ({ ...f, instructions: e.target.value }))}
+              placeholder="Instrucao tecnica"
+              style={{
+                gridColumn: "1 / -1",
                 padding: "8px 10px",
                 border: "1px solid #d1d5db",
                 borderRadius: "6px",
@@ -911,7 +1019,13 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                 <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #e5e7eb" }}>
                   {plan.exercises.map((ex, idx) => (
                     <div key={idx} style={{ fontSize: "11px", padding: "4px 0", display: "flex", justifyContent: "space-between" }}>
-                      <span><strong>{ex.name}</strong></span>
+                      <span>
+                        <strong>{ex.name}</strong>
+                        {(ex.muscleGroup || ex.equipment) && (
+                          <span style={{ color: "#9ca3af" }}> - {[ex.muscleGroup, ex.equipment].filter(Boolean).join(" / ")}</span>
+                        )}
+                        {ex.instructions && <p style={{ color: "#6b7280", margin: "2px 0 0 0" }}>{ex.instructions}</p>}
+                      </span>
                       <span style={{ color: "#9ca3af" }}>{ex.sets}s × {ex.reps}r {ex.weight ? `@ ${ex.weight}` : ""}</span>
                     </div>
                   ))}

@@ -83,6 +83,7 @@ export function getClassesForDate(dateISO, students, scheduleOverrides) {
       classes.push({
         studentId: student.id,
         studentName: student.name,
+        studentPhone: student.phone || "",
         time: item.time,
         pricePerClass: item.pricePerClass ?? student.pricePerClass,
         scheduleType: item.type || SCHEDULE_ITEM_TYPES.fixed,
