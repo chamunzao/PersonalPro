@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 
 export function useLocalStorage(key, initialValue) {
+  // Never use this helper for auth tokens, passwords, or sensitive student data.
   const [value, setValue] = useState(() => {
     try {
       const stored = localStorage.getItem(key)

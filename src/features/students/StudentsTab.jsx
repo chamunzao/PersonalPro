@@ -13,7 +13,7 @@ import {
 } from '../../firebase';
 import { DAYS } from '../../lib/constants';
 import { formatCurrency } from '../../lib/money';
-import { formatDate, formatDateISO } from '../../lib/dates';
+import { formatDate, formatDateISO, parseBrazilianDate } from '../../lib/dates';
 import {
   BILLING_TYPES,
   calculateBillingStatus,
@@ -54,6 +54,10 @@ function IconCopy() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16H2a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/></svg>;
 }
 
+function IconHistory() {
+  return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v5l3 2"/></svg>;
+}
+
 const DEFAULT_ANAMNESIS = {
   goal: "",
   trainingHistory: "",
@@ -66,6 +70,26 @@ const DEFAULT_ANAMNESIS = {
   availability: "",
   notes: ""
 };
+
+function getRecordParts(recordKey) {
+  const [date, studentId, ...timeParts] = recordKey.split("_");
+  return {
+    date,
+    studentId,
+    time: timeParts.join("_")
+  };
+}
+
+function getSafeImageUrl(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "https:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
 
 // ==================== STUDENT PROFILE ====================
 function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) {
@@ -126,7 +150,8 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
     { id: "anamnese", label: "Anamnese", icon: <IconUser /> },
     { id: "medidas", label: "Medidas", icon: <IconRuler /> },
     { id: "fotos", label: "Fotos", icon: <IconRuler /> },
-    { id: "treinos", label: "Treinos", icon: <IconDumbbell /> }
+    { id: "treinos", label: "Treinos", icon: <IconDumbbell /> },
+    { id: "historico", label: "Histórico", icon: <IconHistory /> }
   ];
 
   return (
@@ -188,6 +213,7 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
       {activeTab === "medidas" && <MeasurementsTabContent studentId={studentId} measurements={measurements} setMeasurements={setMeasurements} showNewMeasurement={showNewMeasurement} setShowNewMeasurement={setShowNewMeasurement} expandedMeasurement={expandedMeasurement} setExpandedMeasurement={setExpandedMeasurement} theme={theme} />}
       {activeTab === "fotos" && <ProgressPhotosTabContent studentId={studentId} photos={progressPhotos} setPhotos={setProgressPhotos} showNewPhoto={showNewPhoto} setShowNewPhoto={setShowNewPhoto} theme={theme} />}
       {activeTab === "treinos" && <WorkoutsTabContent studentId={studentId} workoutPlans={workoutPlans} setWorkoutPlans={setWorkoutPlans} showNewWorkout={showNewWorkout} setShowNewWorkout={setShowNewWorkout} expandedWorkout={expandedWorkout} setExpandedWorkout={setExpandedWorkout} theme={theme} />}
+      {activeTab === "historico" && <ClassHistoryTabContent studentId={studentId} records={records} workoutPlans={workoutPlans} theme={theme} />}
     </div>
   );
 }
@@ -311,6 +337,110 @@ function DataTabContent({ student, records, onEdit, theme }) {
   );
 }
 
+function ClassHistoryTabContent({ studentId, records, workoutPlans, theme }) {
+  const [expandedKey, setExpandedKey] = useState(null);
+  const studentRecords = records
+    .filter(record => getRecordParts(record.key).studentId === studentId)
+    .map(record => {
+      const parts = getRecordParts(record.key);
+      return {
+        ...record,
+        date: parts.date,
+        time: parts.time,
+        dateObj: parseBrazilianDate(parts.date)
+      };
+    })
+    .sort((a, b) => {
+      const dateDiff = b.dateObj - a.dateObj;
+      if (dateDiff !== 0) return dateDiff;
+      return b.time.localeCompare(a.time);
+    });
+
+  const workoutVersions = workoutPlans
+    .filter(plan => plan.sourceClassKey || plan.previousWorkoutId || plan.updatedFromSessionAt)
+    .sort((a, b) => String(b.updatedFromSessionAt || b.createdAt || "").localeCompare(String(a.updatedFromSessionAt || a.createdAt || "")));
+
+  if (studentRecords.length === 0 && workoutVersions.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: "32px 16px", background: "#f9fafb", borderRadius: "8px", color: "#9ca3af" }}>
+        <p style={{ fontSize: "14px", margin: 0 }}>Nenhum histórico registrado para este aluno.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {workoutVersions.length > 0 && (
+        <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px" }}>
+          <h3 style={{ fontSize: "13px", fontWeight: "800", color: "#1f2937", margin: "0 0 8px 0" }}>Versões de treino recentes</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            {workoutVersions.slice(0, 5).map(plan => (
+              <div key={plan.id} style={{ padding: "8px", background: "#f9fafb", borderRadius: "6px", border: "1px solid #eef2f7" }}>
+                <p style={{ fontSize: "12px", fontWeight: "700", color: "#1f2937", margin: "0 0 3px 0" }}>{plan.name}</p>
+                <p style={{ fontSize: "11px", color: "#6b7280", margin: 0 }}>
+                  {plan.updatedFromSessionAt ? `Criado a partir da aula de ${plan.updatedFromSessionAt}` : plan.updatedAt ? `Editado em ${plan.updatedAt}` : `Criado em ${plan.createdAt || "-"}`}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {studentRecords.map(record => {
+          const isOpen = expandedKey === record.key;
+          const exerciseEntries = Object.entries(record.exerciseNotes || {}).filter(([, note]) => String(note || "").trim());
+          const hasDetails = record.sessionNote || record.activity || exerciseEntries.length > 0;
+          const statusColors = record.status === "present"
+            ? { background: "#d1fae5", color: "#047857", label: "Presente" }
+            : record.status === "absent"
+            ? { background: "#fee2e2", color: "#dc2626", label: "Falta" }
+            : { background: "#f3f4f6", color: "#6b7280", label: "Sem status" };
+
+          return (
+            <div key={record.key} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px" }}>
+              <button
+                onClick={() => setExpandedKey(isOpen ? null : record.key)}
+                style={{ width: "100%", textAlign: "left", background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start" }}>
+                  <div>
+                    <p style={{ fontSize: "14px", fontWeight: "800", color: "#1f2937", margin: "0 0 3px 0" }}>{record.date} - {record.time}</p>
+                    <p style={{ fontSize: "11px", color: "#6b7280", margin: 0 }}>
+                      {hasDetails ? "Com anotacoes de aula" : "Sem anotacoes"}
+                    </p>
+                  </div>
+                  <span style={{ flexShrink: 0, padding: "4px 8px", background: statusColors.background, color: statusColors.color, borderRadius: "4px", fontSize: "11px", fontWeight: "800" }}>
+                    {statusColors.label}
+                  </span>
+                </div>
+              </button>
+
+              {isOpen && (
+                <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #f3f4f6" }}>
+                  {record.activity && <p style={{ fontSize: "12px", color: "#4b5563", margin: "0 0 6px 0" }}><strong>Atividade:</strong> {record.activity}</p>}
+                  {record.sessionNote && <p style={{ fontSize: "12px", color: "#4b5563", margin: "0 0 8px 0", whiteSpace: "pre-wrap" }}><strong>Nota geral:</strong> {record.sessionNote}</p>}
+                  {exerciseEntries.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <p style={{ fontSize: "11px", fontWeight: "800", color: theme.primary, margin: 0 }}>Alteracoes por exercicio</p>
+                      {exerciseEntries.map(([index, note]) => (
+                        <div key={index} style={{ padding: "7px 8px", background: "#f9fafb", borderRadius: "6px", fontSize: "12px", color: "#374151" }}>
+                          Exercicio {Number(index) + 1}: {note}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!hasDetails && <p style={{ fontSize: "12px", color: "#9ca3af", margin: 0 }}>Nenhum detalhe registrado nesta aula.</p>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function AnamnesisTabContent({ studentId, anamnesis, setAnamnesis, theme }) {
   const { user } = useAuth();
   const [form, setForm] = useState(anamnesis || DEFAULT_ANAMNESIS);
@@ -422,14 +552,21 @@ function ProgressPhotosTabContent({ studentId, photos, setPhotos, showNewPhoto, 
   const [form, setForm] = useState({ date: formatDateISO(new Date()), frontUrl: "", sideUrl: "", backUrl: "", notes: "" });
 
   async function savePhotoSet() {
-    if (!user || (!form.frontUrl.trim() && !form.sideUrl.trim() && !form.backUrl.trim())) return;
+    const frontUrl = getSafeImageUrl(form.frontUrl);
+    const sideUrl = getSafeImageUrl(form.sideUrl);
+    const backUrl = getSafeImageUrl(form.backUrl);
+    if (!user || (!frontUrl && !sideUrl && !backUrl)) return;
+    if ((form.frontUrl.trim() && !frontUrl) || (form.sideUrl.trim() && !sideUrl) || (form.backUrl.trim() && !backUrl)) {
+      alert("Use apenas links de imagem HTTPS validos.");
+      return;
+    }
     setSaving(true);
     try {
       const data = {
         date: form.date,
-        frontUrl: form.frontUrl.trim(),
-        sideUrl: form.sideUrl.trim(),
-        backUrl: form.backUrl.trim(),
+        frontUrl,
+        sideUrl,
+        backUrl,
         notes: form.notes.trim(),
         createdAt: formatDate(new Date())
       };
@@ -546,8 +683,8 @@ function ProgressPhotosTabContent({ studentId, photos, setPhotos, showNewPhoto, 
                 {photoFields.map(field => (
                   <div key={field.key} style={{ background: "#f9fafb", borderRadius: "6px", overflow: "hidden", border: "1px solid #e5e7eb" }}>
                     <p style={{ fontSize: "10px", fontWeight: "700", color: "#6b7280", margin: "0", padding: "6px" }}>{field.label}</p>
-                    {photo[field.key] ? (
-                      <img src={photo[field.key]} alt={field.label} style={{ width: "100%", aspectRatio: "3 / 4", objectFit: "cover", display: "block" }} />
+                    {getSafeImageUrl(photo[field.key]) ? (
+                      <img src={getSafeImageUrl(photo[field.key])} alt={field.label} referrerPolicy="no-referrer" loading="lazy" style={{ width: "100%", aspectRatio: "3 / 4", objectFit: "cover", display: "block" }} />
                     ) : (
                       <div style={{ aspectRatio: "3 / 4", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: "11px" }}>Sem foto</div>
                     )}

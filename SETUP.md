@@ -2,6 +2,9 @@
 
 PersonalPro is a complete React + Vite SaaS platform for personal trainers with Firebase integration.
 
+The app is published as static files on GitHub Pages. Vite is used only to
+build those static files; GitHub Pages remains the public hosting target.
+
 ## Prerequisites
 
 - Node.js 16+ installed
@@ -36,36 +39,34 @@ npm install
 4. Enable Firebase Services:
    - In Firebase Console, go to Authentication
    - Enable "Email/Password" sign-in method
-   - In Firestore Database, create a database in test mode
-   - Update the security rules (see below)
+   - In Firestore Database, create a database
+   - Publish the security rules from `firestore.rules` before using real data
+   - In Authentication > Settings > Authorized domains, keep only the expected domains
+   - In App Check, enable protection for the web app before production use
 
 ## Firestore Security Rules
 
-Update your Firestore security rules to:
+Use the versioned rules in `firestore.rules`. They scope every document under
+`users/{userId}` to the authenticated owner, including students, workouts,
+measurements, photos, records, payments, settings, and schedule overrides.
 
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow create: if request.auth.uid == userId;
-      allow read, write: if request.auth.uid == userId;
-      
-      match /students/{document=**} {
-        allow read, write: if request.auth.uid == userId;
-      }
-      
-      match /records/{document=**} {
-        allow read, write: if request.auth.uid == userId;
-      }
-      
-      match /payments/{document=**} {
-        allow read, write: if request.auth.uid == userId;
-      }
-    }
-  }
-}
+Do not leave Firestore in test mode for production.
+
+If using Firebase CLI, deploy only the rules with:
+```bash
+firebase deploy --only firestore:rules
 ```
+
+## Firebase App Check And API Key Controls
+
+The Firebase web config in `src/firebase.js` is public by design. It is not a
+password, but the production project should still be protected:
+
+- Enable Firebase App Check for the web app.
+- Restrict Firebase Auth authorized domains to the GitHub Pages domain and any
+  local domains used for development.
+- Restrict the Google Cloud API key where possible.
+- Monitor Auth and Firestore usage for unexpected spikes.
 
 ## Development
 

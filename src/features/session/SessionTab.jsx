@@ -385,6 +385,43 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
         </div>
       </div>
 
+      {timeSlots.length > 0 && (
+        <div style={{
+          display: "flex",
+          gap: "8px",
+          overflowX: "auto",
+          paddingBottom: "8px",
+          marginBottom: "8px",
+          WebkitOverflowScrolling: "touch"
+        }}>
+          {timeSlots.map(time => {
+            const countAtTime = classes.filter(cls => cls.time === time).length;
+            const selected = selectedTime === time;
+            return (
+              <button
+                key={time}
+                onClick={() => setSelectedTime(time)}
+                style={{
+                  minWidth: "84px",
+                  padding: "9px 10px",
+                  background: selected ? theme.primary : "white",
+                  color: selected ? "white" : "#374151",
+                  border: selected ? `1px solid ${theme.primary}` : "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  fontWeight: "800",
+                  cursor: "pointer",
+                  boxShadow: selected ? "0 2px 8px rgba(0,0,0,0.12)" : "none"
+                }}
+              >
+                <span style={{ display: "block" }}>{time}</span>
+                <span style={{ display: "block", fontSize: "10px", opacity: 0.85 }}>{countAtTime} aluno{countAtTime === 1 ? "" : "s"}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {loadingData || loadingWorkouts ? (
         <p style={{ color: "#9ca3af", fontSize: "14px", textAlign: "center", padding: "24px" }}>Carregando...</p>
       ) : classesAtTime.length === 0 ? (
@@ -392,7 +429,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
           <p style={{ fontSize: "14px", margin: "0" }}>Nenhum aluno nesse horario</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "10px" }}>
           {classesAtTime.map(cls => {
             const classKey = getClassKey(selectedDateBR, cls.studentId, cls.time);
             const record = records.find(item => item.key === classKey);
@@ -413,7 +450,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                 background: "white",
                 border: `1px solid ${record?.sessionNote || Object.keys(record?.exerciseNotes || {}).length > 0 ? theme.medium : "#e5e7eb"}`,
                 borderRadius: "8px",
-                padding: "12px",
+                padding: "10px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "10px"
@@ -660,25 +697,26 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                   }}
                 />
 
-                <button
-                  onClick={() => saveSessionNotes(classKey)}
-                  disabled={saving}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    background: saving ? "#d1d5db" : theme.primary,
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    fontSize: "13px",
-                    fontWeight: "700",
-                    cursor: saving ? "not-allowed" : "pointer"
-                  }}
-                >
-                  {saving ? "Salvando..." : "Salvar anotacoes"}
-                </button>
+                <div style={{ display: "grid", gridTemplateColumns: activeWorkout ? "1fr 1fr" : "1fr", gap: "8px" }}>
+                  <button
+                    onClick={() => saveSessionNotes(classKey)}
+                    disabled={saving}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      background: saving ? "#d1d5db" : theme.primary,
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      cursor: saving ? "not-allowed" : "pointer"
+                    }}
+                  >
+                    {saving ? "Salvando..." : "Salvar notas"}
+                  </button>
 
-                {activeWorkout && (
+                  {activeWorkout && (
                   <button
                     onClick={() => createWorkoutVersionFromClass(classKey, cls.studentId, activeWorkout)}
                     disabled={savingWorkout || !hasSessionChanges(draft)}
@@ -689,14 +727,15 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                       color: savingWorkout || !hasSessionChanges(draft) ? "#9ca3af" : "white",
                       border: "none",
                       borderRadius: "6px",
-                      fontSize: "13px",
+                      fontSize: "12px",
                       fontWeight: "700",
                       cursor: savingWorkout || !hasSessionChanges(draft) ? "not-allowed" : "pointer"
                     }}
                   >
-                    {savingWorkout ? "Atualizando treino..." : "Criar nova versao do treino"}
+                    {savingWorkout ? "Atualizando..." : "Nova versao"}
                   </button>
-                )}
+                  )}
+                </div>
               </div>
             );
           })}

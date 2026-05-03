@@ -9,6 +9,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png'],
+      workbox: {
+        navigateFallback: '/PersonalPro/index.html',
+        runtimeCaching: []
+      },
       manifest: {
         name: 'PersonalPro',
         short_name: 'PersonalPro',
