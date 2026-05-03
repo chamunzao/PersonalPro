@@ -4,8 +4,10 @@ import {
   db,
   doc,
   setDoc,
+  updateDoc,
   collection,
-  getDocs
+  getDocs,
+  addDoc
 } from '../../firebase';
 import { formatDate, formatDateISO } from '../../lib/dates';
 import {
@@ -19,6 +21,8 @@ import { getAttendanceRecordDocId, updateAttendanceRecord } from '../attendance/
 function IconCheck() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
 }
+
+const EMPTY_EXERCISE = { name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" };
 
 function getClassKey(dateBR, studentId, time) {
   return `${dateBR}_${studentId}_${time}`;
@@ -39,12 +43,41 @@ function getActiveWorkout(workoutPlans) {
   return workoutPlans.find(plan => plan.active) || workoutPlans[0];
 }
 
+function hasSessionChanges(draft) {
+  if (draft?.sessionNote?.trim()) return true;
+  return Object.values(draft?.exerciseNotes || {}).some(note => String(note || "").trim());
+}
+
+function buildWorkoutVersionFromSession(activeWorkout, draft, selectedDateBR) {
+  const exerciseNotes = draft?.exerciseNotes || {};
+  return {
+    ...activeWorkout,
+    name: `${activeWorkout.name} - atualizado ${selectedDateBR}`,
+    createdAt: selectedDateBR,
+    updatedFromSessionAt: selectedDateBR,
+    active: true,
+    exercises: (activeWorkout.exercises || []).map((exercise, index) => {
+      const sessionChange = String(exerciseNotes[index] || "").trim();
+      if (!sessionChange) return { ...exercise };
+
+      const previousNotes = exercise.notes ? `${exercise.notes}\n` : "";
+      return {
+        ...exercise,
+        notes: `${previousNotes}Aula ${selectedDateBR}: ${sessionChange}`
+      };
+    }),
+    sessionSummary: draft?.sessionNote || ""
+  };
+}
+
 function SessionTab({ students, records, setRecords, payments, scheduleOverrides, loadingData, theme }) {
   const { user } = useAuth();
   const [selectedDateISO, setSelectedDateISO] = useState(formatDateISO(new Date()));
   const [selectedTime, setSelectedTime] = useState("");
   const [workoutsByStudent, setWorkoutsByStudent] = useState({});
   const [drafts, setDrafts] = useState({});
+  const [editingWorkoutKey, setEditingWorkoutKey] = useState(null);
+  const [workoutEditForms, setWorkoutEditForms] = useState({});
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
   const [savingKey, setSavingKey] = useState(null);
 
@@ -175,11 +208,132 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     }
   }
 
+  async function createWorkoutVersionFromClass(classKey, studentId, activeWorkout) {
+    if (!user || !activeWorkout) return;
+    const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {} };
+    if (!hasSessionChanges(draft)) {
+      alert("Anote alguma alteracao da aula antes de atualizar o treino.");
+      return;
+    }
+
+    setSavingKey(`workout-${classKey}`);
+    try {
+      await saveSessionNotes(classKey);
+
+      await updateDoc(doc(db, `users/${user.uid}/students/${studentId}/workoutPlans/${activeWorkout.id}`), {
+        active: false
+      });
+
+      const newWorkout = buildWorkoutVersionFromSession(activeWorkout, draft, selectedDateBR);
+      const previousWorkoutId = newWorkout.id;
+      delete newWorkout.id;
+      newWorkout.previousWorkoutId = previousWorkoutId;
+      newWorkout.sourceClassKey = classKey;
+
+      const docRef = await addDoc(collection(db, `users/${user.uid}/students/${studentId}/workoutPlans`), newWorkout);
+      setWorkoutsByStudent(prev => {
+        const currentPlans = prev[studentId] || [];
+        return {
+          ...prev,
+          [studentId]: [
+            { id: docRef.id, ...newWorkout },
+            ...currentPlans.map(plan => plan.id === activeWorkout.id ? { ...plan, active: false } : plan)
+          ]
+        };
+      });
+    } catch (error) {
+      console.error("Error creating workout version:", error);
+      alert("Erro ao criar nova versao do treino");
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
   function updateDraft(classKey, updater) {
     setDrafts(prev => ({
       ...prev,
       [classKey]: updater(prev[classKey] || { sessionNote: "", exerciseNotes: {} })
     }));
+  }
+
+  function startEditWorkoutFromClass(classKey, activeWorkout) {
+    setEditingWorkoutKey(classKey);
+    setWorkoutEditForms(prev => ({
+      ...prev,
+      [classKey]: {
+        name: activeWorkout.name || "",
+        active: activeWorkout.active !== false,
+        exercises: (activeWorkout.exercises || []).map(exercise => ({ ...EMPTY_EXERCISE, ...exercise }))
+      }
+    }));
+  }
+
+  function updateWorkoutEditForm(classKey, updater) {
+    setWorkoutEditForms(prev => ({
+      ...prev,
+      [classKey]: updater(prev[classKey] || { name: "", active: true, exercises: [] })
+    }));
+  }
+
+  function addWorkoutExercise(classKey) {
+    updateWorkoutEditForm(classKey, form => ({
+      ...form,
+      exercises: [...(form.exercises || []), { ...EMPTY_EXERCISE }]
+    }));
+  }
+
+  function removeWorkoutExercise(classKey, index) {
+    updateWorkoutEditForm(classKey, form => ({
+      ...form,
+      exercises: (form.exercises || []).filter((_, itemIndex) => itemIndex !== index)
+    }));
+  }
+
+  function updateWorkoutExercise(classKey, index, patch) {
+    updateWorkoutEditForm(classKey, form => ({
+      ...form,
+      exercises: (form.exercises || []).map((exercise, itemIndex) => (
+        itemIndex === index ? { ...exercise, ...patch } : exercise
+      ))
+    }));
+  }
+
+  async function saveWorkoutEdits(classKey, studentId, activeWorkout) {
+    if (!user || !activeWorkout) return;
+    const form = workoutEditForms[classKey];
+    if (!form?.name?.trim()) {
+      alert("Informe o nome do treino.");
+      return;
+    }
+    const exercises = (form.exercises || []).filter(exercise => exercise.name?.trim());
+    if (exercises.length === 0) {
+      alert("Inclua pelo menos um exercicio no treino.");
+      return;
+    }
+
+    setSavingKey(`edit-workout-${classKey}`);
+    try {
+      const payload = {
+        name: form.name,
+        active: form.active !== false,
+        exercises,
+        updatedAt: selectedDateBR,
+        updatedFromClassKey: classKey
+      };
+      await updateDoc(doc(db, `users/${user.uid}/students/${studentId}/workoutPlans/${activeWorkout.id}`), payload);
+      setWorkoutsByStudent(prev => ({
+        ...prev,
+        [studentId]: (prev[studentId] || []).map(plan => (
+          plan.id === activeWorkout.id ? { ...plan, ...payload } : plan
+        ))
+      }));
+      setEditingWorkoutKey(null);
+    } catch (error) {
+      console.error("Error saving workout edits:", error);
+      alert("Erro ao salvar edicao do treino");
+    } finally {
+      setSavingKey(null);
+    }
   }
 
   return (
@@ -250,6 +404,9 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
               : { hasAdvancePackage: false, status: "none", remainingClasses: null };
             const creditColors = getAdvanceCreditStatusColors(creditStatus);
             const saving = savingKey === classKey;
+            const savingWorkout = savingKey === `workout-${classKey}`;
+            const editingWorkout = editingWorkoutKey === classKey;
+            const workoutForm = workoutEditForms[classKey] || { name: activeWorkout?.name || "", active: activeWorkout?.active !== false, exercises: activeWorkout?.exercises || [] };
 
             return (
               <div key={classKey} style={{
@@ -305,8 +462,27 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
 
                 {activeWorkout ? (
                   <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: "10px" }}>
-                    <p style={{ fontSize: "12px", fontWeight: "800", color: theme.primary, margin: "0 0 8px 0" }}>{activeWorkout.name}</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "center", marginBottom: "8px" }}>
+                      <p style={{ fontSize: "12px", fontWeight: "800", color: theme.primary, margin: "0" }}>{activeWorkout.name}</p>
+                      <button
+                        onClick={() => editingWorkout ? setEditingWorkoutKey(null) : startEditWorkoutFromClass(classKey, activeWorkout)}
+                        style={{
+                          padding: "5px 8px",
+                          background: editingWorkout ? "#f3f4f6" : theme.light,
+                          color: editingWorkout ? "#6b7280" : theme.dark,
+                          border: "none",
+                          borderRadius: "6px",
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          cursor: "pointer",
+                          flexShrink: 0
+                        }}
+                      >
+                        {editingWorkout ? "Fechar edicao" : "Editar treino"}
+                      </button>
+                    </div>
+
+                    {!editingWorkout && <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                       {(activeWorkout.exercises || []).map((exercise, index) => (
                         <div key={`${exercise.name}-${index}`} style={{ background: "#f9fafb", border: "1px solid #eef2f7", borderRadius: "8px", padding: "8px" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", marginBottom: "6px" }}>
@@ -344,7 +520,122 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                           />
                         </div>
                       ))}
-                    </div>
+                    </div>}
+
+                    {editingWorkout && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <input
+                          type="text"
+                          value={workoutForm.name}
+                          onChange={(event) => updateWorkoutEditForm(classKey, form => ({ ...form, name: event.target.value }))}
+                          placeholder="Nome do treino"
+                          style={{
+                            width: "100%",
+                            padding: "8px 10px",
+                            border: "1px solid #d1d5db",
+                            borderRadius: "6px",
+                            fontSize: "13px",
+                            boxSizing: "border-box",
+                            fontFamily: "inherit"
+                          }}
+                        />
+                        {(workoutForm.exercises || []).map((exercise, index) => (
+                          <div key={index} style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "8px" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 72px 72px", gap: "6px", marginBottom: "6px" }}>
+                              <input
+                                type="text"
+                                value={exercise.name || ""}
+                                onChange={(event) => updateWorkoutExercise(classKey, index, { name: event.target.value })}
+                                placeholder="Exercicio"
+                                style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
+                              />
+                              <input
+                                type="text"
+                                value={exercise.sets || ""}
+                                onChange={(event) => updateWorkoutExercise(classKey, index, { sets: event.target.value })}
+                                placeholder="Series"
+                                style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
+                              />
+                              <input
+                                type="text"
+                                value={exercise.reps || ""}
+                                onChange={(event) => updateWorkoutExercise(classKey, index, { reps: event.target.value })}
+                                placeholder="Reps"
+                                style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
+                              />
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginBottom: "6px" }}>
+                              <input
+                                type="text"
+                                value={exercise.weight || ""}
+                                onChange={(event) => updateWorkoutExercise(classKey, index, { weight: event.target.value })}
+                                placeholder="Carga"
+                                style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
+                              />
+                              <input
+                                type="text"
+                                value={exercise.rest || ""}
+                                onChange={(event) => updateWorkoutExercise(classKey, index, { rest: event.target.value })}
+                                placeholder="Descanso"
+                                style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
+                              />
+                            </div>
+                            <textarea
+                              value={exercise.notes || ""}
+                              onChange={(event) => updateWorkoutExercise(classKey, index, { notes: event.target.value })}
+                              placeholder="Observacoes do exercicio"
+                              style={{ width: "100%", minHeight: "44px", padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", resize: "vertical", marginBottom: "6px" }}
+                            />
+                            <button
+                              onClick={() => removeWorkoutExercise(classKey, index)}
+                              style={{
+                                padding: "6px 8px",
+                                background: "#fee2e2",
+                                color: "#dc2626",
+                                border: "none",
+                                borderRadius: "6px",
+                                fontSize: "11px",
+                                fontWeight: "800",
+                                cursor: "pointer"
+                              }}
+                            >
+                              Remover exercicio
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() => addWorkoutExercise(classKey)}
+                          style={{
+                            padding: "8px",
+                            background: "#f3f4f6",
+                            color: "#374151",
+                            border: "none",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: "800",
+                            cursor: "pointer"
+                          }}
+                        >
+                          + Adicionar exercicio
+                        </button>
+                        <button
+                          onClick={() => saveWorkoutEdits(classKey, cls.studentId, activeWorkout)}
+                          disabled={savingKey === `edit-workout-${classKey}`}
+                          style={{
+                            padding: "10px",
+                            background: savingKey === `edit-workout-${classKey}` ? "#d1d5db" : theme.primary,
+                            color: "white",
+                            border: "none",
+                            borderRadius: "6px",
+                            fontSize: "13px",
+                            fontWeight: "800",
+                            cursor: savingKey === `edit-workout-${classKey}` ? "not-allowed" : "pointer"
+                          }}
+                        >
+                          {savingKey === `edit-workout-${classKey}` ? "Salvando treino..." : "Salvar treino corrigido"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div style={{ background: "#f9fafb", border: "1px dashed #d1d5db", borderRadius: "8px", padding: "12px" }}>
@@ -386,6 +677,26 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                 >
                   {saving ? "Salvando..." : "Salvar anotacoes"}
                 </button>
+
+                {activeWorkout && (
+                  <button
+                    onClick={() => createWorkoutVersionFromClass(classKey, cls.studentId, activeWorkout)}
+                    disabled={savingWorkout || !hasSessionChanges(draft)}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      background: savingWorkout || !hasSessionChanges(draft) ? "#e5e7eb" : "#111827",
+                      color: savingWorkout || !hasSessionChanges(draft) ? "#9ca3af" : "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "13px",
+                      fontWeight: "700",
+                      cursor: savingWorkout || !hasSessionChanges(draft) ? "not-allowed" : "pointer"
+                    }}
+                  >
+                    {savingWorkout ? "Atualizando treino..." : "Criar nova versao do treino"}
+                  </button>
+                )}
               </div>
             );
           })}

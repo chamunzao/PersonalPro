@@ -3,11 +3,13 @@ import { parseBrazilianDate } from "../../lib/dates";
 export const BILLING_TYPES = {
   perClass: "per_class",
   package: "package",
+  monthlyPackage: "monthly_package",
   monthly: "monthly"
 };
 
 export function getBillingTypeLabel(type) {
   if (type === BILLING_TYPES.package) return "Pacote";
+  if (type === BILLING_TYPES.monthlyPackage) return "Pacote mensal";
   if (type === BILLING_TYPES.monthly) return "Mensalidade";
   return "Por aula";
 }
@@ -168,10 +170,11 @@ export function calculateBillingStatus(student, records, asOf = new Date()) {
   const billingType = student.billingType || BILLING_TYPES.perClass;
   const storedCycleStartDate = parseISODate(student.billingCycleStart);
   const storedDueDate = parseISODate(student.billingDueDate);
-  const cycleStartDate = billingType === BILLING_TYPES.monthly && student.billingAutoRenew !== false && storedCycleStartDate
+  const renewsMonthly = (billingType === BILLING_TYPES.monthly || billingType === BILLING_TYPES.monthlyPackage) && student.billingAutoRenew !== false;
+  const cycleStartDate = renewsMonthly && storedCycleStartDate
     ? getMonthlyCycleDate(storedCycleStartDate, asOf)
     : storedCycleStartDate;
-  const dueDate = billingType === BILLING_TYPES.monthly && student.billingAutoRenew !== false && storedDueDate
+  const dueDate = renewsMonthly && storedDueDate
     ? getDateInMonth(storedDueDate, asOf.getFullYear(), asOf.getMonth())
     : storedDueDate;
   const contractedClasses = Number(student.packageClasses) || 0;

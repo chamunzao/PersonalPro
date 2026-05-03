@@ -840,6 +840,7 @@ function MeasurementsTabContent({ studentId, measurements, setMeasurements, show
 function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewWorkout, setShowNewWorkout, expandedWorkout, setExpandedWorkout, theme }) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [editingWorkoutId, setEditingWorkoutId] = useState(null);
   const [formData, setFormData] = useState({ name: "", active: true, exercises: [] });
   const [exerciseForm, setExerciseForm] = useState({ name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" });
 
@@ -849,16 +850,25 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
     setSaving(true);
 
     try {
+      const existingWorkout = editingWorkoutId ? workoutPlans.find(plan => plan.id === editingWorkoutId) : null;
       const data = {
         name: formData.name,
-        createdAt: formatDate(new Date()),
+        createdAt: existingWorkout?.createdAt || formatDate(new Date()),
         active: formData.active,
         exercises: formData.exercises
       };
 
-      const docRef = await addDoc(collection(db, `users/${user.uid}/students/${studentId}/workoutPlans`), data);
-      setWorkoutPlans(prev => [{ id: docRef.id, ...data }, ...prev]);
-      setFormData({ name: "", active: true, exercises: [] });
+      if (editingWorkoutId) {
+        await updateDoc(doc(db, `users/${user.uid}/students/${studentId}/workoutPlans/${editingWorkoutId}`), {
+          ...data,
+          updatedAt: formatDate(new Date())
+        });
+        setWorkoutPlans(prev => prev.map(plan => plan.id === editingWorkoutId ? { ...plan, ...data, updatedAt: formatDate(new Date()) } : plan));
+      } else {
+        const docRef = await addDoc(collection(db, `users/${user.uid}/students/${studentId}/workoutPlans`), data);
+        setWorkoutPlans(prev => [{ id: docRef.id, ...data }, ...prev]);
+      }
+      resetWorkoutForm();
       setShowNewWorkout(false);
     } catch (error) {
       console.error("Error saving workout:", error);
@@ -866,6 +876,24 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
     } finally {
       setSaving(false);
     }
+  }
+
+  function resetWorkoutForm() {
+    setEditingWorkoutId(null);
+    setFormData({ name: "", active: true, exercises: [] });
+    setExerciseForm({ name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" });
+  }
+
+  function startEditWorkout(plan) {
+    setEditingWorkoutId(plan.id);
+    setFormData({
+      name: plan.name || "",
+      active: plan.active !== false,
+      exercises: (plan.exercises || []).map(exercise => ({ ...exercise }))
+    });
+    setExerciseForm({ name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" });
+    setShowNewWorkout(true);
+    setExpandedWorkout(plan.id);
   }
 
   function addExercise() {
@@ -943,7 +971,15 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       <button
-        onClick={() => setShowNewWorkout(!showNewWorkout)}
+        onClick={() => {
+          if (showNewWorkout) {
+            resetWorkoutForm();
+            setShowNewWorkout(false);
+          } else {
+            resetWorkoutForm();
+            setShowNewWorkout(true);
+          }
+        }}
         style={{
           padding: "10px 16px",
           background: theme.primary,
@@ -958,7 +994,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
           gap: "6px"
         }}
       >
-        <IconPlus /> Novo Treino
+        <IconPlus /> {showNewWorkout ? "Fechar" : "Novo Treino"}
       </button>
 
       {showNewWorkout && (
@@ -968,6 +1004,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
             <select
               onChange={(e) => applyTemplate(e.target.value)}
               defaultValue=""
+              disabled={!!editingWorkoutId}
               style={{
                 width: "100%",
                 padding: "8px 10px",
@@ -1210,10 +1247,14 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                 cursor: "pointer"
               }}
             >
-              Salvar
+            Salvar
+              {editingWorkoutId ? " alteracoes" : ""}
             </button>
             <button
-              onClick={() => setShowNewWorkout(false)}
+              onClick={() => {
+                resetWorkoutForm();
+                setShowNewWorkout(false);
+              }}
               style={{
                 padding: "8px 16px",
                 background: "#f3f4f6",
@@ -1251,6 +1292,21 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                   <p style={{ fontSize: "10px", color: "#9ca3af", margin: "4px 0 0 0" }}>{plan.exercises?.length || 0} exercícios</p>
                 </div>
                 <div style={{ display: "flex", gap: "4px" }}>
+                  <button
+                    onClick={() => startEditWorkout(plan)}
+                    style={{
+                      padding: "4px 8px",
+                      background: theme.light,
+                      border: "none",
+                      color: theme.dark,
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontSize: "10px",
+                      fontWeight: "700"
+                    }}
+                  >
+                    Editar
+                  </button>
                   <button
                     onClick={() => toggleWorkoutActive(plan)}
                     title={plan.active ? "Desativar" : "Ativar"}
@@ -1404,9 +1460,12 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
     if (!form.pricePerClass) return "Informe o preço por aula. Mesmo em pacote, esse valor é usado nos relatórios.";
     if (Number(form.pricePerClass) <= 0) return "O preço por aula precisa ser maior que zero.";
     if (form.schedule.length === 0) return "Adicione pelo menos um horário da semana. Depois de escolher o horário, clique em + Adicionar.";
-    if (form.billingType !== BILLING_TYPES.perClass) {
+    if (form.billingType !== BILLING_TYPES.perClass && form.billingType !== BILLING_TYPES.monthlyPackage) {
       if (!form.packageClasses) return "Informe a quantidade de aulas contratadas.";
       if (Number(form.packageClasses) <= 0) return "A quantidade de aulas contratadas precisa ser maior que zero.";
+    }
+
+    if (form.billingType !== BILLING_TYPES.perClass) {
       if (!form.packagePrice) return "Informe o valor do plano.";
       if (Number(form.packagePrice) <= 0) return "O valor do plano precisa ser maior que zero.";
     }
@@ -1434,11 +1493,11 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
         phone: form.phone.replace(/\D/g, ""),
         birthDate: form.birthDate,
         billingType: form.billingType,
-        packageClasses: form.billingType === BILLING_TYPES.perClass ? null : parseInt(form.packageClasses, 10),
+        packageClasses: form.billingType === BILLING_TYPES.perClass || form.billingType === BILLING_TYPES.monthlyPackage ? null : parseInt(form.packageClasses, 10),
         packagePrice: form.billingType === BILLING_TYPES.perClass ? null : parseFloat(form.packagePrice),
         billingCycleStart: form.billingType === BILLING_TYPES.perClass ? null : form.billingCycleStart,
         billingDueDate: form.billingType === BILLING_TYPES.perClass ? null : form.billingDueDate,
-        billingAutoRenew: form.billingType === BILLING_TYPES.monthly ? form.billingAutoRenew : false
+        billingAutoRenew: form.billingType === BILLING_TYPES.monthly || form.billingType === BILLING_TYPES.monthlyPackage ? form.billingAutoRenew : false
       };
 
       if (editId) {
@@ -1638,14 +1697,15 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
               >
                 <option value={BILLING_TYPES.perClass}>Por aula</option>
                 <option value={BILLING_TYPES.package}>Pacote de aulas</option>
+                <option value={BILLING_TYPES.monthlyPackage}>Pacote mensal</option>
                 <option value={BILLING_TYPES.monthly}>Mensalidade</option>
               </select>
             </div>
 
             {form.billingType !== BILLING_TYPES.perClass && (
               <>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-                  <div>
+                <div style={{ display: "grid", gridTemplateColumns: form.billingType === BILLING_TYPES.monthlyPackage ? "1fr" : "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
+                  {form.billingType !== BILLING_TYPES.monthlyPackage && <div>
                     <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Aulas contratadas</label>
                     <input
                       type="number"
@@ -1664,9 +1724,11 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                         fontFamily: "inherit"
                       }}
                     />
-                  </div>
+                  </div>}
                   <div>
-                    <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Valor do plano (R$)</label>
+                    <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                      {form.billingType === BILLING_TYPES.monthlyPackage ? "Valor mensal previsto (R$)" : "Valor do plano (R$)"}
+                    </label>
                     <input
                       type="number"
                       value={form.packagePrice}
@@ -1687,6 +1749,12 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                     />
                   </div>
                 </div>
+
+                {form.billingType === BILLING_TYPES.monthlyPackage && (
+                  <p style={{ fontSize: "11px", color: "#6b7280", margin: "0 0 10px 0" }}>
+                    No pacote mensal, o app calcula as aulas do mes pela agenda do aluno e usa este valor como cobranca prevista.
+                  </p>
+                )}
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: form.billingType === BILLING_TYPES.monthly ? "10px" : "0" }}>
                   <div>
@@ -1727,7 +1795,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                   </div>
                 </div>
 
-                {form.billingType === BILLING_TYPES.monthly && (
+                {(form.billingType === BILLING_TYPES.monthly || form.billingType === BILLING_TYPES.monthlyPackage) && (
                   <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", fontWeight: "600", color: "#4b5563" }}>
                     <input
                       type="checkbox"

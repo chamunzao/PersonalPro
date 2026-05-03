@@ -12,6 +12,7 @@ import { MONTHS } from '../../lib/constants';
 import { formatCurrency } from '../../lib/money';
 import { formatDate, formatDateISO, getDaysInMonth } from '../../lib/dates';
 import {
+  BILLING_TYPES,
   calculateAdvanceCreditStatus,
   calculateBillingStatus,
   getAdvanceCreditStatusColors,
@@ -255,6 +256,30 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
       .slice(0, 3);
   }
 
+  function useMonthlyPackageSuggestion(student) {
+    const monthlyClasses = countMonthlyClassesForStudent({
+      studentId: student.id,
+      students,
+      scheduleOverrides,
+      selectedYear,
+      selectedMonth
+    });
+    const suggestedAmount = Number(student.packagePrice) > 0
+      ? Number(student.packagePrice)
+      : monthlyClasses * (Number(student.pricePerClass) || 0);
+
+    setPackageForm(prev => ({
+      ...prev,
+      packageType: 'month',
+      studentId: student.id,
+      classesPurchased: monthlyClasses ? String(monthlyClasses) : '',
+      amountPaid: suggestedAmount ? String(suggestedAmount) : '',
+      dateISO: formatDateISO(new Date()),
+      validUntil: getLastDayOfMonthISO(selectedYear, selectedMonth),
+      note: `Pacote de aulas de ${MONTHS[selectedMonth]} de ${selectedYear}`
+    }));
+  }
+
   return (
     <div style={{ padding: '16px' }}>
       <h2 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 16px 0', color: '#1f2937' }}>Controle de Pagamentos</h2>
@@ -456,15 +481,25 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
           {students.map(student => {
             const paymentKey = `${monthKey}_${student.id}`;
             const payment = payments.find(p => p.key === paymentKey);
-            const isPaid = !!payment?.paid;
+            const monthPayments = payments.filter(p => getPaymentStudentId(p) === student.id && p.month === monthKey && p.paid);
+            const monthPackagePayment = monthPayments.find(p => p.type === 'package' && p.packageType === 'month');
+            const displayPayment = payment || monthPackagePayment || monthPayments[0];
+            const isPaid = !!displayPayment?.paid;
             const isEditing = editingKey === paymentKey;
             const isSaving = savingKey === paymentKey;
             const billingStatus = calculateBillingStatus(student, records, new Date(selectedYear, selectedMonth, 1));
             const billingColors = getBillingStatusColors(billingStatus);
             const creditStatus = calculateAdvanceCreditStatus(student, records, payments);
             const creditColors = getAdvanceCreditStatusColors(creditStatus);
-            const form = paymentForms[paymentKey] || getPaymentDefaults(payment, billingStatus);
+            const form = paymentForms[paymentKey] || getPaymentDefaults(displayPayment, billingStatus);
             const history = getStudentHistory(student.id);
+            const isMonthlyPackageStudent = billingStatus.billingType === BILLING_TYPES.monthlyPackage;
+            const monthlyClasses = isMonthlyPackageStudent
+              ? countMonthlyClassesForStudent({ studentId: student.id, students, scheduleOverrides, selectedYear, selectedMonth })
+              : 0;
+            const monthlyPackageAmount = Number(student.packagePrice) > 0
+              ? Number(student.packagePrice)
+              : monthlyClasses * (Number(student.pricePerClass) || 0);
 
             return (
               <div key={student.id} style={{
@@ -482,11 +517,11 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: '14px', fontWeight: '600', margin: '0 0 4px 0', color: '#1f2937' }}>{student.name}</p>
                     <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 4px 0' }}>
-                      {isPaid ? `Pago em ${payment.date}` : 'Pendente'}
-                      {isPaid && payment.amountPaid !== undefined ? ` - ${formatCurrency(payment.amountPaid)}` : ''}
+                      {isPaid ? `Pago em ${displayPayment.date}` : 'Pendente'}
+                      {isPaid && displayPayment.amountPaid !== undefined ? ` - ${formatCurrency(displayPayment.amountPaid)}` : ''}
                     </p>
-                    {payment?.note && (
-                      <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 6px 0', fontStyle: 'italic' }}>{payment.note}</p>
+                    {displayPayment?.note && (
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 6px 0', fontStyle: 'italic' }}>{displayPayment.note}</p>
                     )}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       <span style={{
@@ -522,7 +557,19 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                           Previsto {formatCurrency(billingStatus.planValue)}
                         </span>
                       )}
-                      {payment?.discount > 0 && (
+                      {isMonthlyPackageStudent && (
+                        <span style={{
+                          padding: '3px 7px',
+                          background: '#eef2ff',
+                          color: '#4338ca',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: '700'
+                        }}>
+                          {monthlyClasses} aulas em {MONTHS[selectedMonth]}
+                        </span>
+                      )}
+                      {displayPayment?.discount > 0 && (
                         <span style={{
                           padding: '3px 7px',
                           background: '#fff7ed',
@@ -531,10 +578,10 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                           fontSize: '11px',
                           fontWeight: '700'
                         }}>
-                          Desconto {formatCurrency(payment.discount)}
+                          Desconto {formatCurrency(displayPayment.discount)}
                         </span>
                       )}
-                      {payment?.surcharge > 0 && (
+                      {displayPayment?.surcharge > 0 && (
                         <span style={{
                           padding: '3px 7px',
                           background: '#eff6ff',
@@ -543,7 +590,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                           fontSize: '11px',
                           fontWeight: '700'
                         }}>
-                          Acrescimo {formatCurrency(payment.surcharge)}
+                          Acrescimo {formatCurrency(displayPayment.surcharge)}
                         </span>
                       )}
                       {billingStatus.remainingClasses !== null && (
@@ -590,7 +637,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                     </button>
                     {isPaid && (
                       <button
-                        onClick={() => deletePayment(student.id)}
+                        onClick={() => payment ? deletePayment(student.id) : deletePaymentByKey(displayPayment.key)}
                         disabled={isSaving}
                         style={{
                           padding: '8px 12px',
@@ -609,6 +656,47 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                     )}
                   </div>
                 </div>
+
+                {isMonthlyPackageStudent && (
+                  <div style={{
+                    marginTop: '10px',
+                    padding: '10px',
+                    background: isPaid ? '#ecfdf5' : '#fff7ed',
+                    border: `1px solid ${isPaid ? '#a7f3d0' : '#fed7aa'}`,
+                    borderRadius: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    alignItems: 'center'
+                  }}>
+                    <div>
+                      <p style={{ fontSize: '12px', fontWeight: '800', color: isPaid ? '#047857' : '#c2410c', margin: '0 0 3px 0' }}>
+                        Pacote mensal de {MONTHS[selectedMonth]}
+                      </p>
+                      <p style={{ fontSize: '11px', color: '#4b5563', margin: '0' }}>
+                        {monthlyClasses} aula{monthlyClasses === 1 ? '' : 's'} previstas - {formatCurrency(monthlyPackageAmount)}
+                      </p>
+                    </div>
+                    {!isPaid && (
+                      <button
+                        onClick={() => useMonthlyPackageSuggestion(student)}
+                        style={{
+                          padding: '8px 10px',
+                          background: theme.primary,
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                          flexShrink: 0
+                        }}
+                      >
+                        Usar pacote
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {isEditing && (
                   <div style={{
