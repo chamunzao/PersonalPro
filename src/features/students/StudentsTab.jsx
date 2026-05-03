@@ -1075,6 +1075,15 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
     }));
   }
 
+  function updateExercise(idx, patch) {
+    setFormData(f => ({
+      ...f,
+      exercises: f.exercises.map((exercise, exerciseIndex) => (
+        exerciseIndex === idx ? { ...exercise, ...patch } : exercise
+      ))
+    }));
+  }
+
   async function deleteWorkout(id) {
     if (!user || !window.confirm("Tem certeza?")) return;
     try {
@@ -1196,12 +1205,23 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
 
           <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "12px" }}>
             {formData.exercises.map((ex, idx) => (
-              <div key={idx} style={{ background: "white", padding: "8px", borderRadius: "6px", border: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "12px", color: "#1f2937" }}>
-                  {ex.name} ({ex.sets}s x {ex.reps}r)
-                  {(ex.muscleGroup || ex.equipment) && <span style={{ color: "#9ca3af" }}> - {[ex.muscleGroup, ex.equipment].filter(Boolean).join(" / ")}</span>}
-                </span>
-                <button onClick={() => removeExercise(idx)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "16px" }}>×</button>
+              <div key={idx} style={{ background: "white", padding: "10px", borderRadius: "6px", border: "1px solid #e5e7eb" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                  <p style={{ fontSize: "11px", color: "#6b7280", margin: 0, fontWeight: "700" }}>Exercicio {idx + 1}</p>
+                  <button onClick={() => removeExercise(idx)} style={{ background: "#fee2e2", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "12px", fontWeight: "700", borderRadius: "4px", padding: "4px 8px" }}>Remover</button>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr)", gap: "8px", marginBottom: "8px" }}>
+                  <input type="text" value={ex.name || ""} onChange={(e) => updateExercise(idx, { name: e.target.value })} placeholder="Exercicio" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
+                  <input type="text" value={ex.muscleGroup || ""} onChange={(e) => updateExercise(idx, { muscleGroup: e.target.value })} placeholder="Grupo muscular" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
+                  <input type="text" value={ex.equipment || ""} onChange={(e) => updateExercise(idx, { equipment: e.target.value })} placeholder="Equipamento" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "8px", marginBottom: "8px" }}>
+                  <input type="text" value={ex.sets || ""} onChange={(e) => updateExercise(idx, { sets: e.target.value })} placeholder="Series" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
+                  <input type="text" value={ex.reps || ""} onChange={(e) => updateExercise(idx, { reps: e.target.value })} placeholder="Reps" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
+                  <input type="text" value={ex.weight || ""} onChange={(e) => updateExercise(idx, { weight: e.target.value })} placeholder="Carga" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
+                  <input type="text" value={ex.rest || ""} onChange={(e) => updateExercise(idx, { rest: e.target.value })} placeholder="Descanso" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
+                </div>
+                <textarea value={ex.notes || ""} onChange={(e) => updateExercise(idx, { notes: e.target.value })} placeholder="Observacoes do exercicio" style={{ width: "100%", minHeight: "44px", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", resize: "vertical" }} />
               </div>
             ))}
           </div>
@@ -1436,17 +1456,17 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                   <button
                     onClick={() => startEditWorkout(plan)}
                     style={{
-                      padding: "4px 8px",
+                      padding: "7px 10px",
                       background: theme.light,
                       border: "none",
                       color: theme.dark,
-                      borderRadius: "4px",
+                      borderRadius: "6px",
                       cursor: "pointer",
-                      fontSize: "10px",
+                      fontSize: "12px",
                       fontWeight: "700"
                     }}
                   >
-                    Editar
+                    Editar treino
                   </button>
                   <button
                     onClick={() => toggleWorkoutActive(plan)}
