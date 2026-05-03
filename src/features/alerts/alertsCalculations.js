@@ -1,4 +1,4 @@
-import { BILLING_TYPES, calculateBillingStatus } from "../billing/billingCalculations";
+import { BILLING_TYPES, calculateAdvanceCreditStatus, calculateBillingStatus } from "../billing/billingCalculations";
 import { formatDate, formatDateISO, parseBrazilianDate } from "../../lib/dates";
 
 function getRecordParts(recordKey) {
@@ -93,6 +93,60 @@ function buildBillingAlert(student, billingStatus, payments, today) {
   return null;
 }
 
+function buildAdvanceCreditAlert(student, creditStatus) {
+  if (!creditStatus.hasAdvancePackage) return null;
+
+  if (creditStatus.status === "depleted") {
+    return {
+      id: `credit-depleted-${student.id}`,
+      type: "credit_depleted",
+      severity: "danger",
+      title: "Credito esgotado",
+      message: `${student.name} nao tem aulas pagas disponiveis.`,
+      studentId: student.id,
+      studentName: student.name
+    };
+  }
+
+  if (creditStatus.status === "expired") {
+    return {
+      id: `credit-expired-${student.id}`,
+      type: "credit_expired",
+      severity: "danger",
+      title: "Pacote vencido",
+      message: `${student.name} tem pacote vencido com ${creditStatus.remainingClasses} aula${creditStatus.remainingClasses === 1 ? "" : "s"} restante${creditStatus.remainingClasses === 1 ? "" : "s"}.`,
+      studentId: student.id,
+      studentName: student.name
+    };
+  }
+
+  if (creditStatus.status === "low_classes") {
+    return {
+      id: `credit-low-${student.id}`,
+      type: "credit_low",
+      severity: "warning",
+      title: "Renovacao proxima",
+      message: `${student.name} tem ${creditStatus.remainingClasses} aula${creditStatus.remainingClasses === 1 ? "" : "s"} paga${creditStatus.remainingClasses === 1 ? "" : "s"} restante${creditStatus.remainingClasses === 1 ? "" : "s"}.`,
+      studentId: student.id,
+      studentName: student.name
+    };
+  }
+
+  if (creditStatus.status === "expiring") {
+    return {
+      id: `credit-expiring-${student.id}`,
+      type: "credit_expiring",
+      severity: "warning",
+      title: "Pacote perto de vencer",
+      message: `${student.name} tem pacote vencendo em ${creditStatus.daysUntilExpiry} dia${creditStatus.daysUntilExpiry === 1 ? "" : "s"}.`,
+      studentId: student.id,
+      studentName: student.name
+    };
+  }
+
+  return null;
+}
+
 function buildInactivityAlert(student, records, today) {
   const lastPresentDate = getLastPresentDate(student.id, records);
   if (!lastPresentDate) return null;
@@ -145,7 +199,9 @@ const severityOrder = {
 export function calculateAlerts({ students, records, payments, getClassesForDate, today = new Date() }) {
   const studentAlerts = students.flatMap(student => {
     const billingStatus = calculateBillingStatus(student, records, today);
+    const creditStatus = calculateAdvanceCreditStatus(student, records, payments, today);
     return [
+      buildAdvanceCreditAlert(student, creditStatus),
       buildBillingAlert(student, billingStatus, payments, today),
       buildInactivityAlert(student, records, today)
     ].filter(Boolean);

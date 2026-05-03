@@ -17,6 +17,7 @@ import { ReportsTab } from './features/reports/ReportsTab';
 import { AlertsTab } from './features/alerts/AlertsTab';
 import { SettingsTab } from './features/settings/SettingsTab';
 import { CommunicationTab } from './features/communication/CommunicationTab';
+import { SessionTab } from './features/session/SessionTab';
 
 // ==================== THEME COLORS ====================
 const THEMES = {
@@ -44,6 +45,9 @@ function IconCalendar() {
 }
 function IconClipboard() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>;
+}
+function IconDumbbell() {
+  return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 0 1-2.829 0L2.515 8.172a2 2 0 0 1 0-2.829l2.828-2.828a2 2 0 0 1 2.829 0l13.313 13.313a2 2 0 0 1 0 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="m3.9 3.9-1.4-1.4"/><path d="m6.34 10.34-2.83 2.83"/><path d="m13.66 17.66-2.83 2.83"/></svg>;
 }
 function IconChart() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>;
@@ -104,10 +108,12 @@ export default function App() {
         // Load records
         const recordsSnap = await getDocs(collection(db, `users/${user.uid}/records`));
         const recordsData = recordsSnap.docs.map(doc => ({
-          key: doc.id,
+          key: doc.data().key || decodeURIComponent(doc.id),
           status: doc.data().status,
           activity: doc.data().activity || null,
-          customPrice: doc.data().customPrice || null
+          customPrice: doc.data().customPrice || null,
+          sessionNote: doc.data().sessionNote || null,
+          exerciseNotes: doc.data().exerciseNotes || {}
         }));
         setRecords(recordsData);
 
@@ -229,8 +235,9 @@ export default function App() {
         {activeTab === "dashboard" && <DashboardTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "students" && <StudentsTab students={students} setStudents={setStudents} records={records} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "agenda" && <AgendaTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} theme={theme} />}
+        {activeTab === "session" && <SessionTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "attendance" && <AttendanceTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
-        {activeTab === "payments" && <PaymentsTab students={students} records={records} payments={payments} setPayments={setPayments} loadingData={loadingData} theme={theme} />}
+        {activeTab === "payments" && <PaymentsTab students={students} records={records} payments={payments} setPayments={setPayments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "alerts" && <AlertsTab students={students} records={records} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "communication" && <CommunicationTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
         {activeTab === "reports" && <ReportsTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
@@ -250,6 +257,7 @@ export default function App() {
           { id: "dashboard", icon: <IconHome />, label: "Início" },
           { id: "students", icon: <IconUsers />, label: "Alunos" },
           { id: "agenda", icon: <IconCalendar />, label: "Agenda" },
+          { id: "session", icon: <IconDumbbell />, label: "Aula" },
           { id: "attendance", icon: <IconClipboard />, label: "Registro" },
           { id: "payments", icon: <IconCreditCard />, label: "Pagamentos" },
           { id: "alerts", icon: <IconBell />, label: "Alertas" },

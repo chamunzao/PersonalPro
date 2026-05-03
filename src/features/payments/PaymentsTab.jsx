@@ -1,19 +1,25 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../AuthContext';
 import {
   db,
   doc,
   setDoc,
-  deleteDoc
+  deleteDoc,
+  collection,
+  addDoc
 } from '../../firebase';
 import { MONTHS } from '../../lib/constants';
 import { formatCurrency } from '../../lib/money';
-import { formatDate } from '../../lib/dates';
+import { formatDate, formatDateISO, getDaysInMonth } from '../../lib/dates';
 import {
+  calculateAdvanceCreditStatus,
   calculateBillingStatus,
+  getAdvanceCreditStatusColors,
+  getAdvanceCreditStatusLabel,
   getBillingStatusColors,
   getBillingStatusLabel
 } from '../billing/billingCalculations';
+import { getClassesForDate } from '../schedule/scheduleCalculations';
 
 function parseMoney(value) {
   const parsed = parseFloat(String(value || '').replace(',', '.'));
@@ -34,15 +40,68 @@ function getPaymentDefaults(payment, billingStatus) {
   };
 }
 
-function PaymentsTab({ students, records, payments, setPayments, loadingData, theme }) {
+function getLastDayOfMonthISO(year, monthIndex) {
+  const lastDay = getDaysInMonth(year, monthIndex);
+  return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+}
+
+function countMonthlyClassesForStudent({ studentId, students, scheduleOverrides, selectedYear, selectedMonth }) {
+  const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
+  let total = 0;
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const dateISO = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    total += getClassesForDate(dateISO, students, scheduleOverrides)
+      .filter(cls => cls.studentId === studentId).length;
+  }
+
+  return total;
+}
+
+function PaymentsTab({ students, records, payments, setPayments, scheduleOverrides = [], loadingData, theme }) {
   const { user } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [savingKey, setSavingKey] = useState(null);
   const [editingKey, setEditingKey] = useState(null);
   const [paymentForms, setPaymentForms] = useState({});
+  const [packageForm, setPackageForm] = useState({
+    packageType: 'month',
+    studentId: '',
+    classesPurchased: '',
+    amountPaid: '',
+    dateISO: formatDateISO(new Date()),
+    validUntil: '',
+    method: 'Pix',
+    note: ''
+  });
 
   const monthKey = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
+
+  useEffect(() => {
+    if (packageForm.packageType !== 'month' || !packageForm.studentId) return;
+    const student = students.find(item => item.id === packageForm.studentId);
+    if (!student) return;
+
+    const monthlyClasses = countMonthlyClassesForStudent({
+      studentId: student.id,
+      students,
+      scheduleOverrides,
+      selectedYear,
+      selectedMonth
+    });
+    const suggestedAmount = Number(student.packagePrice) > 0
+      ? Number(student.packagePrice)
+      : monthlyClasses * (Number(student.pricePerClass) || 0);
+
+    setPackageForm(prev => ({
+      ...prev,
+      classesPurchased: monthlyClasses ? String(monthlyClasses) : '',
+      amountPaid: suggestedAmount ? String(suggestedAmount) : '',
+      validUntil: getLastDayOfMonthISO(selectedYear, selectedMonth),
+      note: prev.note || `Pacote de aulas de ${MONTHS[selectedMonth]} de ${selectedYear}`
+    }));
+  }, [packageForm.packageType, packageForm.studentId, students, scheduleOverrides, selectedYear, selectedMonth]);
 
   function updateForm(paymentKey, patch) {
     setPaymentForms(prev => ({
@@ -65,6 +124,62 @@ function PaymentsTab({ students, records, payments, setPayments, loadingData, th
 
   function closePaymentForm() {
     setEditingKey(null);
+  }
+
+  function updatePackageForm(patch) {
+    setPackageForm(prev => ({
+      ...prev,
+      ...patch
+    }));
+  }
+
+  async function saveAdvancePackage() {
+    if (!user) return;
+    const student = students.find(item => item.id === packageForm.studentId);
+    const classesPurchased = parseInt(packageForm.classesPurchased, 10);
+    const amountPaid = parseMoney(packageForm.amountPaid);
+    if (!student || !classesPurchased || classesPurchased <= 0) {
+      alert('Selecione o aluno e informe a quantidade de aulas');
+      return;
+    }
+
+    setSavingKey('advance-package');
+    try {
+      const [year, month, day] = packageForm.dateISO.split('-').map(Number);
+      const paidAt = new Date(year, month - 1, day);
+      const paymentData = {
+        paid: true,
+        type: 'package',
+        packageType: packageForm.packageType,
+        date: formatDate(paidAt),
+        dateISO: packageForm.dateISO,
+        month: packageForm.packageType === 'month' ? monthKey : packageForm.dateISO.slice(0, 7),
+        studentId: student.id,
+        amountPaid,
+        classesPurchased,
+        validUntil: packageForm.validUntil || '',
+        method: packageForm.method || '',
+        note: packageForm.note || ''
+      };
+
+      const docRef = await addDoc(collection(db, `users/${user.uid}/payments`), paymentData);
+      setPayments(prev => [{ key: docRef.id, ...paymentData }, ...prev]);
+      setPackageForm({
+        packageType: 'month',
+        studentId: '',
+        classesPurchased: '',
+        amountPaid: '',
+        dateISO: formatDateISO(new Date()),
+        validUntil: '',
+        method: 'Pix',
+        note: ''
+      });
+    } catch (error) {
+      console.error('Error saving package payment:', error);
+      alert('Erro ao registrar pacote');
+    } finally {
+      setSavingKey(null);
+    }
   }
 
   async function savePayment(student, billingStatus) {
@@ -112,6 +227,11 @@ function PaymentsTab({ students, records, payments, setPayments, loadingData, th
   async function deletePayment(studentId) {
     if (!user) return;
     const paymentKey = `${monthKey}_${studentId}`;
+    await deletePaymentByKey(paymentKey);
+  }
+
+  async function deletePaymentByKey(paymentKey) {
+    if (!user) return;
     setSavingKey(paymentKey);
     try {
       const paymentDoc = doc(db, `users/${user.uid}/payments/${paymentKey}`);
@@ -131,13 +251,154 @@ function PaymentsTab({ students, records, payments, setPayments, loadingData, th
   function getStudentHistory(studentId) {
     return payments
       .filter(payment => getPaymentStudentId(payment) === studentId && payment.paid)
-      .sort((a, b) => String(b.month || '').localeCompare(String(a.month || '')))
+      .sort((a, b) => String(b.dateISO || b.month || '').localeCompare(String(a.dateISO || a.month || '')))
       .slice(0, 3);
   }
 
   return (
     <div style={{ padding: '16px' }}>
       <h2 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 16px 0', color: '#1f2937' }}>Controle de Pagamentos</h2>
+
+      <div style={{
+        background: 'white',
+        border: `1px solid ${theme.light}`,
+        borderRadius: '8px',
+        padding: '14px',
+        marginBottom: '16px'
+      }}>
+        <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#1f2937', margin: '0 0 10px 0' }}>Registrar pacote adiantado</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+          {[
+            { id: 'month', label: 'Pacote do mes' },
+            { id: 'custom', label: 'Pacote personalizado' }
+          ].map(item => (
+            <button
+              key={item.id}
+              onClick={() => updatePackageForm({ packageType: item.id, note: item.id === 'custom' ? '' : packageForm.note })}
+              style={{
+                padding: '9px',
+                background: packageForm.packageType === item.id ? theme.light : '#f9fafb',
+                color: packageForm.packageType === item.id ? theme.dark : '#6b7280',
+                border: packageForm.packageType === item.id ? `1px solid ${theme.medium}` : '1px solid #e5e7eb',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '800',
+                cursor: 'pointer'
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '10px', marginBottom: '10px' }}>
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: '700', color: '#4b5563', display: 'block', marginBottom: '4px' }}>Aluno</label>
+            <select
+              value={packageForm.studentId}
+              onChange={(e) => updatePackageForm({ studentId: e.target.value, note: packageForm.packageType === 'month' ? '' : packageForm.note })}
+              style={{ width: '100%', padding: '9px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box', fontFamily: 'inherit', background: 'white' }}
+            >
+              <option value="">Selecionar</option>
+              {students.map(student => <option key={student.id} value={student.id}>{student.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: '700', color: '#4b5563', display: 'block', marginBottom: '4px' }}>Aulas</label>
+            <input
+              type="number"
+              value={packageForm.classesPurchased}
+              onChange={(e) => updatePackageForm({ classesPurchased: e.target.value })}
+              min="1"
+              placeholder="8"
+              readOnly={packageForm.packageType === 'month'}
+              style={{ width: '100%', padding: '9px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box', background: packageForm.packageType === 'month' ? '#f9fafb' : 'white' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: '700', color: '#4b5563', display: 'block', marginBottom: '4px' }}>Valor pago</label>
+            <input
+              type="number"
+              value={packageForm.amountPaid}
+              onChange={(e) => updatePackageForm({ amountPaid: e.target.value })}
+              min="0"
+              step="0.01"
+              placeholder="640"
+              style={{ width: '100%', padding: '9px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: '700', color: '#4b5563', display: 'block', marginBottom: '4px' }}>Pagamento</label>
+            <input
+              type="date"
+              value={packageForm.dateISO}
+              onChange={(e) => updatePackageForm({ dateISO: e.target.value })}
+              style={{ width: '100%', padding: '9px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box', fontFamily: 'inherit' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: '700', color: '#4b5563', display: 'block', marginBottom: '4px' }}>Validade</label>
+            <input
+              type="date"
+              value={packageForm.validUntil}
+              onChange={(e) => updatePackageForm({ validUntil: e.target.value })}
+              style={{ width: '100%', padding: '9px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box', fontFamily: 'inherit' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: '700', color: '#4b5563', display: 'block', marginBottom: '4px' }}>Forma</label>
+            <select
+              value={packageForm.method}
+              onChange={(e) => updatePackageForm({ method: e.target.value })}
+              style={{ width: '100%', padding: '9px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box', fontFamily: 'inherit', background: 'white' }}
+            >
+              <option>Pix</option>
+              <option>Dinheiro</option>
+              <option>Cartao</option>
+              <option>Transferencia</option>
+              <option>Outro</option>
+            </select>
+          </div>
+        </div>
+        {packageForm.packageType === 'month' && (
+          <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 10px 0' }}>
+            Usa {MONTHS[selectedMonth]} de {selectedYear}: conta as aulas previstas do aluno no mes e sugere o valor pelo plano cadastrado ou pelo preco por aula.
+          </p>
+        )}
+        <textarea
+          value={packageForm.note}
+          onChange={(e) => updatePackageForm({ note: e.target.value })}
+          placeholder="Observacao do pacote, combinados, comprovante, parcelamento..."
+          style={{
+            width: '100%',
+            minHeight: '54px',
+            padding: '9px',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            fontSize: '12px',
+            boxSizing: 'border-box',
+            fontFamily: 'inherit',
+            resize: 'vertical',
+            marginBottom: '10px'
+          }}
+        />
+        <button
+          onClick={saveAdvancePackage}
+          disabled={savingKey === 'advance-package'}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: savingKey === 'advance-package' ? '#d1d5db' : theme.primary,
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: '800',
+            cursor: savingKey === 'advance-package' ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {savingKey === 'advance-package' ? 'Registrando...' : packageForm.packageType === 'month' ? 'Registrar pacote do mes' : 'Registrar pacote e criar creditos'}
+        </button>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
         <div>
@@ -200,6 +461,8 @@ function PaymentsTab({ students, records, payments, setPayments, loadingData, th
             const isSaving = savingKey === paymentKey;
             const billingStatus = calculateBillingStatus(student, records, new Date(selectedYear, selectedMonth, 1));
             const billingColors = getBillingStatusColors(billingStatus);
+            const creditStatus = calculateAdvanceCreditStatus(student, records, payments);
+            const creditColors = getAdvanceCreditStatusColors(creditStatus);
             const form = paymentForms[paymentKey] || getPaymentDefaults(payment, billingStatus);
             const history = getStudentHistory(student.id);
 
@@ -226,6 +489,17 @@ function PaymentsTab({ students, records, payments, setPayments, loadingData, th
                       <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 6px 0', fontStyle: 'italic' }}>{payment.note}</p>
                     )}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      <span style={{
+                        padding: '3px 7px',
+                        background: creditColors.background,
+                        color: creditColors.color,
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '700'
+                      }}>
+                        {getAdvanceCreditStatusLabel(creditStatus)}
+                        {creditStatus.remainingClasses !== null ? ` - ${creditStatus.remainingClasses}/${creditStatus.totalPurchased}` : ''}
+                      </span>
                       <span style={{
                         padding: '3px 7px',
                         background: '#f3f4f6',
@@ -330,8 +604,8 @@ function PaymentsTab({ students, records, payments, setPayments, loadingData, th
                           opacity: isSaving ? 0.6 : 1
                         }}
                       >
-                        Remover
-                      </button>
+        Remover
+      </button>
                     )}
                   </div>
                 </div>
@@ -445,9 +719,31 @@ function PaymentsTab({ students, records, payments, setPayments, loadingData, th
                           color: '#4b5563',
                           borderRadius: '4px',
                           fontSize: '11px',
-                          fontWeight: '600'
+                          fontWeight: '600',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
                         }}>
-                          {item.month}: {formatCurrency(item.amountPaid ?? 0)}
+                          {item.type === 'package' ? `${item.classesPurchased || 0} aulas` : item.month}: {formatCurrency(item.amountPaid ?? 0)}
+                          {item.type === 'package' && (
+                            <button
+                              onClick={() => deletePaymentByKey(item.key)}
+                              disabled={savingKey === item.key}
+                              title="Remover pacote"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#dc2626',
+                                cursor: savingKey === item.key ? 'not-allowed' : 'pointer',
+                                fontSize: '13px',
+                                fontWeight: '800',
+                                padding: 0,
+                                lineHeight: 1
+                              }}
+                            >
+                              x
+                            </button>
+                          )}
                         </span>
                       ))}
                     </div>

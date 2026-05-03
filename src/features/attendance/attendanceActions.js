@@ -1,5 +1,9 @@
 import { db, doc, setDoc, deleteDoc } from '../../firebase';
 
+export function getAttendanceRecordDocId(classKey) {
+  return encodeURIComponent(classKey);
+}
+
 export async function updateAttendanceRecord({ user, classKey, status, activity, price, setRecords }) {
   if (!user) return;
 
@@ -8,12 +12,12 @@ export async function updateAttendanceRecord({ user, classKey, status, activity,
   const studentId = parts[1];
   const time = parts.slice(2).join('_');
   const recordKey = `${date}_${studentId}_${time}`;
-  const recordDoc = doc(db, `users/${user.uid}/records/${recordKey}`);
+  const recordDoc = doc(db, `users/${user.uid}/records/${getAttendanceRecordDocId(recordKey)}`);
 
   if (status === null) {
     await deleteDoc(recordDoc);
   } else {
-    const data = { status };
+    const data = { key: recordKey, status };
     if (activity !== undefined) data.activity = activity || null;
     if (price !== undefined) data.customPrice = price ? parseFloat(price) : null;
     await setDoc(recordDoc, data, { merge: true });
@@ -26,7 +30,7 @@ export async function updateAttendanceRecord({ user, classKey, status, activity,
     }
 
     const nextRecord = {
-      key: classKey,
+      ...(existing >= 0 ? prev[existing] : { key: classKey }),
       status,
       activity: activity !== undefined ? (activity || null) : (existing >= 0 ? prev[existing].activity : null),
       customPrice: price !== undefined ? (price ? parseFloat(price) : null) : (existing >= 0 ? prev[existing].customPrice : null)

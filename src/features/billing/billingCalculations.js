@@ -61,6 +61,109 @@ function countPresentClasses(studentId, records, cycleStartDate) {
   }).length;
 }
 
+function getPaymentStudentId(payment) {
+  return payment.studentId || payment.key?.split("_").slice(1).join("_");
+}
+
+function parsePaymentDate(payment) {
+  if (payment.dateISO) return parseISODate(payment.dateISO);
+  if (payment.date) return parseBrazilianDate(payment.date);
+  return null;
+}
+
+function isAdvancePackagePayment(payment) {
+  return payment.paid && (payment.type === "package" || Number(payment.classesPurchased) > 0);
+}
+
+function getPresentRecordsForStudent(studentId, records) {
+  return records
+    .filter(record => record.status === "present" && getRecordParts(record.key).studentId === studentId)
+    .map(record => ({
+      ...record,
+      classDate: parseBrazilianDate(getRecordParts(record.key).date)
+    }))
+    .filter(record => !Number.isNaN(record.classDate.getTime()))
+    .sort((a, b) => a.classDate - b.classDate);
+}
+
+export function calculateAdvanceCreditStatus(student, records, payments, asOf = new Date()) {
+  const packagePayments = payments
+    .filter(payment => getPaymentStudentId(payment) === student.id && isAdvancePackagePayment(payment))
+    .map(payment => ({
+      ...payment,
+      classesPurchased: Number(payment.classesPurchased) || 0,
+      paidAt: parsePaymentDate(payment)
+    }))
+    .filter(payment => payment.classesPurchased > 0)
+    .sort((a, b) => {
+      const dateA = a.paidAt || new Date(0);
+      const dateB = b.paidAt || new Date(0);
+      return dateA - dateB;
+    });
+
+  if (packagePayments.length === 0) {
+    return {
+      hasAdvancePackage: false,
+      totalPurchased: 0,
+      usedClasses: 0,
+      remainingClasses: null,
+      latestPayment: null,
+      status: "none",
+      expiresAt: null,
+      daysUntilExpiry: null
+    };
+  }
+
+  const firstPaymentDate = packagePayments[0].paidAt || new Date(0);
+  const presentRecords = getPresentRecordsForStudent(student.id, records)
+    .filter(record => record.classDate >= firstPaymentDate);
+  const totalPurchased = packagePayments.reduce((sum, payment) => sum + payment.classesPurchased, 0);
+  const usedClasses = presentRecords.length;
+  const remainingClasses = Math.max(totalPurchased - usedClasses, 0);
+  const latestPayment = packagePayments[packagePayments.length - 1];
+  const expiresAt = parseISODate(latestPayment.validUntil) || null;
+  const daysUntilExpiry = expiresAt ? daysBetween(asOf, expiresAt) : null;
+
+  let status = "ok";
+  if (remainingClasses === 0) status = "depleted";
+  else if (expiresAt && daysUntilExpiry < 0) status = "expired";
+  else if (remainingClasses <= 2) status = "low_classes";
+  else if (expiresAt && daysUntilExpiry <= 5) status = "expiring";
+
+  return {
+    hasAdvancePackage: true,
+    totalPurchased,
+    usedClasses,
+    remainingClasses,
+    latestPayment,
+    status,
+    expiresAt,
+    daysUntilExpiry
+  };
+}
+
+export function getAdvanceCreditStatusLabel(creditStatus) {
+  if (!creditStatus.hasAdvancePackage) return "Sem pacote";
+  if (creditStatus.status === "depleted") return "Pacote esgotado";
+  if (creditStatus.status === "expired") return "Pacote vencido";
+  if (creditStatus.status === "low_classes") return "Poucas aulas";
+  if (creditStatus.status === "expiring") return `Vence em ${creditStatus.daysUntilExpiry} dia${creditStatus.daysUntilExpiry === 1 ? "" : "s"}`;
+  return "Credito ativo";
+}
+
+export function getAdvanceCreditStatusColors(creditStatus) {
+  if (creditStatus.status === "depleted" || creditStatus.status === "expired") {
+    return { background: "#fee2e2", color: "#dc2626" };
+  }
+  if (creditStatus.status === "low_classes" || creditStatus.status === "expiring") {
+    return { background: "#fef3c7", color: "#d97706" };
+  }
+  if (creditStatus.hasAdvancePackage) {
+    return { background: "#d1fae5", color: "#059669" };
+  }
+  return { background: "#f3f4f6", color: "#6b7280" };
+}
+
 export function calculateBillingStatus(student, records, asOf = new Date()) {
   const billingType = student.billingType || BILLING_TYPES.perClass;
   const storedCycleStartDate = parseISODate(student.billingCycleStart);

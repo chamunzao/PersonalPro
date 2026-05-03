@@ -1,6 +1,6 @@
 import { DAYS } from '../../lib/constants';
 import { formatCurrency } from '../../lib/money';
-import { calculateBillingStatus } from '../billing/billingCalculations';
+import { calculateAdvanceCreditStatus, calculateBillingStatus } from '../billing/billingCalculations';
 
 function openWhatsAppMessage(phone, message) {
   const digits = String(phone || '').replace(/\D/g, '');
@@ -33,6 +33,7 @@ function buildMessages({ student, records, payments }) {
   const now = new Date();
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const billingStatus = calculateBillingStatus(student, records, now);
+  const creditStatus = calculateAdvanceCreditStatus(student, records, payments, now);
   const payment = getMonthPayment(student, payments, monthKey);
   const firstName = student.name?.split(' ')[0] || student.name;
   const weeklySchedule = getWeeklyScheduleText(student);
@@ -42,7 +43,9 @@ function buildMessages({ student, records, payments }) {
     paymentReminder: payment
       ? `Ola, ${firstName}! Seu pagamento deste mes consta como recebido. Obrigado!`
       : `Ola, ${firstName}! Passando para lembrar do pagamento deste mes. Valor previsto: ${formatCurrency(billingStatus.planValue || student.pricePerClass || 0)}. Qualquer duvida me chama por aqui.`,
-    packageEnding: billingStatus.remainingClasses !== null
+    packageEnding: creditStatus.remainingClasses !== null
+      ? `Ola, ${firstName}! Seu pacote esta com ${creditStatus.remainingClasses} aula(s) paga(s) restante(s). Vamos alinhar a renovacao para nao interromper sua rotina?`
+      : billingStatus.remainingClasses !== null
       ? `Ola, ${firstName}! Seu pacote esta com ${billingStatus.remainingClasses} aula(s) restante(s). Vamos alinhar a renovacao para nao interromper sua rotina?`
       : `Ola, ${firstName}! Passando para alinharmos a continuidade do seu plano de treinos deste mes.`,
     weeklyCheckIn: `Ola, ${firstName}! Check-in rapido da semana: como voce esta se sentindo com os treinos, dores, energia e rotina? Me responde por aqui para eu ajustar o acompanhamento.`,
@@ -101,7 +104,10 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
             const hasPhone = !!String(student.phone || '').replace(/\D/g, '');
             const payment = getMonthPayment(student, payments, monthKey);
             const billingStatus = calculateBillingStatus(student, records);
-            const packageEnding = billingStatus.remainingClasses !== null && billingStatus.remainingClasses <= 2;
+            const creditStatus = calculateAdvanceCreditStatus(student, records, payments);
+            const packageEnding = creditStatus.remainingClasses !== null
+              ? creditStatus.remainingClasses <= 2
+              : billingStatus.remainingClasses !== null && billingStatus.remainingClasses <= 2;
 
             return (
               <div key={student.id} style={{
