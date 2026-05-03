@@ -16,6 +16,7 @@ import { PaymentsTab } from './features/payments/PaymentsTab';
 import { ReportsTab } from './features/reports/ReportsTab';
 import { AlertsTab } from './features/alerts/AlertsTab';
 import { SettingsTab } from './features/settings/SettingsTab';
+import { CommunicationTab } from './features/communication/CommunicationTab';
 
 // ==================== THEME COLORS ====================
 const THEMES = {
@@ -52,6 +53,9 @@ function IconCreditCard() {
 }
 function IconBell() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.3 21a2 2 0 0 0 3.4 0"/><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg>;
+}
+function IconMessage() {
+  return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>;
 }
 function IconChevron({ direction }) {
   return <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: direction === "left" ? "rotate(180deg)" : "none" }}><path d="m9 18 6-6-6-6"/></svg>;
@@ -228,6 +232,7 @@ export default function App() {
         {activeTab === "attendance" && <AttendanceTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "payments" && <PaymentsTab students={students} records={records} payments={payments} setPayments={setPayments} loadingData={loadingData} theme={theme} />}
         {activeTab === "alerts" && <AlertsTab students={students} records={records} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
+        {activeTab === "communication" && <CommunicationTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
         {activeTab === "reports" && <ReportsTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
         {activeTab === "settings" && <SettingsTab themeKey={themeKey} setThemeKey={setThemeKey} themes={THEMES} />}
       </div>
@@ -248,6 +253,7 @@ export default function App() {
           { id: "attendance", icon: <IconClipboard />, label: "Registro" },
           { id: "payments", icon: <IconCreditCard />, label: "Pagamentos" },
           { id: "alerts", icon: <IconBell />, label: "Alertas" },
+          { id: "communication", icon: <IconMessage />, label: "Contato" },
           { id: "reports", icon: <IconChart />, label: "Relatório" },
           { id: "settings", icon: <IconSettings />, label: "Config" }
         ].map(tab => (
