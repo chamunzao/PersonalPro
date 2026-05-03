@@ -226,9 +226,9 @@ export default function App() {
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: "auto" }}>
-        {activeTab === "dashboard" && <DashboardTab students={students} records={records} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
+        {activeTab === "dashboard" && <DashboardTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "students" && <StudentsTab students={students} setStudents={setStudents} records={records} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} loadingData={loadingData} theme={theme} />}
-        {activeTab === "agenda" && <AgendaTab students={students} records={records} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} theme={theme} />}
+        {activeTab === "agenda" && <AgendaTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} theme={theme} />}
         {activeTab === "attendance" && <AttendanceTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "payments" && <PaymentsTab students={students} records={records} payments={payments} setPayments={setPayments} loadingData={loadingData} theme={theme} />}
         {activeTab === "alerts" && <AlertsTab students={students} records={records} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}

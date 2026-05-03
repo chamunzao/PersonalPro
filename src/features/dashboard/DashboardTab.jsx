@@ -1,9 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
+import { useAuth } from "../../AuthContext";
 import { formatCurrency } from "../../lib/money";
 import { getClassesForDate } from "../schedule/scheduleCalculations";
+import { getAttendanceStatusStyle, updateAttendanceRecord } from "../attendance/attendanceActions";
 import { calculateDashboard } from "./dashboardCalculations";
 
-export function DashboardTab({ students, records, payments, scheduleOverrides, loadingData, theme }) {
+export function DashboardTab({ students, records, setRecords, payments, scheduleOverrides, loadingData, theme }) {
+  const { user } = useAuth();
+  const [savingAttendanceKey, setSavingAttendanceKey] = useState(null);
   const dashboard = calculateDashboard({
     students,
     records,
@@ -13,10 +17,24 @@ export function DashboardTab({ students, records, payments, scheduleOverrides, l
 
   const metricCards = [
     { label: "Aulas Hoje", value: dashboard.todayClasses.length, detail: `${dashboard.pendingTodayClasses.length} sem registro`, color: theme.primary },
-    { label: "Receita Líquida", value: formatCurrency(dashboard.report.netRevenue), detail: `${formatCurrency(dashboard.report.grossRevenue)} bruto`, color: theme.primary },
-    { label: "Alertas Críticos", value: dashboard.criticalAlerts.length, detail: `${dashboard.warningAlerts.length} em atenção`, color: "#dc2626" },
+    { label: "Receita Liquida", value: formatCurrency(dashboard.report.netRevenue), detail: `${formatCurrency(dashboard.report.grossRevenue)} bruto`, color: theme.primary },
+    { label: "Alertas Criticos", value: dashboard.criticalAlerts.length, detail: `${dashboard.warningAlerts.length} em atencao`, color: "#dc2626" },
     { label: "Pagamentos", value: `${dashboard.report.paymentRate.toFixed(0)}%`, detail: `${dashboard.pendingPayments} pendente${dashboard.pendingPayments === 1 ? "" : "s"}`, color: "#059669" }
   ];
+
+  async function quickUpdateAttendance(cls, status) {
+    if (!user) return;
+    const nextStatus = cls.attendance === status ? null : status;
+    setSavingAttendanceKey(cls.key);
+    try {
+      await updateAttendanceRecord({ user, classKey: cls.key, status: nextStatus, setRecords });
+    } catch (error) {
+      console.error("Error updating attendance:", error);
+      alert("Erro ao atualizar presenca");
+    } finally {
+      setSavingAttendanceKey(null);
+    }
+  }
 
   return (
     <div style={{ padding: "16px" }}>
@@ -55,20 +73,76 @@ export function DashboardTab({ students, records, payments, scheduleOverrides, l
         padding: "16px",
         marginBottom: "16px"
       }}>
-        <h3 style={{ fontSize: "14px", fontWeight: "700", margin: "0 0 12px 0", color: "#1f2937" }}>Próximas aulas de hoje</h3>
-        {dashboard.nextClasses.length === 0 ? (
-          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0" }}>Nenhuma aula pendente hoje.</p>
+        <h3 style={{ fontSize: "14px", fontWeight: "700", margin: "0 0 12px 0", color: "#1f2937" }}>Aulas de hoje</h3>
+        {dashboard.todayClasses.length === 0 ? (
+          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0" }}>Nenhuma aula agendada hoje.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {dashboard.nextClasses.map(cls => (
-              <div key={`${cls.studentId}_${cls.time}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", background: "#f9fafb", borderRadius: "6px" }}>
-                <div>
-                  <p style={{ fontSize: "13px", fontWeight: "700", margin: "0 0 2px 0", color: "#1f2937" }}>{cls.studentName}</p>
-                  <p style={{ fontSize: "11px", color: "#6b7280", margin: "0" }}>{cls.scheduleTypeLabel || "Fixa"}</p>
+            {dashboard.todayClasses.map(cls => {
+              const statusStyle = getAttendanceStatusStyle(cls.attendance, theme);
+              const isSaving = savingAttendanceKey === cls.key;
+              return (
+                <div key={cls.key} style={{
+                  padding: "10px",
+                  background: "#f9fafb",
+                  borderRadius: "6px",
+                  border: `1px solid ${statusStyle.border}`
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "flex-start", marginBottom: "8px" }}>
+                    <div>
+                      <p style={{ fontSize: "13px", fontWeight: "700", margin: "0 0 2px 0", color: "#1f2937" }}>{cls.studentName}</p>
+                      <p style={{ fontSize: "11px", color: "#6b7280", margin: "0" }}>{cls.time} - {cls.scheduleTypeLabel || "Fixa"}</p>
+                    </div>
+                    <span style={{
+                      fontSize: "11px",
+                      color: statusStyle.color,
+                      background: statusStyle.background,
+                      borderRadius: "4px",
+                      padding: "4px 8px",
+                      fontWeight: "800"
+                    }}>
+                      {statusStyle.label}
+                    </span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                    <button
+                      onClick={() => quickUpdateAttendance(cls, "present")}
+                      disabled={isSaving}
+                      style={{
+                        padding: "8px",
+                        background: cls.attendance === "present" ? "#d1fae5" : "white",
+                        color: "#059669",
+                        border: "1px solid #a7f3d0",
+                        borderRadius: "6px",
+                        fontSize: "11px",
+                        fontWeight: "800",
+                        cursor: isSaving ? "not-allowed" : "pointer",
+                        opacity: isSaving ? 0.6 : 1
+                      }}
+                    >
+                      Presente
+                    </button>
+                    <button
+                      onClick={() => quickUpdateAttendance(cls, "absent")}
+                      disabled={isSaving}
+                      style={{
+                        padding: "8px",
+                        background: cls.attendance === "absent" ? "#fee2e2" : "white",
+                        color: "#dc2626",
+                        border: "1px solid #fecaca",
+                        borderRadius: "6px",
+                        fontSize: "11px",
+                        fontWeight: "800",
+                        cursor: isSaving ? "not-allowed" : "pointer",
+                        opacity: isSaving ? 0.6 : 1
+                      }}
+                    >
+                      Falta
+                    </button>
+                  </div>
                 </div>
-                <span style={{ fontSize: "13px", color: theme.primary, fontWeight: "800" }}>{cls.time}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -98,7 +172,7 @@ export function DashboardTab({ students, records, payments, scheduleOverrides, l
                       <p style={{ fontSize: "11px", color: "#6b7280", margin: "0" }}>{alert.message}</p>
                     </div>
                     <span style={{ alignSelf: "flex-start", flexShrink: 0, padding: "3px 7px", background: colors.background, color: colors.color, borderRadius: "4px", fontSize: "10px", fontWeight: "800" }}>
-                      {alert.severity === "danger" ? "Crítico" : alert.severity === "warning" ? "Atenção" : "Hoje"}
+                      {alert.severity === "danger" ? "Critico" : alert.severity === "warning" ? "Atencao" : "Hoje"}
                     </span>
                   </div>
                 </div>

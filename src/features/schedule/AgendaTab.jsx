@@ -12,6 +12,7 @@ import {
   getScheduleItemTypeLabel,
   getScheduleOverrideId
 } from "./scheduleCalculations";
+import { getAttendanceStatusStyle, updateAttendanceRecord } from "../attendance/attendanceActions";
 
 function openWhatsAppMessage(phone, message) {
   const digits = String(phone || "").replace(/\D/g, "");
@@ -23,7 +24,7 @@ function openWhatsAppMessage(phone, message) {
   window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
 }
 
-export function AgendaTab({ students, records, scheduleOverrides, setScheduleOverrides, theme }) {
+export function AgendaTab({ students, records, setRecords, scheduleOverrides, setScheduleOverrides, theme }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDayModal, setSelectedDayModal] = useState(null);
 
@@ -274,6 +275,7 @@ export function AgendaTab({ students, records, scheduleOverrides, setScheduleOve
               currentDate={currentDate}
               students={students}
               records={records}
+              setRecords={setRecords}
               scheduleOverrides={scheduleOverrides}
               setScheduleOverrides={setScheduleOverrides}
               theme={theme}
@@ -285,7 +287,7 @@ export function AgendaTab({ students, records, scheduleOverrides, setScheduleOve
   );
 }
 
-function DayDetailsPanel({ dayNum, currentDate, students, records, scheduleOverrides, setScheduleOverrides, theme }) {
+function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, scheduleOverrides, setScheduleOverrides, theme }) {
   const { user } = useAuth();
   const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum);
   const dateISO = formatDateISO(date);
@@ -296,6 +298,7 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, scheduleOverr
   const [rescheduleKey, setRescheduleKey] = useState(null);
   const [rescheduleForm, setRescheduleForm] = useState({ date: "", time: "" });
   const [savingSchedule, setSavingSchedule] = useState(false);
+  const [savingAttendanceKey, setSavingAttendanceKey] = useState(null);
 
   const classesWithAttendance = classes.map(cls => {
     const key = `${String(dayNum).padStart(2, "0")}/${String(currentDate.getMonth() + 1).padStart(2, "0")}/${currentDate.getFullYear()}_${cls.studentId}_${cls.time}`;
@@ -305,6 +308,20 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, scheduleOverr
 
   function getOverride(studentId) {
     return scheduleOverrides.find(item => item.date === dateISO && item.studentId === studentId);
+  }
+
+  async function quickUpdateAttendance(cls, status) {
+    if (!user) return;
+    const nextStatus = cls.attendance === status ? null : status;
+    setSavingAttendanceKey(cls.key);
+    try {
+      await updateAttendanceRecord({ user, classKey: cls.key, status: nextStatus, setRecords });
+    } catch (error) {
+      console.error("Error updating attendance:", error);
+      alert("Erro ao atualizar presenca");
+    } finally {
+      setSavingAttendanceKey(null);
+    }
   }
 
   async function saveStudentScheduleItems(student, items, targetDateISO = dateISO) {
@@ -509,11 +526,15 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, scheduleOverr
       )}
 
       {classesWithAttendance.map(cls => (
+        (() => {
+          const statusStyle = getAttendanceStatusStyle(cls.attendance, theme);
+          const isAttendanceSaving = savingAttendanceKey === cls.key;
+          return (
         <div key={cls.key} style={{
           background: "#f9fafb",
           padding: "12px",
           borderRadius: "8px",
-          border: `1px solid ${theme.light}`
+          border: `1px solid ${statusStyle.border}`
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
             <div>
@@ -530,20 +551,32 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, scheduleOverr
                 {cls.scheduleNote && <span style={{ padding: "3px 7px", borderRadius: "4px", background: "#f3f4f6", color: "#4b5563", fontSize: "11px", fontWeight: "600" }}>{cls.scheduleNote}</span>}
               </div>
             </div>
-            {cls.attendance && (
-              <span style={{
-                padding: "4px 8px",
-                borderRadius: "4px",
-                fontSize: "11px",
-                fontWeight: "600",
-                background: cls.attendance === "present" ? "#d1fae5" : "#fee2e2",
-                color: cls.attendance === "present" ? "#059669" : "#dc2626"
-              }}>
-                {cls.attendance === "present" ? "Presente" : "Ausente"}
-              </span>
-            )}
+            <span style={{
+              padding: "4px 8px",
+              borderRadius: "4px",
+              fontSize: "11px",
+              fontWeight: "700",
+              background: statusStyle.background,
+              color: statusStyle.color
+            }}>
+              {statusStyle.label}
+            </span>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
+            <button
+              onClick={() => quickUpdateAttendance(cls, "present")}
+              disabled={isAttendanceSaving}
+              style={{ flex: 1, padding: "7px", background: cls.attendance === "present" ? "#d1fae5" : "white", border: "1px solid #a7f3d0", color: "#059669", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: isAttendanceSaving ? "not-allowed" : "pointer", opacity: isAttendanceSaving ? 0.6 : 1 }}
+            >
+              Presente
+            </button>
+            <button
+              onClick={() => quickUpdateAttendance(cls, "absent")}
+              disabled={isAttendanceSaving}
+              style={{ flex: 1, padding: "7px", background: cls.attendance === "absent" ? "#fee2e2" : "white", border: "1px solid #fecaca", color: "#dc2626", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: isAttendanceSaving ? "not-allowed" : "pointer", opacity: isAttendanceSaving ? 0.6 : 1 }}
+            >
+              Falta
+            </button>
             <button
               onClick={() => openWhatsAppMessage(cls.studentPhone, `Ola, ${cls.studentName}! Confirmando sua aula do dia ${dateLabel} as ${cls.time}. Pode confirmar?`)}
               style={{ flex: 1, padding: "7px", background: "#dcfce7", border: "none", color: "#166534", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
@@ -598,6 +631,8 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, scheduleOverr
             </div>
           )}
         </div>
+          );
+        })()
       ))}
     </div>
   );

@@ -1,15 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../AuthContext';
-import {
-  db,
-  doc,
-  getDoc,
-  setDoc,
-  deleteDoc
-} from '../../firebase';
 import { formatCurrency } from '../../lib/money';
 import { formatDate, formatDateISO } from '../../lib/dates';
 import { getClassesForDate } from '../schedule/scheduleCalculations';
+import { updateAttendanceRecord } from './attendanceActions';
 
 function IconCheck() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -71,44 +65,7 @@ function AttendanceTab({ students, records, setRecords, scheduleOverrides, loadi
     setSaving(true);
 
     try {
-      const parts = classKey.split("_");
-      const date = parts[0];
-      const studentId = parts[1];
-      const time = parts.slice(2).join("_");
-
-      const recordKey = `${date}_${studentId}_${time}`;
-      const recordDoc = doc(db, `users/${user.uid}/records/${recordKey}`);
-
-      if (status === null) {
-        const docSnap = await getDoc(recordDoc);
-        if (docSnap.exists()) {
-          await deleteDoc(recordDoc);
-        }
-      } else {
-        const data = { status };
-        if (activity !== undefined) data.activity = activity || null;
-        if (price !== undefined) data.customPrice = price ? parseFloat(price) : null;
-        await setDoc(recordDoc, data, { merge: true });
-      }
-
-      setRecords(prev => {
-        const existing = prev.findIndex(r => r.key === classKey);
-        const newRecord = {
-          key: classKey,
-          status,
-          activity: activity !== undefined ? (activity || null) : (existing >= 0 ? prev[existing].activity : null),
-          customPrice: price !== undefined ? (price ? parseFloat(price) : null) : (existing >= 0 ? prev[existing].customPrice : null)
-        };
-        if (status === null) {
-          return existing >= 0 ? prev.filter((_, i) => i !== existing) : prev;
-        }
-        if (existing >= 0) {
-          const newRecords = [...prev];
-          newRecords[existing] = newRecord;
-          return newRecords;
-        }
-        return [...prev, newRecord];
-      });
+      await updateAttendanceRecord({ user, classKey, status, activity, price, setRecords });
 
       if (editingKey === classKey) cancelEditCustom();
     } catch (error) {

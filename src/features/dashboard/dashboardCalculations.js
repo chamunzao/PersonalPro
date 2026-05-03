@@ -13,6 +13,7 @@ export function calculateDashboard({ students, records, payments, getClassesForD
   const monthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   const todayClasses = getClassesForDate(todayISO).map(cls => ({
     ...cls,
+    key: `${todayText}_${cls.studentId}_${cls.time}`,
     attendance: getAttendanceForClass(cls, records, todayText)
   }));
   const pendingTodayClasses = todayClasses.filter(cls => !cls.attendance);
