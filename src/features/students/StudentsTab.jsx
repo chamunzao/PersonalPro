@@ -3,6 +3,8 @@ import { useAuth } from '../../AuthContext';
 import {
   db,
   doc,
+  getDoc,
+  setDoc,
   collection,
   getDocs,
   deleteDoc,
@@ -52,15 +54,31 @@ function IconCopy() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16H2a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/></svg>;
 }
 
+const DEFAULT_ANAMNESIS = {
+  goal: "",
+  trainingHistory: "",
+  injuries: "",
+  restrictions: "",
+  conditions: "",
+  medications: "",
+  sleep: "",
+  nutrition: "",
+  availability: "",
+  notes: ""
+};
+
 // ==================== STUDENT PROFILE ====================
 function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("dados");
   const [measurements, setMeasurements] = useState([]);
   const [workoutPlans, setWorkoutPlans] = useState([]);
+  const [anamnesis, setAnamnesis] = useState(DEFAULT_ANAMNESIS);
+  const [progressPhotos, setProgressPhotos] = useState([]);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [showNewMeasurement, setShowNewMeasurement] = useState(false);
   const [showNewWorkout, setShowNewWorkout] = useState(false);
+  const [showNewPhoto, setShowNewPhoto] = useState(false);
   const [expandedMeasurement, setExpandedMeasurement] = useState(null);
   const [expandedWorkout, setExpandedWorkout] = useState(null);
 
@@ -86,6 +104,16 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
         ...doc.data()
       })).sort((a, b) => (b.active ? 1 : -1) - (a.active ? 1 : -1));
       setWorkoutPlans(workoutData);
+
+      const anamnesisSnap = await getDoc(doc(db, `users/${user.uid}/students/${studentId}/profile/anamnesis`));
+      setAnamnesis(anamnesisSnap.exists() ? { ...DEFAULT_ANAMNESIS, ...anamnesisSnap.data() } : DEFAULT_ANAMNESIS);
+
+      const photosSnap = await getDocs(collection(db, `users/${user.uid}/students/${studentId}/progressPhotos`));
+      const photosData = photosSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })).sort((a, b) => new Date(b.date) - new Date(a.date));
+      setProgressPhotos(photosData);
     } catch (error) {
       console.error("Error loading profile:", error);
     } finally {
@@ -95,7 +123,9 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
 
   const tabItems = [
     { id: "dados", label: "Dados", icon: <IconUser /> },
+    { id: "anamnese", label: "Anamnese", icon: <IconUser /> },
     { id: "medidas", label: "Medidas", icon: <IconRuler /> },
+    { id: "fotos", label: "Fotos", icon: <IconRuler /> },
     { id: "treinos", label: "Treinos", icon: <IconDumbbell /> }
   ];
 
@@ -154,7 +184,9 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
       {loadingProfile && <p style={{ color: "#9ca3af", textAlign: "center" }}>Carregando...</p>}
 
       {activeTab === "dados" && <DataTabContent student={student} records={records} onEdit={onEdit} theme={theme} />}
+      {activeTab === "anamnese" && <AnamnesisTabContent studentId={studentId} anamnesis={anamnesis} setAnamnesis={setAnamnesis} theme={theme} />}
       {activeTab === "medidas" && <MeasurementsTabContent studentId={studentId} measurements={measurements} setMeasurements={setMeasurements} showNewMeasurement={showNewMeasurement} setShowNewMeasurement={setShowNewMeasurement} expandedMeasurement={expandedMeasurement} setExpandedMeasurement={setExpandedMeasurement} theme={theme} />}
+      {activeTab === "fotos" && <ProgressPhotosTabContent studentId={studentId} photos={progressPhotos} setPhotos={setProgressPhotos} showNewPhoto={showNewPhoto} setShowNewPhoto={setShowNewPhoto} theme={theme} />}
       {activeTab === "treinos" && <WorkoutsTabContent studentId={studentId} workoutPlans={workoutPlans} setWorkoutPlans={setWorkoutPlans} showNewWorkout={showNewWorkout} setShowNewWorkout={setShowNewWorkout} expandedWorkout={expandedWorkout} setExpandedWorkout={setExpandedWorkout} theme={theme} />}
     </div>
   );
@@ -275,6 +307,257 @@ function DataTabContent({ student, records, onEdit, theme }) {
       >
         Editar
       </button>
+    </div>
+  );
+}
+
+function AnamnesisTabContent({ studentId, anamnesis, setAnamnesis, theme }) {
+  const { user } = useAuth();
+  const [form, setForm] = useState(anamnesis || DEFAULT_ANAMNESIS);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setForm(anamnesis || DEFAULT_ANAMNESIS);
+  }, [anamnesis]);
+
+  const riskItems = [
+    form.injuries?.trim() ? "Lesao registrada" : null,
+    form.restrictions?.trim() ? "Restricao de treino" : null,
+    form.conditions?.trim() ? "Condicao de saude" : null,
+    form.medications?.trim() ? "Uso de medicamento" : null,
+    form.availability?.trim() ? "Disponibilidade mapeada" : null
+  ].filter(Boolean);
+
+  async function saveAnamnesis() {
+    if (!user) return;
+    setSaving(true);
+    try {
+      const data = {
+        ...form,
+        updatedAt: formatDate(new Date())
+      };
+      await setDoc(doc(db, `users/${user.uid}/students/${studentId}/profile/anamnesis`), data, { merge: true });
+      setAnamnesis(data);
+    } catch (error) {
+      console.error("Error saving anamnesis:", error);
+      alert("Erro ao salvar anamnese");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const fields = [
+    { key: "goal", label: "Objetivo principal", placeholder: "Ex: emagrecimento, hipertrofia, condicionamento..." },
+    { key: "trainingHistory", label: "Historico de treino", placeholder: "Tempo de treino, modalidades, rotina atual..." },
+    { key: "injuries", label: "Lesoes", placeholder: "Dores, cirurgias, lesoes antigas ou atuais..." },
+    { key: "restrictions", label: "Restricoes", placeholder: "Movimentos proibidos, limitacoes, recomendacoes medicas..." },
+    { key: "conditions", label: "Doencas/condicoes", placeholder: "Hipertensao, diabetes, problemas cardiacos..." },
+    { key: "medications", label: "Medicamentos", placeholder: "Medicamentos em uso e frequencia..." },
+    { key: "sleep", label: "Sono", placeholder: "Horas por noite e qualidade do sono..." },
+    { key: "nutrition", label: "Alimentacao", placeholder: "Rotina alimentar, acompanhamento nutricional..." },
+    { key: "availability", label: "Disponibilidade", placeholder: "Dias, horarios e frequencia possivel..." },
+    { key: "notes", label: "Observacoes gerais", placeholder: "Qualquer informacao importante para acompanhamento..." }
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      <div style={{ background: "#f9fafb", padding: "12px", borderRadius: "8px", border: "1px solid #e5e7eb" }}>
+        <p style={{ fontSize: "12px", fontWeight: "700", color: "#4b5563", margin: "0 0 8px 0" }}>Resumo de risco</p>
+        {riskItems.length === 0 ? (
+          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0" }}>Nenhum ponto sensivel registrado.</p>
+        ) : (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            {riskItems.map(item => (
+              <span key={item} style={{ padding: "4px 8px", background: "#fef3c7", color: "#92400e", borderRadius: "4px", fontSize: "11px", fontWeight: "700" }}>{item}</span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {fields.map(field => (
+        <div key={field.key}>
+          <label style={{ fontSize: "11px", fontWeight: "700", color: "#4b5563", display: "block", marginBottom: "4px" }}>{field.label}</label>
+          <textarea
+            value={form[field.key] || ""}
+            onChange={(e) => setForm(prev => ({ ...prev, [field.key]: e.target.value }))}
+            placeholder={field.placeholder}
+            style={{
+              width: "100%",
+              padding: "8px 10px",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              fontSize: "12px",
+              boxSizing: "border-box",
+              fontFamily: "inherit",
+              minHeight: field.key === "notes" ? "74px" : "58px",
+              resize: "vertical"
+            }}
+          />
+        </div>
+      ))}
+
+      <button
+        onClick={saveAnamnesis}
+        disabled={saving}
+        style={{
+          padding: "10px 16px",
+          background: saving ? "#d1d5db" : theme.primary,
+          color: "white",
+          border: "none",
+          borderRadius: "6px",
+          fontSize: "13px",
+          fontWeight: "700",
+          cursor: saving ? "not-allowed" : "pointer"
+        }}
+      >
+        {saving ? "Salvando..." : "Salvar anamnese"}
+      </button>
+    </div>
+  );
+}
+
+function ProgressPhotosTabContent({ studentId, photos, setPhotos, showNewPhoto, setShowNewPhoto, theme }) {
+  const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ date: formatDateISO(new Date()), frontUrl: "", sideUrl: "", backUrl: "", notes: "" });
+
+  async function savePhotoSet() {
+    if (!user || (!form.frontUrl.trim() && !form.sideUrl.trim() && !form.backUrl.trim())) return;
+    setSaving(true);
+    try {
+      const data = {
+        date: form.date,
+        frontUrl: form.frontUrl.trim(),
+        sideUrl: form.sideUrl.trim(),
+        backUrl: form.backUrl.trim(),
+        notes: form.notes.trim(),
+        createdAt: formatDate(new Date())
+      };
+      const docRef = await addDoc(collection(db, `users/${user.uid}/students/${studentId}/progressPhotos`), data);
+      setPhotos(prev => [{ id: docRef.id, ...data }, ...prev]);
+      setForm({ date: formatDateISO(new Date()), frontUrl: "", sideUrl: "", backUrl: "", notes: "" });
+      setShowNewPhoto(false);
+    } catch (error) {
+      console.error("Error saving progress photos:", error);
+      alert("Erro ao salvar fotos");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deletePhotoSet(id) {
+    if (!user || !window.confirm("Remover este registro de fotos?")) return;
+    try {
+      await deleteDoc(doc(db, `users/${user.uid}/students/${studentId}/progressPhotos/${id}`));
+      setPhotos(prev => prev.filter(photo => photo.id !== id));
+    } catch (error) {
+      console.error("Error deleting progress photos:", error);
+      alert("Erro ao remover fotos");
+    }
+  }
+
+  const photoFields = [
+    { key: "frontUrl", label: "Foto frente" },
+    { key: "sideUrl", label: "Foto lado" },
+    { key: "backUrl", label: "Foto costas" }
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      <button
+        onClick={() => setShowNewPhoto(!showNewPhoto)}
+        style={{
+          padding: "10px 16px",
+          background: theme.primary,
+          color: "white",
+          border: "none",
+          borderRadius: "6px",
+          fontSize: "13px",
+          fontWeight: "700",
+          cursor: "pointer",
+          display: "flex",
+          justifyContent: "center"
+        }}
+      >
+        Nova evolucao por fotos
+      </button>
+
+      {showNewPhoto && (
+        <div style={{ background: "#f9fafb", padding: "16px", borderRadius: "8px", border: `1px solid ${theme.light}` }}>
+          <div style={{ marginBottom: "10px" }}>
+            <label style={{ fontSize: "11px", fontWeight: "700", color: "#4b5563", display: "block", marginBottom: "4px" }}>Data</label>
+            <input
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm(prev => ({ ...prev, date: e.target.value }))}
+              style={{ width: "100%", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box" }}
+            />
+          </div>
+          {photoFields.map(field => (
+            <div key={field.key} style={{ marginBottom: "10px" }}>
+              <label style={{ fontSize: "11px", fontWeight: "700", color: "#4b5563", display: "block", marginBottom: "4px" }}>{field.label}</label>
+              <input
+                type="url"
+                value={form[field.key]}
+                onChange={(e) => setForm(prev => ({ ...prev, [field.key]: e.target.value }))}
+                placeholder="Cole o link da imagem"
+                style={{ width: "100%", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box" }}
+              />
+            </div>
+          ))}
+          <textarea
+            value={form.notes}
+            onChange={(e) => setForm(prev => ({ ...prev, notes: e.target.value }))}
+            placeholder="Observacoes sobre postura, medidas, aderencia..."
+            style={{ width: "100%", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minHeight: "58px", resize: "vertical", marginBottom: "10px" }}
+          />
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              onClick={savePhotoSet}
+              disabled={saving}
+              style={{ flex: 1, padding: "9px", background: saving ? "#d1d5db" : theme.primary, color: "white", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: "700", cursor: saving ? "not-allowed" : "pointer" }}
+            >
+              Salvar fotos
+            </button>
+            <button
+              onClick={() => setShowNewPhoto(false)}
+              style={{ padding: "9px 14px", background: "#f3f4f6", color: "#6b7280", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {photos.length === 0 ? (
+        <p style={{ color: "#9ca3af", textAlign: "center", padding: "20px" }}>Nenhuma foto de evolucao cadastrada</p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {photos.map(photo => (
+            <div key={photo.id} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", marginBottom: "10px" }}>
+                <div>
+                  <p style={{ fontSize: "13px", fontWeight: "700", color: "#1f2937", margin: "0" }}>{new Date(photo.date).toLocaleDateString("pt-BR")}</p>
+                  {photo.notes && <p style={{ fontSize: "12px", color: "#6b7280", margin: "4px 0 0 0" }}>{photo.notes}</p>}
+                </div>
+                <button onClick={() => deletePhotoSet(photo.id)} style={{ background: "#fee2e2", color: "#dc2626", border: "none", borderRadius: "4px", padding: "5px 8px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}>Remover</button>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
+                {photoFields.map(field => (
+                  <div key={field.key} style={{ background: "#f9fafb", borderRadius: "6px", overflow: "hidden", border: "1px solid #e5e7eb" }}>
+                    <p style={{ fontSize: "10px", fontWeight: "700", color: "#6b7280", margin: "0", padding: "6px" }}>{field.label}</p>
+                    {photo[field.key] ? (
+                      <img src={photo[field.key]} alt={field.label} style={{ width: "100%", aspectRatio: "3 / 4", objectFit: "cover", display: "block" }} />
+                    ) : (
+                      <div style={{ aspectRatio: "3 / 4", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: "11px" }}>Sem foto</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
