@@ -3,7 +3,6 @@ import {
   auth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  fetchSignInMethodsForEmail,
   sendPasswordResetEmail,
   firebaseSignOut,
   onAuthStateChanged
@@ -68,13 +67,6 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     setError(null);
     try {
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-      if (methods.length === 0) {
-        const notFoundError = new Error('Usuario nao encontrado');
-        notFoundError.code = 'auth/user-not-found';
-        throw notFoundError;
-      }
-
       const result = await signInWithEmailAndPassword(auth, email, password);
       return result.user;
     } catch (err) {
@@ -90,13 +82,6 @@ export function AuthProvider({ children }) {
       if (!email) {
         const missingEmailError = new Error('Informe seu e-mail para redefinir a senha');
         throw attachUserMessage(missingEmailError, 'Informe seu e-mail para redefinir a senha');
-      }
-
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-      if (methods.length === 0) {
-        const notFoundError = new Error('Usuario nao encontrado');
-        notFoundError.code = 'auth/user-not-found';
-        throw notFoundError;
       }
 
       await sendPasswordResetEmail(auth, email);

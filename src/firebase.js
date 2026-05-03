@@ -4,7 +4,6 @@ import {
   connectAuthEmulator,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  fetchSignInMethodsForEmail,
   sendPasswordResetEmail,
   signOut as firebaseSignOut,
   onAuthStateChanged
@@ -60,7 +59,6 @@ export {
   db,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  fetchSignInMethodsForEmail,
   sendPasswordResetEmail,
   firebaseSignOut,
   onAuthStateChanged,
