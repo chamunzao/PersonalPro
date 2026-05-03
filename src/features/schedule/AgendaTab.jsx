@@ -1,0 +1,581 @@
+import React, { useState } from "react";
+import { db, doc, setDoc } from "../../firebase";
+import { useAuth } from "../../AuthContext";
+import { DAYS, DAY_ABBR, MONTHS } from "../../lib/constants";
+import { formatCurrency } from "../../lib/money";
+import { formatDateISO, getDaysInMonth, getDayOfWeek, jsDayToIndex } from "../../lib/dates";
+import {
+  SCHEDULE_ITEM_TYPES,
+  buildScheduleOverridePayload,
+  getClassesForDate,
+  getScheduleItemsForStudent,
+  getScheduleItemTypeLabel,
+  getScheduleOverrideId
+} from "./scheduleCalculations";
+
+export function AgendaTab({ students, records, scheduleOverrides, setScheduleOverrides, theme }) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDayModal, setSelectedDayModal] = useState(null);
+
+  const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
+  const firstDayJS = getDayOfWeek(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const firstDayIdx = jsDayToIndex(firstDayJS);
+
+  const days = [];
+  for (let i = 0; i < firstDayIdx; i++) days.push(null);
+  for (let i = 1; i <= daysInMonth; i++) days.push(i);
+
+  const getClassesForDay = (dayNum) => {
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum);
+    const dateISO = formatDateISO(date);
+    const classes = getClassesForDate(dateISO, students, scheduleOverrides);
+
+    return classes.map(cls => {
+      const key = `${String(dayNum).padStart(2, "0")}/${String(currentDate.getMonth() + 1).padStart(2, "0")}/${currentDate.getFullYear()}_${cls.studentId}_${cls.time}`;
+      const attendance = records.find(r => r.key === key)?.status || null;
+      return { ...cls, key, attendance };
+    });
+  };
+
+  const getTodayClasses = () => {
+    const today = new Date();
+    const todayISO = formatDateISO(today);
+    const classes = getClassesForDate(todayISO, students, scheduleOverrides);
+
+    return classes.map(cls => {
+      const key = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}_${cls.studentId}_${cls.time}`;
+      const attendance = records.find(r => r.key === key)?.status || null;
+      return { ...cls, key, attendance };
+    });
+  };
+
+  const getTodayGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Bom dia";
+    if (hour < 18) return "Boa tarde";
+    return "Boa noite";
+  };
+
+  const todayClasses = getTodayClasses();
+
+  return (
+    <div style={{ padding: "16px" }}>
+      <div style={{
+        background: theme.gradient,
+        color: "white",
+        padding: "16px",
+        borderRadius: "8px",
+        marginBottom: "20px"
+      }}>
+        <p style={{ fontSize: "14px", fontWeight: "600", margin: "0 0 8px 0" }}>
+          {getTodayGreeting()}, Instrutor!
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div>
+            <p style={{ fontSize: "12px", opacity: 0.9, margin: "0" }}>Aulas Hoje</p>
+            <p style={{ fontSize: "20px", fontWeight: "700", margin: "4px 0 0 0" }}>{todayClasses.length}</p>
+          </div>
+          <div>
+            <p style={{ fontSize: "12px", opacity: 0.9, margin: "0" }}>Total de Alunos</p>
+            <p style={{ fontSize: "20px", fontWeight: "700", margin: "4px 0 0 0" }}>{students.length}</p>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2 style={{ fontSize: "18px", fontWeight: "600", margin: "0", color: "#1f2937" }}>
+          {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
+        </h2>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button
+            onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+            style={{
+              padding: "6px 10px",
+              background: "#f3f4f6",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "14px"
+            }}
+          >
+            Anterior
+          </button>
+          <button
+            onClick={() => setCurrentDate(new Date())}
+            style={{
+              padding: "6px 10px",
+              background: theme.primary,
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: "600"
+            }}
+          >
+            Hoje
+          </button>
+          <button
+            onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+            style={{
+              padding: "6px 10px",
+              background: "#f3f4f6",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "14px"
+            }}
+          >
+            Próximo
+          </button>
+        </div>
+      </div>
+
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(7, 1fr)",
+        gap: "8px",
+        marginBottom: "20px"
+      }}>
+        {DAY_ABBR.map(day => (
+          <div key={day} style={{
+            textAlign: "center",
+            fontSize: "12px",
+            fontWeight: "600",
+            color: theme.primary,
+            padding: "8px"
+          }}>
+            {day}
+          </div>
+        ))}
+        {days.map((dayNum, idx) => {
+          const classesForDay = dayNum ? getClassesForDay(dayNum) : [];
+          const isToday = dayNum === new Date().getDate() &&
+                          currentDate.getMonth() === new Date().getMonth() &&
+                          currentDate.getFullYear() === new Date().getFullYear();
+
+          return (
+            <div
+              key={idx}
+              onClick={() => dayNum && setSelectedDayModal(dayNum)}
+              style={{
+                background: dayNum === null ? "transparent" : (isToday ? "#f3f4f6" : "white"),
+                border: dayNum === null ? "none" : "1px solid #e5e7eb",
+                borderRadius: "6px",
+                padding: "8px",
+                minHeight: "60px",
+                display: "flex",
+                flexDirection: "column",
+                cursor: dayNum ? "pointer" : "default",
+                transition: dayNum ? "all 0.2s" : "none",
+                position: "relative"
+              }}
+              onMouseEnter={(e) => {
+                if (dayNum) {
+                  e.currentTarget.style.boxShadow = `0 2px 8px ${theme.light}`;
+                  e.currentTarget.style.borderColor = theme.primary;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (dayNum) {
+                  e.currentTarget.style.boxShadow = "none";
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                }
+              }}
+            >
+              {dayNum && (
+                <>
+                  <p style={{ fontSize: "12px", fontWeight: "600", color: "#1f2937", margin: "0 0 6px 0" }}>{dayNum}</p>
+                  <div style={{ fontSize: "10px", color: "#6b7280", flex: 1 }}>
+                    {classesForDay.length > 0 ? (
+                      <>
+                        <span>{classesForDay.length} aula(s)</span>
+                        <div style={{ marginTop: "4px", display: "flex", gap: "3px", flexWrap: "wrap" }}>
+                          {classesForDay.map((_, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                width: "4px",
+                                height: "4px",
+                                borderRadius: "50%",
+                                background: theme.primary
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <span style={{ color: "#d1d5db" }}>-</span>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {selectedDayModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0, 0, 0, 0.5)",
+          display: "flex",
+          alignItems: "flex-end",
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: "white",
+            width: "100%",
+            maxHeight: "80vh",
+            borderRadius: "16px 16px 0 0",
+            padding: "20px",
+            overflowY: "auto"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0", color: "#1f2937" }}>
+                {DAYS[getDayOfWeek(currentDate.getFullYear(), currentDate.getMonth(), selectedDayModal) - 1]} - {selectedDayModal} de {MONTHS[currentDate.getMonth()]}
+              </h3>
+              <button
+                onClick={() => setSelectedDayModal(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  color: "#6b7280",
+                  padding: "0",
+                  width: "32px",
+                  height: "32px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <DayDetailsPanel
+              dayNum={selectedDayModal}
+              currentDate={currentDate}
+              students={students}
+              records={records}
+              scheduleOverrides={scheduleOverrides}
+              setScheduleOverrides={setScheduleOverrides}
+              theme={theme}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DayDetailsPanel({ dayNum, currentDate, students, records, scheduleOverrides, setScheduleOverrides, theme }) {
+  const { user } = useAuth();
+  const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum);
+  const dateISO = formatDateISO(date);
+  const classes = getClassesForDate(dateISO, students, scheduleOverrides);
+  const [showAddClass, setShowAddClass] = useState(false);
+  const [addForm, setAddForm] = useState({ studentId: "", time: "", type: SCHEDULE_ITEM_TYPES.extra, note: "", pricePerClass: "" });
+  const [rescheduleKey, setRescheduleKey] = useState(null);
+  const [rescheduleForm, setRescheduleForm] = useState({ date: "", time: "" });
+  const [savingSchedule, setSavingSchedule] = useState(false);
+
+  const classesWithAttendance = classes.map(cls => {
+    const key = `${String(dayNum).padStart(2, "0")}/${String(currentDate.getMonth() + 1).padStart(2, "0")}/${currentDate.getFullYear()}_${cls.studentId}_${cls.time}`;
+    const attendance = records.find(r => r.key === key)?.status || null;
+    return { ...cls, key, attendance };
+  });
+
+  function getOverride(studentId) {
+    return scheduleOverrides.find(item => item.date === dateISO && item.studentId === studentId);
+  }
+
+  async function saveStudentScheduleItems(student, items, targetDateISO = dateISO) {
+    if (!user) return;
+    const overrideId = getScheduleOverrideId(targetDateISO, student.id);
+    const payload = buildScheduleOverridePayload(items);
+    await setDoc(doc(db, `users/${user.uid}/scheduleOverrides/${overrideId}`), payload);
+
+    setScheduleOverrides(prev => {
+      const nextOverride = {
+        key: overrideId,
+        date: targetDateISO,
+        studentId: student.id,
+        ...payload
+      };
+      const existing = prev.findIndex(item => item.key === overrideId);
+      if (existing >= 0) {
+        const next = [...prev];
+        next[existing] = nextOverride;
+        return next;
+      }
+      return [...prev, nextOverride];
+    });
+  }
+
+  async function addScheduleItem() {
+    if (!addForm.studentId || !addForm.time) return;
+    const student = students.find(item => item.id === addForm.studentId);
+    if (!student) return;
+
+    setSavingSchedule(true);
+    try {
+      const currentItems = getScheduleItemsForStudent(dateISO, student, getOverride(student.id));
+      if (currentItems.some(item => item.time === addForm.time)) {
+        alert("Este aluno já tem uma aula nesse horário.");
+        return;
+      }
+
+      const nextItems = [
+        ...currentItems,
+        {
+          time: addForm.time,
+          type: addForm.type,
+          note: addForm.note.trim(),
+          pricePerClass: addForm.pricePerClass ? parseFloat(addForm.pricePerClass) : null
+        }
+      ];
+      await saveStudentScheduleItems(student, nextItems);
+      setAddForm({ studentId: "", time: "", type: SCHEDULE_ITEM_TYPES.extra, note: "", pricePerClass: "" });
+      setShowAddClass(false);
+    } catch (error) {
+      console.error("Error saving schedule item:", error);
+      alert("Erro ao salvar aula na agenda");
+    } finally {
+      setSavingSchedule(false);
+    }
+  }
+
+  async function cancelClass(cls) {
+    if (!window.confirm("Cancelar esta aula apenas neste dia?")) return;
+    const student = students.find(item => item.id === cls.studentId);
+    if (!student) return;
+
+    setSavingSchedule(true);
+    try {
+      const currentItems = getScheduleItemsForStudent(dateISO, student, getOverride(student.id));
+      await saveStudentScheduleItems(student, currentItems.filter(item => item.time !== cls.time));
+    } catch (error) {
+      console.error("Error canceling class:", error);
+      alert("Erro ao cancelar aula");
+    } finally {
+      setSavingSchedule(false);
+    }
+  }
+
+  async function rescheduleClass(cls) {
+    if (!rescheduleForm.date || !rescheduleForm.time) return;
+    const student = students.find(item => item.id === cls.studentId);
+    if (!student) return;
+
+    setSavingSchedule(true);
+    try {
+      const targetOverride = scheduleOverrides.find(item => item.date === rescheduleForm.date && item.studentId === student.id);
+      const targetItems = getScheduleItemsForStudent(rescheduleForm.date, student, targetOverride);
+      const isSameSlot = rescheduleForm.date === dateISO && rescheduleForm.time === cls.time;
+      if (isSameSlot) {
+        setRescheduleKey(null);
+        return;
+      }
+      if (!isSameSlot && targetItems.some(item => item.time === rescheduleForm.time)) {
+        alert("Este aluno já tem aula no novo horário.");
+        return;
+      }
+
+      const sourceItems = getScheduleItemsForStudent(dateISO, student, getOverride(student.id));
+      await saveStudentScheduleItems(student, sourceItems.filter(item => item.time !== cls.time));
+
+      await saveStudentScheduleItems(student, [
+        ...targetItems,
+        {
+          time: rescheduleForm.time,
+          type: SCHEDULE_ITEM_TYPES.rescheduled,
+          note: `Remarcada de ${String(dayNum).padStart(2, "0")}/${String(currentDate.getMonth() + 1).padStart(2, "0")}`,
+          pricePerClass: cls.pricePerClass
+        }
+      ], rescheduleForm.date);
+      setRescheduleKey(null);
+      setRescheduleForm({ date: "", time: "" });
+    } catch (error) {
+      console.error("Error rescheduling class:", error);
+      alert("Erro ao remarcar aula");
+    } finally {
+      setSavingSchedule(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+      <button
+        onClick={() => setShowAddClass(!showAddClass)}
+        style={{
+          padding: "10px 12px",
+          background: theme.primary,
+          color: "white",
+          border: "none",
+          borderRadius: "6px",
+          fontSize: "12px",
+          fontWeight: "700",
+          cursor: "pointer"
+        }}
+      >
+        {showAddClass ? "Fechar" : "+ Aula avulsa/reposição"}
+      </button>
+
+      {showAddClass && (
+        <div style={{ background: "#f9fafb", padding: "12px", borderRadius: "8px", border: "1px solid #e5e7eb" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+            <select
+              value={addForm.studentId}
+              onChange={(e) => setAddForm(form => ({ ...form, studentId: e.target.value }))}
+              style={{ padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px" }}
+            >
+              <option value="">Aluno</option>
+              {students.map(student => <option key={student.id} value={student.id}>{student.name}</option>)}
+            </select>
+            <input
+              type="time"
+              value={addForm.time}
+              onChange={(e) => setAddForm(form => ({ ...form, time: e.target.value }))}
+              style={{ padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px" }}
+            />
+            <select
+              value={addForm.type}
+              onChange={(e) => setAddForm(form => ({ ...form, type: e.target.value }))}
+              style={{ padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px" }}
+            >
+              <option value={SCHEDULE_ITEM_TYPES.extra}>Avulsa</option>
+              <option value={SCHEDULE_ITEM_TYPES.replacement}>Reposição</option>
+              <option value={SCHEDULE_ITEM_TYPES.rescheduled}>Remarcada</option>
+            </select>
+            <input
+              type="number"
+              value={addForm.pricePerClass}
+              onChange={(e) => setAddForm(form => ({ ...form, pricePerClass: e.target.value }))}
+              placeholder="Valor opcional"
+              min="0"
+              step="0.01"
+              style={{ padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px" }}
+            />
+          </div>
+          <input
+            type="text"
+            value={addForm.note}
+            onChange={(e) => setAddForm(form => ({ ...form, note: e.target.value }))}
+            placeholder="Observação opcional"
+            style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", marginBottom: "8px" }}
+          />
+          <button
+            onClick={addScheduleItem}
+            disabled={savingSchedule || !addForm.studentId || !addForm.time}
+            style={{
+              width: "100%",
+              padding: "8px",
+              background: savingSchedule || !addForm.studentId || !addForm.time ? "#d1d5db" : theme.primary,
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              fontSize: "12px",
+              fontWeight: "700",
+              cursor: savingSchedule || !addForm.studentId || !addForm.time ? "not-allowed" : "pointer"
+            }}
+          >
+            Salvar aula
+          </button>
+        </div>
+      )}
+
+      {classesWithAttendance.length === 0 && (
+        <div style={{ textAlign: "center", padding: "20px", color: "#9ca3af", background: "#f9fafb", borderRadius: "8px" }}>
+          <p>Nenhuma aula agendada para este dia</p>
+        </div>
+      )}
+
+      {classesWithAttendance.map(cls => (
+        <div key={cls.key} style={{
+          background: "#f9fafb",
+          padding: "12px",
+          borderRadius: "8px",
+          border: `1px solid ${theme.light}`
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+            <div>
+              <p style={{ fontSize: "14px", fontWeight: "600", margin: "0 0 4px 0", color: "#1f2937" }}>
+                {cls.studentName}
+              </p>
+              <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0" }}>
+                {cls.time} · {formatCurrency(cls.pricePerClass)}
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "6px" }}>
+                <span style={{ padding: "3px 7px", borderRadius: "4px", background: theme.light, color: theme.dark, fontSize: "11px", fontWeight: "700" }}>
+                  {getScheduleItemTypeLabel(cls.scheduleType)}
+                </span>
+                {cls.scheduleNote && <span style={{ padding: "3px 7px", borderRadius: "4px", background: "#f3f4f6", color: "#4b5563", fontSize: "11px", fontWeight: "600" }}>{cls.scheduleNote}</span>}
+              </div>
+            </div>
+            {cls.attendance && (
+              <span style={{
+                padding: "4px 8px",
+                borderRadius: "4px",
+                fontSize: "11px",
+                fontWeight: "600",
+                background: cls.attendance === "present" ? "#d1fae5" : "#fee2e2",
+                color: cls.attendance === "present" ? "#059669" : "#dc2626"
+              }}>
+                {cls.attendance === "present" ? "Presente" : "Ausente"}
+              </span>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: "6px", marginTop: "10px" }}>
+            <button
+              onClick={() => {
+                setRescheduleKey(rescheduleKey === cls.key ? null : cls.key);
+                setRescheduleForm({ date: "", time: cls.time });
+              }}
+              disabled={savingSchedule}
+              style={{ flex: 1, padding: "7px", background: "white", border: `1px solid ${theme.medium}`, color: theme.primary, borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+            >
+              Remarcar
+            </button>
+            <button
+              onClick={() => cancelClass(cls)}
+              disabled={savingSchedule}
+              style={{ flex: 1, padding: "7px", background: "#fee2e2", border: "none", color: "#dc2626", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+            >
+              Cancelar do dia
+            </button>
+          </div>
+          {rescheduleKey === cls.key && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "6px", marginTop: "8px" }}>
+              <input
+                type="date"
+                value={rescheduleForm.date}
+                onChange={(e) => setRescheduleForm(form => ({ ...form, date: e.target.value }))}
+                style={{ padding: "7px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px" }}
+              />
+              <input
+                type="time"
+                value={rescheduleForm.time}
+                onChange={(e) => setRescheduleForm(form => ({ ...form, time: e.target.value }))}
+                style={{ padding: "7px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px" }}
+              />
+              <button
+                onClick={() => rescheduleClass(cls)}
+                disabled={savingSchedule || !rescheduleForm.date || !rescheduleForm.time}
+                style={{ padding: "7px 10px", background: theme.primary, color: "white", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+              >
+                OK
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
