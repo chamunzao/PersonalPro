@@ -285,6 +285,10 @@ function DataTabContent({ student, records, onEdit, theme }) {
               {billingStatus.usedClasses}/{billingStatus.contractedClasses} usadas
             </p>
           </div>}
+          {billingStatus.billingType === BILLING_TYPES.monthlyPackage && billingStatus.contractedClasses === 0 && <div>
+            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Aulas do mes</p>
+            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#1f2937" }}>Calculadas em pagamentos</p>
+          </div>}
           {billingStatus.remainingClasses !== null && <div>
             <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Restantes</p>
             <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: billingColors.color }}>{billingStatus.remainingClasses} aulas</p>
@@ -1521,6 +1525,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const defaultForm = {
     name: "",
     pricePerClass: "",
@@ -1708,11 +1713,19 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
     }
   }
 
-  // Get last attendance for a student
-  function getLastAttendance(studentId) {
-    // This would need records to be passed - for now returning null
-    return null;
-  }
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const visibleStudents = students
+    .filter(student => {
+      if (!normalizedSearch) return true;
+      return [
+        student.name,
+        student.email,
+        student.phone,
+        student.cpf,
+        student.notes
+      ].some(value => String(value || "").toLowerCase().includes(normalizedSearch));
+    })
+    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"));
 
   return (
     <div style={{ padding: "16px" }}>
@@ -1744,6 +1757,32 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
       </div>
 
       {loadingData && <p style={{ color: "#9ca3af", fontSize: "14px", textAlign: "center" }}>Carregando...</p>}
+
+      {!selectedStudentId && students.length > 0 && (
+        <div style={{ marginBottom: "14px" }}>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Buscar por nome, telefone, e-mail ou observacao..."
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              border: "1px solid #d1d5db",
+              borderRadius: "8px",
+              fontSize: "13px",
+              boxSizing: "border-box",
+              fontFamily: "inherit",
+              background: "white"
+            }}
+          />
+          {normalizedSearch && (
+            <p style={{ fontSize: "11px", color: "#6b7280", margin: "6px 0 0 0" }}>
+              {visibleStudents.length} aluno{visibleStudents.length === 1 ? "" : "s"} encontrado{visibleStudents.length === 1 ? "" : "s"}
+            </p>
+          )}
+        </div>
+      )}
 
       {showForm && (
         <div style={{
@@ -2144,7 +2183,19 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
 
       {!loadingData && !selectedStudentId && (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {students.map(student => {
+          {visibleStudents.length === 0 && (
+            <div style={{
+              textAlign: "center",
+              padding: "28px 16px",
+              background: "white",
+              border: "1px solid #e5e7eb",
+              borderRadius: "8px",
+              color: "#9ca3af"
+            }}>
+              <p style={{ fontSize: "13px", margin: 0, fontWeight: "700" }}>Nenhum aluno encontrado</p>
+            </div>
+          )}
+          {visibleStudents.map(student => {
             const billingStatus = calculateBillingStatus(student, records);
             const billingColors = getBillingStatusColors(billingStatus);
             return (
@@ -2184,7 +2235,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                     }}>
                       {getBillingStatusLabel(billingStatus)}
                     </span>
-                    <span style={{
+                    {billingStatus.contractedClasses > 0 && <span style={{
                       padding: "3px 7px",
                       background: "#eef2ff",
                       color: "#4338ca",
@@ -2193,8 +2244,8 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                       fontWeight: "700"
                     }}>
                       {billingStatus.usedClasses}/{billingStatus.contractedClasses} usadas
-                    </span>
-                    <span style={{
+                    </span>}
+                    {billingStatus.contractedClasses > 0 && <span style={{
                       padding: "3px 7px",
                       background: "#f3f4f6",
                       color: "#4b5563",
@@ -2203,7 +2254,17 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                       fontWeight: "700"
                     }}>
                       {billingStatus.remainingClasses} restantes
-                    </span>
+                    </span>}
+                    {billingStatus.billingType === BILLING_TYPES.monthlyPackage && billingStatus.contractedClasses === 0 && <span style={{
+                      padding: "3px 7px",
+                      background: "#eef2ff",
+                      color: "#4338ca",
+                      borderRadius: "4px",
+                      fontSize: "11px",
+                      fontWeight: "700"
+                    }}>
+                      Aulas calculadas no mes
+                    </span>}
                   </div>
                 )}
                 <div style={{ display: "flex", gap: "8px", fontSize: "11px", color: "#6b7280" }}>

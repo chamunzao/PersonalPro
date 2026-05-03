@@ -12,8 +12,11 @@ import {
 import { formatDate, formatDateISO } from '../../lib/dates';
 import {
   calculateAdvanceCreditStatus,
+  calculateBillingStatus,
   getAdvanceCreditStatusColors,
-  getAdvanceCreditStatusLabel
+  getAdvanceCreditStatusLabel,
+  getBillingStatusColors,
+  getBillingStatusLabel
 } from '../billing/billingCalculations';
 import { getClassesForDate } from '../schedule/scheduleCalculations';
 import { getAttendanceRecordDocId, updateAttendanceRecord } from '../attendance/attendanceActions';
@@ -203,6 +206,19 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     } catch (error) {
       console.error("Error marking attendance:", error);
       alert("Erro ao marcar presenca");
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function markAbsent(classKey) {
+    if (!user) return;
+    setSavingKey(classKey);
+    try {
+      await updateAttendanceRecord({ user, classKey, status: "absent", setRecords });
+    } catch (error) {
+      console.error("Error marking attendance:", error);
+      alert("Erro ao marcar falta");
     } finally {
       setSavingKey(null);
     }
@@ -439,7 +455,17 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
             const creditStatus = student
               ? calculateAdvanceCreditStatus(student, records, payments)
               : { hasAdvancePackage: false, status: "none", remainingClasses: null };
-            const creditColors = getAdvanceCreditStatusColors(creditStatus);
+            const billingStatus = student ? calculateBillingStatus(student, records, selectedDate) : null;
+            const badgeColors = creditStatus.hasAdvancePackage
+              ? getAdvanceCreditStatusColors(creditStatus)
+              : billingStatus
+                ? getBillingStatusColors(billingStatus)
+                : { background: "#f3f4f6", color: "#6b7280" };
+            const badgeLabel = creditStatus.hasAdvancePackage
+              ? `${getAdvanceCreditStatusLabel(creditStatus)}${creditStatus.remainingClasses !== null ? ` - ${creditStatus.remainingClasses} restantes` : ""}`
+              : billingStatus
+                ? `${billingStatus.billingTypeLabel} - ${getBillingStatusLabel(billingStatus)}`
+                : "Sem cobranca";
             const saving = savingKey === classKey;
             const savingWorkout = savingKey === `workout-${classKey}`;
             const editingWorkout = editingWorkoutKey === classKey;
@@ -465,36 +491,54 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                       display: "inline-block",
                       marginTop: "6px",
                       padding: "3px 7px",
-                      background: creditColors.background,
-                      color: creditColors.color,
+                      background: badgeColors.background,
+                      color: badgeColors.color,
                       borderRadius: "4px",
                       fontSize: "11px",
                       fontWeight: "800"
                     }}>
-                      {getAdvanceCreditStatusLabel(creditStatus)}
-                      {creditStatus.remainingClasses !== null ? ` - ${creditStatus.remainingClasses} restantes` : ""}
+                      {badgeLabel}
                     </span>
                   </div>
-                  <button
-                    onClick={() => markPresent(classKey)}
-                    disabled={saving}
-                    style={{
-                      padding: "7px 10px",
-                      background: record?.status === "present" ? "#d1fae5" : theme.primary,
-                      color: record?.status === "present" ? "#047857" : "white",
-                      border: "none",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontWeight: "700",
-                      cursor: saving ? "not-allowed" : "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      opacity: saving ? 0.65 : 1
-                    }}
-                  >
-                    <IconCheck /> {record?.status === "present" ? "Presente" : "Marcar"}
-                  </button>
+                  <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                    <button
+                      onClick={() => markPresent(classKey)}
+                      disabled={saving}
+                      style={{
+                        padding: "7px 10px",
+                        background: record?.status === "present" ? "#d1fae5" : theme.primary,
+                        color: record?.status === "present" ? "#047857" : "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        cursor: saving ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        opacity: saving ? 0.65 : 1
+                      }}
+                    >
+                      <IconCheck /> {record?.status === "present" ? "Presente" : "Marcar"}
+                    </button>
+                    <button
+                      onClick={() => markAbsent(classKey)}
+                      disabled={saving}
+                      style={{
+                        padding: "7px 10px",
+                        background: record?.status === "absent" ? "#fee2e2" : "white",
+                        color: "#dc2626",
+                        border: "1px solid #fecaca",
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        cursor: saving ? "not-allowed" : "pointer",
+                        opacity: saving ? 0.65 : 1
+                      }}
+                    >
+                      Falta
+                    </button>
+                  </div>
                 </div>
 
                 {activeWorkout ? (

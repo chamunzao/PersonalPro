@@ -524,7 +524,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                       <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 6px 0', fontStyle: 'italic' }}>{displayPayment.note}</p>
                     )}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      <span style={{
+                      {creditStatus.hasAdvancePackage && <span style={{
                         padding: '3px 7px',
                         background: creditColors.background,
                         color: creditColors.color,
@@ -534,7 +534,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                       }}>
                         {getAdvanceCreditStatusLabel(creditStatus)}
                         {creditStatus.remainingClasses !== null ? ` - ${creditStatus.remainingClasses}/${creditStatus.totalPurchased}` : ''}
-                      </span>
+                      </span>}
                       <span style={{
                         padding: '3px 7px',
                         background: '#f3f4f6',

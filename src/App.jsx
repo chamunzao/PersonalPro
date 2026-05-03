@@ -231,7 +231,7 @@ export default function App() {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div style={{ flex: 1, overflowY: "auto", paddingBottom: "8px" }}>
         {activeTab === "dashboard" && <DashboardTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "students" && <StudentsTab students={students} setStudents={setStudents} records={records} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "agenda" && <AgendaTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} theme={theme} />}
@@ -251,7 +251,9 @@ export default function App() {
         display: "flex",
         gap: "0",
         padding: "8px",
-        boxShadow: "0 -2px 8px rgba(0, 0, 0, 0.05)"
+        boxShadow: "0 -2px 8px rgba(0, 0, 0, 0.05)",
+        overflowX: "auto",
+        WebkitOverflowScrolling: "touch"
       }}>
         {[
           { id: "dashboard", icon: <IconHome />, label: "Início" },
@@ -269,7 +271,7 @@ export default function App() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             style={{
-              flex: 1,
+              flex: "0 0 76px",
               padding: "12px 8px",
               background: activeTab === tab.id ? "#f3f4f6" : "transparent",
               border: "none",
