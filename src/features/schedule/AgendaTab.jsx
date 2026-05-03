@@ -24,8 +24,21 @@ function openWhatsAppMessage(phone, message) {
   window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
 }
 
+function getWeekStart(date) {
+  const start = new Date(date);
+  const dayIndex = jsDayToIndex(start.getDay());
+  start.setDate(start.getDate() - dayIndex);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+function getDateText(date) {
+  return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+}
+
 export function AgendaTab({ students, records, setRecords, scheduleOverrides, setScheduleOverrides, theme }) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState("month");
   const [selectedDayModal, setSelectedDayModal] = useState(null);
 
   const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
@@ -46,6 +59,32 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
       const attendance = records.find(r => r.key === key)?.status || null;
       return { ...cls, key, attendance };
     });
+  };
+
+  const getClassesForDateObject = (date) => {
+    const dateISO = formatDateISO(date);
+    const dateText = getDateText(date);
+    const classes = getClassesForDate(dateISO, students, scheduleOverrides);
+
+    return classes.map(cls => {
+      const key = `${dateText}_${cls.studentId}_${cls.time}`;
+      const attendance = records.find(r => r.key === key)?.status || null;
+      return { ...cls, key, attendance };
+    });
+  };
+
+  const weekDays = Array.from({ length: 7 }, (_, index) => {
+    const date = getWeekStart(currentDate);
+    date.setDate(date.getDate() + index);
+    return date;
+  });
+
+  const weekClasses = weekDays.flatMap(date => getClassesForDateObject(date));
+  const weekSummary = {
+    total: weekClasses.length,
+    present: weekClasses.filter(cls => cls.attendance === "present").length,
+    absent: weekClasses.filter(cls => cls.attendance === "absent").length,
+    pending: weekClasses.filter(cls => !cls.attendance).length
   };
 
   const getTodayClasses = () => {
@@ -95,11 +134,21 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
 
       <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ fontSize: "18px", fontWeight: "600", margin: "0", color: "#1f2937" }}>
-          {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
+          {viewMode === "month"
+            ? `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+            : `${getDateText(weekDays[0])} - ${getDateText(weekDays[6])}`}
         </h2>
         <div style={{ display: "flex", gap: "8px" }}>
           <button
-            onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+            onClick={() => {
+              if (viewMode === "month") {
+                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+              } else {
+                const previousWeek = new Date(currentDate);
+                previousWeek.setDate(previousWeek.getDate() - 7);
+                setCurrentDate(previousWeek);
+              }
+            }}
             style={{
               padding: "6px 10px",
               background: "#f3f4f6",
@@ -127,7 +176,15 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
             Hoje
           </button>
           <button
-            onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+            onClick={() => {
+              if (viewMode === "month") {
+                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+              } else {
+                const nextWeek = new Date(currentDate);
+                nextWeek.setDate(nextWeek.getDate() + 7);
+                setCurrentDate(nextWeek);
+              }
+            }}
             style={{
               padding: "6px 10px",
               background: "#f3f4f6",
@@ -142,89 +199,63 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
         </div>
       </div>
 
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(7, 1fr)",
-        gap: "8px",
-        marginBottom: "20px"
-      }}>
-        {DAY_ABBR.map(day => (
-          <div key={day} style={{
-            textAlign: "center",
-            fontSize: "12px",
-            fontWeight: "600",
-            color: theme.primary,
-            padding: "8px"
-          }}>
-            {day}
-          </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "16px" }}>
+        {[
+          { key: "month", label: "Mes" },
+          { key: "week", label: "Semana" }
+        ].map(option => (
+          <button
+            key={option.key}
+            onClick={() => setViewMode(option.key)}
+            style={{
+              padding: "9px",
+              background: viewMode === option.key ? theme.primary : "white",
+              color: viewMode === option.key ? "white" : theme.primary,
+              border: `1px solid ${theme.medium}`,
+              borderRadius: "6px",
+              fontSize: "12px",
+              fontWeight: "800",
+              cursor: "pointer"
+            }}
+          >
+            {option.label}
+          </button>
         ))}
-        {days.map((dayNum, idx) => {
-          const classesForDay = dayNum ? getClassesForDay(dayNum) : [];
-          const isToday = dayNum === new Date().getDate() &&
-                          currentDate.getMonth() === new Date().getMonth() &&
-                          currentDate.getFullYear() === new Date().getFullYear();
-
-          return (
-            <div
-              key={idx}
-              onClick={() => dayNum && setSelectedDayModal(dayNum)}
-              style={{
-                background: dayNum === null ? "transparent" : (isToday ? "#f3f4f6" : "white"),
-                border: dayNum === null ? "none" : "1px solid #e5e7eb",
-                borderRadius: "6px",
-                padding: "8px",
-                minHeight: "60px",
-                display: "flex",
-                flexDirection: "column",
-                cursor: dayNum ? "pointer" : "default",
-                transition: dayNum ? "all 0.2s" : "none",
-                position: "relative"
-              }}
-              onMouseEnter={(e) => {
-                if (dayNum) {
-                  e.currentTarget.style.boxShadow = `0 2px 8px ${theme.light}`;
-                  e.currentTarget.style.borderColor = theme.primary;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (dayNum) {
-                  e.currentTarget.style.boxShadow = "none";
-                  e.currentTarget.style.borderColor = "#e5e7eb";
-                }
-              }}
-            >
-              {dayNum && (
-                <>
-                  <p style={{ fontSize: "12px", fontWeight: "600", color: "#1f2937", margin: "0 0 6px 0" }}>{dayNum}</p>
-                  <div style={{ fontSize: "10px", color: "#6b7280", flex: 1 }}>
-                    {classesForDay.length > 0 ? (
-                      <>
-                        <span>{classesForDay.length} aula(s)</span>
-                        <div style={{ marginTop: "4px", display: "flex", gap: "3px", flexWrap: "wrap" }}>
-                          {classesForDay.map((_, i) => (
-                            <div
-                              key={i}
-                              style={{
-                                width: "4px",
-                                height: "4px",
-                                borderRadius: "50%",
-                                background: theme.primary
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <span style={{ color: "#d1d5db" }}>-</span>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          );
-        })}
       </div>
+
+      {viewMode === "week" && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "16px" }}>
+          {[
+            { label: "Aulas", value: weekSummary.total, color: theme.primary },
+            { label: "Pendentes", value: weekSummary.pending, color: "#6b7280" },
+            { label: "Presentes", value: weekSummary.present, color: "#059669" },
+            { label: "Faltas", value: weekSummary.absent, color: "#dc2626" }
+          ].map(item => (
+            <div key={item.label} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px" }}>
+              <p style={{ fontSize: "10px", color: "#9ca3af", margin: "0 0 4px", fontWeight: "700" }}>{item.label}</p>
+              <p style={{ fontSize: "20px", color: item.color, margin: 0, fontWeight: "800" }}>{item.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {viewMode === "month" ? (
+        <MonthCalendar
+          days={days}
+          currentDate={currentDate}
+          getClassesForDay={getClassesForDay}
+          setSelectedDayModal={setSelectedDayModal}
+          theme={theme}
+        />
+      ) : (
+        <WeekCalendar
+          weekDays={weekDays}
+          getClassesForDateObject={getClassesForDateObject}
+          setCurrentDate={setCurrentDate}
+          setSelectedDayModal={setSelectedDayModal}
+          theme={theme}
+        />
+      )}
 
       {selectedDayModal && (
         <div style={{
@@ -283,6 +314,146 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function MonthCalendar({ days, currentDate, getClassesForDay, setSelectedDayModal, theme }) {
+  return (
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(7, 1fr)",
+      gap: "8px",
+      marginBottom: "20px"
+    }}>
+      {DAY_ABBR.map(day => (
+        <div key={day} style={{
+          textAlign: "center",
+          fontSize: "12px",
+          fontWeight: "600",
+          color: theme.primary,
+          padding: "8px"
+        }}>
+          {day}
+        </div>
+      ))}
+      {days.map((dayNum, idx) => {
+        const classesForDay = dayNum ? getClassesForDay(dayNum) : [];
+        const isToday = dayNum === new Date().getDate() &&
+                        currentDate.getMonth() === new Date().getMonth() &&
+                        currentDate.getFullYear() === new Date().getFullYear();
+
+        return (
+          <div
+            key={idx}
+            onClick={() => dayNum && setSelectedDayModal(dayNum)}
+            style={{
+              background: dayNum === null ? "transparent" : (isToday ? "#f3f4f6" : "white"),
+              border: dayNum === null ? "none" : "1px solid #e5e7eb",
+              borderRadius: "6px",
+              padding: "8px",
+              minHeight: "60px",
+              display: "flex",
+              flexDirection: "column",
+              cursor: dayNum ? "pointer" : "default",
+              transition: dayNum ? "all 0.2s" : "none",
+              position: "relative"
+            }}
+            onMouseEnter={(e) => {
+              if (dayNum) {
+                e.currentTarget.style.boxShadow = `0 2px 8px ${theme.light}`;
+                e.currentTarget.style.borderColor = theme.primary;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (dayNum) {
+                e.currentTarget.style.boxShadow = "none";
+                e.currentTarget.style.borderColor = "#e5e7eb";
+              }
+            }}
+          >
+            {dayNum && (
+              <>
+                <p style={{ fontSize: "12px", fontWeight: "600", color: "#1f2937", margin: "0 0 6px 0" }}>{dayNum}</p>
+                <div style={{ fontSize: "10px", color: "#6b7280", flex: 1 }}>
+                  {classesForDay.length > 0 ? (
+                    <>
+                      <span>{classesForDay.length} aula(s)</span>
+                      <div style={{ marginTop: "4px", display: "flex", gap: "3px", flexWrap: "wrap" }}>
+                        {classesForDay.map((cls, i) => {
+                          const color = cls.attendance === "present" ? "#059669" : cls.attendance === "absent" ? "#dc2626" : theme.primary;
+                          return (
+                            <div
+                              key={i}
+                              style={{
+                                width: "4px",
+                                height: "4px",
+                                borderRadius: "50%",
+                                background: color
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <span style={{ color: "#d1d5db" }}>-</span>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function WeekCalendar({ weekDays, getClassesForDateObject, setCurrentDate, setSelectedDayModal, theme }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
+      {weekDays.map(date => {
+        const classes = getClassesForDateObject(date);
+        const isToday = getDateText(date) === getDateText(new Date());
+        return (
+          <button
+            key={date.toISOString()}
+            onClick={() => {
+              setCurrentDate(date);
+              setSelectedDayModal(date.getDate());
+            }}
+            style={{
+              background: isToday ? "#f3f4f6" : "white",
+              border: `1px solid ${isToday ? theme.medium : "#e5e7eb"}`,
+              borderRadius: "8px",
+              padding: "12px",
+              cursor: "pointer",
+              textAlign: "left"
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", marginBottom: classes.length > 0 ? "8px" : "0" }}>
+              <div>
+                <p style={{ fontSize: "13px", fontWeight: "800", color: "#1f2937", margin: "0 0 2px" }}>{DAYS[jsDayToIndex(date.getDay())]}</p>
+                <p style={{ fontSize: "11px", color: "#6b7280", margin: 0 }}>{getDateText(date)}</p>
+              </div>
+              <span style={{ fontSize: "12px", fontWeight: "800", color: theme.primary }}>{classes.length} aula(s)</span>
+            </div>
+            {classes.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {classes.map(cls => {
+                  const statusStyle = getAttendanceStatusStyle(cls.attendance, theme);
+                  return (
+                    <div key={cls.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", background: "#f9fafb", borderRadius: "6px", padding: "7px" }}>
+                      <span style={{ fontSize: "12px", color: "#1f2937", fontWeight: "700" }}>{cls.time} - {cls.studentName}</span>
+                      <span style={{ fontSize: "10px", color: statusStyle.color, background: statusStyle.background, borderRadius: "4px", padding: "3px 6px", fontWeight: "800" }}>{statusStyle.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
