@@ -1,5 +1,5 @@
 import { useAuth } from '../../AuthContext';
-import { db, doc, setDoc } from '../../firebase';
+import { saveThemeKey } from '../../services/settingsService';
 // ==================== SETTINGS TAB ====================
 function SettingsTab({ themeKey, setThemeKey, themes }) {
   const { user } = useAuth();
@@ -8,7 +8,7 @@ function SettingsTab({ themeKey, setThemeKey, themes }) {
     setThemeKey(key);
     if (user) {
       try {
-        await setDoc(doc(db, `users/${user.uid}/settings/theme`), { themeKey: key });
+        await saveThemeKey(user.uid, key);
       } catch (e) {
         console.error("Error saving theme:", e);
       }

@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { LoginPage } from './LoginPage';
-import {
-  db,
-  doc,
-  getDoc,
-  collection,
-  getDocs
-} from './firebase';
+import { loadAppData } from './services/appDataService';
 import { DashboardTab } from './features/dashboard/DashboardTab';
 import { AgendaTab } from './features/schedule/AgendaTab';
 import { StudentsTab } from './features/students/StudentsTab';
@@ -91,49 +85,13 @@ export default function App() {
     const loadData = async () => {
       setLoadingData(true);
       try {
-        // Load theme
-        const themeSnap = await getDoc(doc(db, `users/${user.uid}/settings/theme`));
-        if (themeSnap.exists() && themeSnap.data().themeKey) {
-          setThemeKey(themeSnap.data().themeKey);
-        }
+        const data = await loadAppData(user.uid);
 
-        // Load students
-        const studentsSnap = await getDocs(collection(db, `users/${user.uid}/students`));
-        const studentsData = studentsSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setStudents(studentsData);
-
-        // Load records
-        const recordsSnap = await getDocs(collection(db, `users/${user.uid}/records`));
-        const recordsData = recordsSnap.docs.map(doc => ({
-          key: doc.data().key || decodeURIComponent(doc.id),
-          status: doc.data().status,
-          activity: doc.data().activity || null,
-          customPrice: doc.data().customPrice || null,
-          sessionNote: doc.data().sessionNote || null,
-          exerciseNotes: doc.data().exerciseNotes || {}
-        }));
-        setRecords(recordsData);
-
-        // Load payments
-        const paymentsSnap = await getDocs(collection(db, `users/${user.uid}/payments`));
-        const paymentsData = paymentsSnap.docs.map(doc => ({
-          key: doc.id,
-          ...doc.data()
-        }));
-        setPayments(paymentsData);
-
-        // Load schedule overrides
-        const overridesSnap = await getDocs(collection(db, `users/${user.uid}/scheduleOverrides`));
-        const overridesData = overridesSnap.docs.map(doc => ({
-          key: doc.id,
-          date: doc.id.split("_")[0],
-          studentId: doc.id.split("_")[1],
-          ...doc.data()
-        }));
-        setScheduleOverrides(overridesData);
+        if (data.themeKey) setThemeKey(data.themeKey);
+        setStudents(data.students);
+        setRecords(data.records);
+        setPayments(data.payments);
+        setScheduleOverrides(data.scheduleOverrides);
       } catch (error) {
         console.error("Error loading data:", error);
         alert("Erro ao carregar dados");
@@ -182,56 +140,54 @@ export default function App() {
 
   return (
     <ThemeContext.Provider value={theme}>
-    <div style={{
-      minHeight: "100vh",
-      background: "#f9fafb",
-      fontFamily: "system-ui, -apple-system, sans-serif",
-      display: "flex",
-      flexDirection: "column"
-    }}>
+    <div
+      className="app-shell"
+      style={{
+        "--app-brand": theme.primary,
+        "--app-brand-dark": theme.dark,
+        "--app-brand-soft": theme.light
+      }}
+    >
       {/* Header */}
-      <div style={{
-        background: theme.gradient,
-        color: "white",
-        padding: "16px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
-      }}>
-        <div>
-          <h1 style={{ fontSize: "24px", fontWeight: "700", margin: "0 0 4px 0" }}>PersonalPro</h1>
-          <p style={{ fontSize: "12px", margin: "0", opacity: 0.9 }}>{user.email}</p>
+      <div className="app-header">
+        <div className="app-header-inner">
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+          <div className="app-brand-mark">PP</div>
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ fontSize: "20px", lineHeight: "1.1", fontWeight: "850", margin: "0 0 3px 0", color: "#111827" }}>PersonalPro</h1>
+            <p style={{ fontSize: "12px", margin: "0", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
+          </div>
         </div>
         <button
           onClick={handleLogout}
           style={{
-            padding: "8px 12px",
-            background: "rgba(255, 255, 255, 0.2)",
-            color: "white",
-            border: "1px solid rgba(255, 255, 255, 0.3)",
-            borderRadius: "6px",
+            padding: "9px 12px",
+            background: "white",
+            color: theme.dark,
+            border: "1px solid rgba(15, 23, 42, 0.1)",
+            borderRadius: "8px",
             cursor: "pointer",
             fontSize: "12px",
-            fontWeight: "600",
+            fontWeight: "800",
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            transition: "all 0.2s"
+            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)"
           }}
           onMouseEnter={(e) => {
-            e.target.style.background = "rgba(255, 255, 255, 0.3)";
+            e.currentTarget.style.background = theme.light;
           }}
           onMouseLeave={(e) => {
-            e.target.style.background = "rgba(255, 255, 255, 0.2)";
+            e.currentTarget.style.background = "white";
           }}
         >
           <IconLogOut /> Sair
         </button>
+        </div>
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: "auto", paddingBottom: "8px" }}>
+      <main className="app-main">
         {activeTab === "dashboard" && <DashboardTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "students" && <StudentsTab students={students} setStudents={setStudents} records={records} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "agenda" && <AgendaTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} theme={theme} />}
@@ -242,19 +198,11 @@ export default function App() {
         {activeTab === "communication" && <CommunicationTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
         {activeTab === "reports" && <ReportsTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
         {activeTab === "settings" && <SettingsTab themeKey={themeKey} setThemeKey={setThemeKey} themes={THEMES} />}
-      </div>
+      </main>
 
       {/* Bottom Tab Navigation */}
-      <div style={{
-        background: "white",
-        borderTop: "1px solid #e5e7eb",
-        display: "flex",
-        gap: "0",
-        padding: "8px",
-        boxShadow: "0 -2px 8px rgba(0, 0, 0, 0.05)",
-        overflowX: "auto",
-        WebkitOverflowScrolling: "touch"
-      }}>
+      <nav className="bottom-nav">
+        <div className="bottom-nav-inner">
         {[
           { id: "dashboard", icon: <IconHome />, label: "Início" },
           { id: "students", icon: <IconUsers />, label: "Alunos" },
@@ -270,28 +218,14 @@ export default function App() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            style={{
-              flex: "0 0 76px",
-              padding: "12px 8px",
-              background: activeTab === tab.id ? "#f3f4f6" : "transparent",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "4px",
-              fontSize: "11px",
-              fontWeight: "600",
-              color: activeTab === tab.id ? theme.primary : "#9ca3af",
-              transition: "all 0.2s"
-            }}
+            className={`nav-item ${activeTab === tab.id ? "nav-item-active" : ""}`}
           >
             <span style={{ fontSize: "18px" }}>{tab.icon}</span>
             {tab.label}
           </button>
         ))}
-      </div>
+        </div>
+      </nav>
     </div>
     </ThemeContext.Provider>
   );

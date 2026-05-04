@@ -19,7 +19,8 @@ import {
   getBillingStatusLabel
 } from '../billing/billingCalculations';
 import { getClassesForDate } from '../schedule/scheduleCalculations';
-import { getAttendanceRecordDocId, updateAttendanceRecord } from '../attendance/attendanceActions';
+import { updateAttendanceRecord } from '../attendance/attendanceActions';
+import { applySessionNotesUpdate, saveSessionNotes as saveSessionNotesRecord } from '../../services/recordsService';
 
 function IconCheck() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -167,29 +168,17 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     setSavingKey(classKey);
     try {
       const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {} };
-      const recordDoc = doc(db, `users/${user.uid}/records/${getAttendanceRecordDocId(classKey)}`);
-      await setDoc(recordDoc, {
-        key: classKey,
-        sessionNote: draft.sessionNote || null,
-        exerciseNotes: draft.exerciseNotes || {}
-      }, { merge: true });
-
-      setRecords(prev => {
-        const existing = prev.findIndex(record => record.key === classKey);
-        const nextRecord = {
-          ...(existing >= 0 ? prev[existing] : { key: classKey, status: null, activity: null, customPrice: null }),
-          sessionNote: draft.sessionNote || null,
-          exerciseNotes: draft.exerciseNotes || {}
-        };
-
-        if (existing >= 0) {
-          const next = [...prev];
-          next[existing] = nextRecord;
-          return next;
-        }
-
-        return [...prev, nextRecord];
+      await saveSessionNotesRecord({
+        userId: user.uid,
+        classKey,
+        sessionNote: draft.sessionNote,
+        exerciseNotes: draft.exerciseNotes
       });
+      setRecords(prev => applySessionNotesUpdate(prev, {
+        classKey,
+        sessionNote: draft.sessionNote,
+        exerciseNotes: draft.exerciseNotes
+      }));
     } catch (error) {
       console.error("Error saving session notes:", error);
       alert("Erro ao salvar anotacoes da aula");
@@ -353,44 +342,31 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
   }
 
   return (
-    <div style={{ padding: "16px" }}>
-      <h2 style={{ fontSize: "18px", fontWeight: "700", margin: "0 0 4px 0", color: "#1f2937" }}>Aula Rapida</h2>
-      <p style={{ fontSize: "12px", color: "#6b7280", margin: "0 0 16px 0" }}>Abra o horario, veja todos os alunos juntos e anote ajustes de series, repeticoes e carga.</p>
-
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "10px", marginBottom: "14px" }}>
+    <div className="session-page">
+      <section className="app-card session-command-panel">
         <div>
-          <label style={{ fontSize: "12px", fontWeight: "700", color: "#4b5563", display: "block", marginBottom: "4px" }}>Data</label>
+          <p style={{ margin: "0 0 5px", color: theme.primary, fontSize: "12px", fontWeight: "900" }}>AULA RAPIDA</p>
+          <h2 className="app-page-title">Treinos do horario</h2>
+          <p className="app-page-kicker">Abra o horario, acompanhe todos os alunos em sequencia e registre ajustes sem trocar de tela.</p>
+        </div>
+
+        <div className="session-command-grid">
+        <div>
+          <label className="session-field-label">Data</label>
           <input
             type="date"
             value={selectedDateISO}
             onChange={(event) => setSelectedDateISO(event.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px",
-              border: "1px solid #d1d5db",
-              borderRadius: "6px",
-              fontSize: "14px",
-              fontFamily: "inherit",
-              boxSizing: "border-box"
-            }}
+            className="session-input"
           />
         </div>
         <div>
-          <label style={{ fontSize: "12px", fontWeight: "700", color: "#4b5563", display: "block", marginBottom: "4px" }}>Horario</label>
+          <label className="session-field-label">Horario</label>
           <select
             value={selectedTime}
             onChange={(event) => setSelectedTime(event.target.value)}
             disabled={timeSlots.length === 0}
-            style={{
-              width: "100%",
-              padding: "10px",
-              border: "1px solid #d1d5db",
-              borderRadius: "6px",
-              fontSize: "14px",
-              fontFamily: "inherit",
-              boxSizing: "border-box",
-              background: "white"
-            }}
+            className="session-input"
           >
             {timeSlots.length === 0 ? (
               <option value="">Sem aulas</option>
@@ -400,16 +376,10 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
           </select>
         </div>
       </div>
+      </section>
 
       {timeSlots.length > 0 && (
-        <div style={{
-          display: "flex",
-          gap: "8px",
-          overflowX: "auto",
-          paddingBottom: "8px",
-          marginBottom: "8px",
-          WebkitOverflowScrolling: "touch"
-        }}>
+        <div className="session-time-strip">
           {timeSlots.map(time => {
             const countAtTime = classes.filter(cls => cls.time === time).length;
             const selected = selectedTime === time;
@@ -417,21 +387,10 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
               <button
                 key={time}
                 onClick={() => setSelectedTime(time)}
-                style={{
-                  minWidth: "84px",
-                  padding: "9px 10px",
-                  background: selected ? theme.primary : "white",
-                  color: selected ? "white" : "#374151",
-                  border: selected ? `1px solid ${theme.primary}` : "1px solid #e5e7eb",
-                  borderRadius: "8px",
-                  fontSize: "13px",
-                  fontWeight: "800",
-                  cursor: "pointer",
-                  boxShadow: selected ? "0 2px 8px rgba(0,0,0,0.12)" : "none"
-                }}
+                className={`session-time-chip ${selected ? "session-time-chip-active" : ""}`}
               >
-                <span style={{ display: "block" }}>{time}</span>
-                <span style={{ display: "block", fontSize: "10px", opacity: 0.85 }}>{countAtTime} aluno{countAtTime === 1 ? "" : "s"}</span>
+                <span style={{ display: "block", fontSize: "14px", fontWeight: "900" }}>{time}</span>
+                <span style={{ display: "block", fontSize: "11px", opacity: 0.82, fontWeight: "800", marginTop: "2px" }}>{countAtTime} aluno{countAtTime === 1 ? "" : "s"}</span>
               </button>
             );
           })}
@@ -441,11 +400,12 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
       {loadingData || loadingWorkouts ? (
         <p style={{ color: "#9ca3af", fontSize: "14px", textAlign: "center", padding: "24px" }}>Carregando...</p>
       ) : classesAtTime.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px 20px", background: "#f9fafb", borderRadius: "8px", color: "#9ca3af" }}>
-          <p style={{ fontSize: "14px", margin: "0" }}>Nenhum aluno nesse horario</p>
+        <div className="session-empty">
+          <p style={{ fontSize: "14px", fontWeight: "850", margin: "0 0 4px", color: "#334155" }}>Nenhum aluno nesse horario</p>
+          <p style={{ fontSize: "12px", margin: "0" }}>Escolha outro horario ou ajuste a data da aula.</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "10px" }}>
+        <div className="session-list">
           {classesAtTime.map(cls => {
             const classKey = getClassKey(selectedDateBR, cls.studentId, cls.time);
             const record = records.find(item => item.key === classKey);
@@ -472,19 +432,11 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
             const workoutForm = workoutEditForms[classKey] || { name: activeWorkout?.name || "", active: activeWorkout?.active !== false, exercises: activeWorkout?.exercises || [] };
 
             return (
-              <div key={classKey} style={{
-                background: "white",
-                border: `1px solid ${record?.sessionNote || Object.keys(record?.exerciseNotes || {}).length > 0 ? theme.medium : "#e5e7eb"}`,
-                borderRadius: "8px",
-                padding: "10px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px"
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: "8px" }}>
-                  <div>
-                    <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#111827", margin: "0 0 3px 0" }}>{cls.studentName}</h3>
-                    <p style={{ fontSize: "12px", color: "#6b7280", margin: "0" }}>
+              <div key={classKey} className={`session-student-card ${record?.sessionNote || Object.keys(record?.exerciseNotes || {}).length > 0 ? "session-student-card-active" : ""}`}>
+                <div className="session-student-header">
+                  <div style={{ minWidth: 0 }}>
+                    <h3 style={{ fontSize: "18px", fontWeight: "900", color: "#111827", margin: "0 0 4px 0", lineHeight: 1.1 }}>{cls.studentName}</h3>
+                    <p style={{ fontSize: "13px", color: "#64748b", margin: "0" }}>
                       {cls.time} {cls.scheduleTypeLabel ? `- ${cls.scheduleTypeLabel}` : ""}
                     </p>
                     <span style={{
@@ -493,48 +445,27 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                       padding: "3px 7px",
                       background: badgeColors.background,
                       color: badgeColors.color,
-                      borderRadius: "4px",
+                      borderRadius: "999px",
                       fontSize: "11px",
-                      fontWeight: "800"
+                      fontWeight: "900"
                     }}>
                       {badgeLabel}
                     </span>
                   </div>
-                  <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                  <div className="session-student-actions">
                     <button
                       onClick={() => markPresent(classKey)}
                       disabled={saving}
-                      style={{
-                        padding: "7px 10px",
-                        background: record?.status === "present" ? "#d1fae5" : theme.primary,
-                        color: record?.status === "present" ? "#047857" : "white",
-                        border: "none",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        fontWeight: "700",
-                        cursor: saving ? "not-allowed" : "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        opacity: saving ? 0.65 : 1
-                      }}
+                      className="session-action-primary"
+                      style={{ opacity: saving ? 0.65 : 1, background: record?.status === "present" ? "#d1fae5" : theme.primary, color: record?.status === "present" ? "#047857" : "white" }}
                     >
                       <IconCheck /> {record?.status === "present" ? "Presente" : "Marcar"}
                     </button>
                     <button
                       onClick={() => markAbsent(classKey)}
                       disabled={saving}
-                      style={{
-                        padding: "7px 10px",
-                        background: record?.status === "absent" ? "#fee2e2" : "white",
-                        color: "#dc2626",
-                        border: "1px solid #fecaca",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        fontWeight: "700",
-                        cursor: saving ? "not-allowed" : "pointer",
-                        opacity: saving ? 0.65 : 1
-                      }}
+                      className="session-action-danger"
+                      style={{ opacity: saving ? 0.65 : 1, background: record?.status === "absent" ? "#fee2e2" : "white" }}
                     >
                       Falta
                     </button>
@@ -542,42 +473,36 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                 </div>
 
                 {activeWorkout ? (
-                  <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: "10px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "center", marginBottom: "8px" }}>
-                      <p style={{ fontSize: "12px", fontWeight: "800", color: theme.primary, margin: "0" }}>{activeWorkout.name}</p>
+                  <div className="session-card-body">
+                    <div className="session-workout-header">
+                      <div>
+                        <p style={{ fontSize: "12px", fontWeight: "900", color: theme.primary, margin: "0 0 2px" }}>TREINO ATIVO</p>
+                        <p style={{ fontSize: "15px", fontWeight: "900", color: "#111827", margin: "0" }}>{activeWorkout.name}</p>
+                      </div>
                       <button
                         onClick={() => editingWorkout ? setEditingWorkoutKey(null) : startEditWorkoutFromClass(classKey, activeWorkout)}
-                        style={{
-                          padding: "5px 8px",
-                          background: editingWorkout ? "#f3f4f6" : theme.light,
-                          color: editingWorkout ? "#6b7280" : theme.dark,
-                          border: "none",
-                          borderRadius: "6px",
-                          fontSize: "11px",
-                          fontWeight: "800",
-                          cursor: "pointer",
-                          flexShrink: 0
-                        }}
+                        className="session-action-muted"
+                        style={{ background: editingWorkout ? "#f3f4f6" : theme.light, color: editingWorkout ? "#6b7280" : theme.dark, flexShrink: 0 }}
                       >
                         {editingWorkout ? "Fechar edicao" : "Editar treino"}
                       </button>
                     </div>
 
-                    {!editingWorkout && <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {!editingWorkout && <div className="session-exercise-list">
                       {(activeWorkout.exercises || []).map((exercise, index) => (
-                        <div key={`${exercise.name}-${index}`} style={{ background: "#f9fafb", border: "1px solid #eef2f7", borderRadius: "8px", padding: "8px" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", marginBottom: "6px" }}>
+                        <div key={`${exercise.name}-${index}`} className="session-exercise">
+                          <div className="session-exercise-title-row">
                             <div style={{ minWidth: 0 }}>
-                              <p style={{ fontSize: "13px", fontWeight: "700", color: "#1f2937", margin: "0" }}>{exercise.name}</p>
+                              <p style={{ fontSize: "14px", fontWeight: "900", color: "#1f2937", margin: "0" }}>{exercise.name}</p>
                               {(exercise.muscleGroup || exercise.equipment) && (
-                                <p style={{ fontSize: "11px", color: "#6b7280", margin: "2px 0 0 0" }}>{[exercise.muscleGroup, exercise.equipment].filter(Boolean).join(" / ")}</p>
+                                <p style={{ fontSize: "12px", color: "#64748b", margin: "2px 0 0 0" }}>{[exercise.muscleGroup, exercise.equipment].filter(Boolean).join(" / ")}</p>
                               )}
                             </div>
-                            <span style={{ fontSize: "12px", color: "#374151", fontWeight: "700", whiteSpace: "nowrap" }}>
+                            <span style={{ fontSize: "12px", color: "#334155", fontWeight: "900", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
                               {exercise.sets || "-"}s x {exercise.reps || "-"}r {exercise.weight ? `@ ${exercise.weight}` : ""}
                             </span>
                           </div>
-                          {exercise.notes && <p style={{ fontSize: "11px", color: "#6b7280", margin: "0 0 6px 0" }}>{exercise.notes}</p>}
+                          {exercise.notes && <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 8px 0", lineHeight: 1.4 }}>{exercise.notes}</p>}
                           <input
                             type="text"
                             value={draft.exerciseNotes?.[index] || ""}
@@ -589,15 +514,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                               }
                             }))}
                             placeholder="Ex: 4x12, 20kg, reduzir carga..."
-                            style={{
-                              width: "100%",
-                              padding: "8px 10px",
-                              border: "1px solid #d1d5db",
-                              borderRadius: "6px",
-                              fontSize: "12px",
-                              boxSizing: "border-box",
-                              fontFamily: "inherit"
-                            }}
+                            className="session-note-input"
                           />
                         </div>
                       ))}
@@ -719,43 +636,29 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                     )}
                   </div>
                 ) : (
-                  <div style={{ background: "#f9fafb", border: "1px dashed #d1d5db", borderRadius: "8px", padding: "12px" }}>
-                    <p style={{ fontSize: "13px", color: "#6b7280", margin: "0" }}>Sem treino cadastrado para este aluno.</p>
+                  <div className="session-card-body">
+                    <div style={{ background: "#f8faf9", border: "1px dashed rgba(15, 23, 42, 0.14)", borderRadius: "10px", padding: "14px" }}>
+                      <p style={{ fontSize: "13px", color: "#64748b", margin: "0" }}>Sem treino cadastrado para este aluno.</p>
+                    </div>
                   </div>
                 )}
 
+                <div className="session-card-body" style={{ paddingTop: activeWorkout ? 0 : undefined }}>
+                  <label className="session-field-label">Notas gerais da aula</label>
                 <textarea
                   value={draft.sessionNote}
                   onChange={(event) => updateDraft(classKey, current => ({ ...current, sessionNote: event.target.value }))}
                   placeholder="Notas gerais da aula, dores, substituicoes, percepcao de esforco..."
-                  style={{
-                    width: "100%",
-                    minHeight: "76px",
-                    padding: "9px 10px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontSize: "13px",
-                    boxSizing: "border-box",
-                    fontFamily: "inherit",
-                    resize: "vertical"
-                  }}
+                  className="session-note-area"
                 />
+                </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: activeWorkout ? "1fr 1fr" : "1fr", gap: "8px" }}>
+                <div className="session-save-row" style={{ gridTemplateColumns: activeWorkout ? undefined : "1fr" }}>
                   <button
                     onClick={() => saveSessionNotes(classKey)}
                     disabled={saving}
-                    style={{
-                      width: "100%",
-                      padding: "10px",
-                      background: saving ? "#d1d5db" : theme.primary,
-                      color: "white",
-                      border: "none",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontWeight: "700",
-                      cursor: saving ? "not-allowed" : "pointer"
-                    }}
+                    className="session-action-primary"
+                    style={{ width: "100%", background: saving ? "#d1d5db" : theme.primary, borderColor: saving ? "#d1d5db" : theme.primary, cursor: saving ? "not-allowed" : "pointer" }}
                   >
                     {saving ? "Salvando..." : "Salvar notas"}
                   </button>
@@ -764,17 +667,8 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                   <button
                     onClick={() => createWorkoutVersionFromClass(classKey, cls.studentId, activeWorkout)}
                     disabled={savingWorkout || !hasSessionChanges(draft)}
-                    style={{
-                      width: "100%",
-                      padding: "10px",
-                      background: savingWorkout || !hasSessionChanges(draft) ? "#e5e7eb" : "#111827",
-                      color: savingWorkout || !hasSessionChanges(draft) ? "#9ca3af" : "white",
-                      border: "none",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontWeight: "700",
-                      cursor: savingWorkout || !hasSessionChanges(draft) ? "not-allowed" : "pointer"
-                    }}
+                    className="session-action-muted"
+                    style={{ width: "100%", background: savingWorkout || !hasSessionChanges(draft) ? "#e5e7eb" : "#111827", color: savingWorkout || !hasSessionChanges(draft) ? "#9ca3af" : "white", cursor: savingWorkout || !hasSessionChanges(draft) ? "not-allowed" : "pointer" }}
                   >
                     {savingWorkout ? "Atualizando..." : "Nova versao"}
                   </button>
