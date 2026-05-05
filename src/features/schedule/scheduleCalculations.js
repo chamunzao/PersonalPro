@@ -29,6 +29,7 @@ export function getBaseScheduleItemsForStudent(dateISO, student) {
     .map(scheduleItem => ({
       time: scheduleItem.time,
       type: SCHEDULE_ITEM_TYPES.fixed,
+      pricePerClass: scheduleItem.pricePerClass ?? null,
       locationId: scheduleItem.locationId || student.defaultLocationId || ""
     }))
     .sort((a, b) => a.time.localeCompare(b.time));

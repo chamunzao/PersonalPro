@@ -58,20 +58,104 @@ function getPresentClassesForStudentInMonth({ studentId, records, monthKey }) {
 function getPaidClassesForStudentInMonth({ studentId, payments, monthKey, excludeKey }) {
   return payments
     .filter(payment => payment.paid && payment.month === monthKey && getPaymentStudentId(payment) === studentId && payment.key !== excludeKey)
-    .reduce((sum, payment) => sum + (Number(payment.classesPaid) || 0), 0);
+    .reduce((sum, payment) => {
+      const paidClasses = Number(payment.classesPaid) || 0;
+      const packageClasses = payment.type === 'package' && payment.packageType === 'month'
+        ? Number(payment.classesPurchased) || 0
+        : 0;
+      return sum + (paidClasses || packageClasses);
+    }, 0);
 }
 
-function getPaymentDefaults(payment, billingStatus, student, records, payments, monthKey, paymentKey) {
+function parsePositiveNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function getRecordPrice(record, scheduleClass, student) {
+  return parsePositiveNumber(record?.customPrice)
+    ?? parsePositiveNumber(scheduleClass?.pricePerClass)
+    ?? parsePositiveNumber(student?.pricePerClass)
+    ?? 0;
+}
+
+function getMonthlyClassSummary({ student, students, scheduleOverrides, selectedYear, selectedMonth }) {
+  if (!student) return { count: 0, totalValue: 0, classes: [], hasVariablePrices: false };
+
+  const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
+  const classes = [];
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const dateISO = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dateBR = `${String(day).padStart(2, '0')}/${String(selectedMonth + 1).padStart(2, '0')}/${selectedYear}`;
+    getClassesForDate(dateISO, students, scheduleOverrides)
+      .filter(cls => cls.studentId === student.id)
+      .forEach(cls => {
+        classes.push({
+          ...cls,
+          key: `${dateBR}_${cls.studentId}_${cls.time}`,
+          dateISO,
+          dateBR,
+          effectivePrice: getRecordPrice(null, cls, student)
+        });
+      });
+  }
+
+  const priceSet = new Set(classes.map(cls => cls.effectivePrice));
+  return {
+    count: classes.length,
+    totalValue: classes.reduce((sum, cls) => sum + cls.effectivePrice, 0),
+    classes,
+    hasVariablePrices: priceSet.size > 1
+  };
+}
+
+function getPresentClassValueSummary({ student, records, students, scheduleOverrides, monthKey, selectedYear, selectedMonth }) {
+  const monthlySummary = getMonthlyClassSummary({ student, students, scheduleOverrides, selectedYear, selectedMonth });
+  const scheduleByKey = new Map(monthlySummary.classes.map(cls => [cls.key, cls]));
+  const classes = getPresentClassesForStudentInMonth({ studentId: student.id, records, monthKey })
+    .map(record => {
+      const scheduleClass = scheduleByKey.get(record.key);
+      return {
+        record,
+        scheduleClass,
+        effectivePrice: getRecordPrice(record, scheduleClass, student)
+      };
+    });
+  const priceSet = new Set(classes.map(cls => cls.effectivePrice));
+
+  return {
+    count: classes.length,
+    totalValue: classes.reduce((sum, cls) => sum + cls.effectivePrice, 0),
+    classes,
+    hasVariablePrices: priceSet.size > 1
+  };
+}
+
+function getUnpaidClassValueSummary({ presentSummary, paidClasses }) {
+  const unpaidClasses = presentSummary.classes.slice(paidClasses);
+  return {
+    count: unpaidClasses.length,
+    totalValue: unpaidClasses.reduce((sum, cls) => sum + cls.effectivePrice, 0),
+    classes: unpaidClasses,
+    hasVariablePrices: new Set(unpaidClasses.map(cls => cls.effectivePrice)).size > 1
+  };
+}
+
+function getPaymentDefaults(payment, billingStatus, student, records, payments, monthKey, paymentKey, students, scheduleOverrides, selectedYear, selectedMonth) {
   const planValue = billingStatus.planValue || 0;
   const unitPrice = Number(payment?.classUnitPrice ?? student?.pricePerClass ?? 0) || 0;
-  const presentClasses = student ? getPresentClassesForStudentInMonth({ studentId: student.id, records, monthKey }).length : 0;
   const alreadyPaidClasses = student ? getPaidClassesForStudentInMonth({ studentId: student.id, payments, monthKey, excludeKey: paymentKey }) : 0;
-  const unpaidClasses = Math.max(presentClasses - alreadyPaidClasses, 0);
-  const classesPaid = Number(payment?.classesPaid) || unpaidClasses || '';
+  const presentSummary = student
+    ? getPresentClassValueSummary({ student, records, students, scheduleOverrides, monthKey, selectedYear, selectedMonth })
+    : { count: 0, totalValue: 0, classes: [], hasVariablePrices: false };
+  const unpaidSummary = getUnpaidClassValueSummary({ presentSummary, paidClasses: alreadyPaidClasses });
+  const classesPaid = Number(payment?.classesPaid) || unpaidSummary.count || '';
+  const suggestedAmount = unpaidSummary.count ? unpaidSummary.totalValue : planValue;
   return {
     classesPaid,
     classUnitPrice: unitPrice,
-    amountPaid: payment?.amountPaid ?? (classesPaid ? Number(classesPaid) * unitPrice : planValue),
+    amountPaid: payment?.amountPaid ?? (suggestedAmount || (classesPaid ? Number(classesPaid) * unitPrice : 0)),
     discount: payment?.discount ?? 0,
     surcharge: payment?.surcharge ?? 0,
     note: payment?.note || ''
@@ -81,19 +165,6 @@ function getPaymentDefaults(payment, billingStatus, student, records, payments, 
 function getLastDayOfMonthISO(year, monthIndex) {
   const lastDay = getDaysInMonth(year, monthIndex);
   return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-}
-
-function countMonthlyClassesForStudent({ studentId, students, scheduleOverrides, selectedYear, selectedMonth }) {
-  const daysInMonth = getDaysInMonth(selectedYear, selectedMonth);
-  let total = 0;
-
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const dateISO = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    total += getClassesForDate(dateISO, students, scheduleOverrides)
-      .filter(cls => cls.studentId === studentId).length;
-  }
-
-  return total;
 }
 
 function PaymentsTab({ students, records, payments, setPayments, scheduleOverrides = [], loadingData, theme }) {
@@ -121,8 +192,8 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
     const student = students.find(item => item.id === packageForm.studentId);
     if (!student) return;
 
-    const monthlyClasses = countMonthlyClassesForStudent({
-      studentId: student.id,
+    const monthlySummary = getMonthlyClassSummary({
+      student,
       students,
       scheduleOverrides,
       selectedYear,
@@ -130,11 +201,11 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
     });
     const suggestedAmount = Number(student.packagePrice) > 0
       ? Number(student.packagePrice)
-      : monthlyClasses * (Number(student.pricePerClass) || 0);
+      : monthlySummary.totalValue;
 
     setPackageForm(prev => ({
       ...prev,
-      classesPurchased: monthlyClasses ? String(monthlyClasses) : '',
+      classesPurchased: monthlySummary.count ? String(monthlySummary.count) : '',
       amountPaid: suggestedAmount ? String(suggestedAmount) : '',
       validUntil: getLastDayOfMonthISO(selectedYear, selectedMonth),
       note: prev.note || `Pacote de aulas de ${MONTHS[selectedMonth]} de ${selectedYear}`
@@ -156,7 +227,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
     setEditingKey(paymentKey);
     setPaymentForms(prev => ({
       ...prev,
-      [paymentKey]: getPaymentDefaults(payment, billingStatus, student, records, payments, monthKey, paymentKey)
+      [paymentKey]: getPaymentDefaults(payment, billingStatus, student, records, payments, monthKey, paymentKey, students, scheduleOverrides, selectedYear, selectedMonth)
     }));
   }
 
@@ -172,18 +243,19 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
   }
 
   function fillUnpaidClasses(student, paymentKey) {
-    const presentClasses = getPresentClassesForStudentInMonth({ studentId: student.id, records, monthKey }).length;
     const alreadyPaidClasses = getPaidClassesForStudentInMonth({ studentId: student.id, payments, monthKey, excludeKey: paymentKey });
-    const unpaidClasses = Math.max(presentClasses - alreadyPaidClasses, 0);
+    const presentSummary = getPresentClassValueSummary({ student, records, students, scheduleOverrides, monthKey, selectedYear, selectedMonth });
+    const unpaidSummary = getUnpaidClassValueSummary({ presentSummary, paidClasses: alreadyPaidClasses });
+    const unpaidClasses = unpaidSummary.count;
     const unitPrice = Number(student.pricePerClass) || 0;
-    const amountPaid = unpaidClasses * unitPrice;
+    const amountPaid = unpaidSummary.totalValue;
 
     updateForm(paymentKey, {
       classesPaid: unpaidClasses ? String(unpaidClasses) : '',
       classUnitPrice: String(unitPrice),
       amountPaid: amountPaid ? String(amountPaid) : '',
       note: unpaidClasses
-        ? `Pagamento de ${unpaidClasses} aula${unpaidClasses === 1 ? '' : 's'} feita${unpaidClasses === 1 ? '' : 's'} e ainda nao paga${unpaidClasses === 1 ? '' : 's'}.`
+        ? `Pagamento de ${unpaidClasses} aula${unpaidClasses === 1 ? '' : 's'} feita${unpaidClasses === 1 ? '' : 's'} e ainda nao paga${unpaidClasses === 1 ? '' : 's'} (${formatCurrency(amountPaid)} pelo valor registrado nas aulas).`
         : 'Nao ha aulas presenciais pendentes neste mes.'
     });
   }
@@ -240,7 +312,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
   async function savePayment(student, billingStatus) {
     if (!user) return;
     const paymentKey = `${monthKey}_${student.id}`;
-    const form = paymentForms[paymentKey] || getPaymentDefaults(null, billingStatus, student, records, payments, monthKey, paymentKey);
+    const form = paymentForms[paymentKey] || getPaymentDefaults(null, billingStatus, student, records, payments, monthKey, paymentKey, students, scheduleOverrides, selectedYear, selectedMonth);
     const amountPaid = parseMoney(form.amountPaid);
     const classesPaid = parseInt(form.classesPaid, 10) || 0;
     const classUnitPrice = parseMoney(form.classUnitPrice);
@@ -315,8 +387,8 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
   }
 
   function useMonthlyPackageSuggestion(student) {
-    const monthlyClasses = countMonthlyClassesForStudent({
-      studentId: student.id,
+    const monthlySummary = getMonthlyClassSummary({
+      student,
       students,
       scheduleOverrides,
       selectedYear,
@@ -324,13 +396,13 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
     });
     const suggestedAmount = Number(student.packagePrice) > 0
       ? Number(student.packagePrice)
-      : monthlyClasses * (Number(student.pricePerClass) || 0);
+      : monthlySummary.totalValue;
 
     setPackageForm(prev => ({
       ...prev,
       packageType: 'month',
       studentId: student.id,
-      classesPurchased: monthlyClasses ? String(monthlyClasses) : '',
+      classesPurchased: monthlySummary.count ? String(monthlySummary.count) : '',
       amountPaid: suggestedAmount ? String(suggestedAmount) : '',
       dateISO: formatDateISO(new Date()),
       validUntil: getLastDayOfMonthISO(selectedYear, selectedMonth),
@@ -341,6 +413,19 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
   return (
     <div style={{ padding: '16px' }}>
       <h2 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 16px 0', color: '#1f2937' }}>Controle de Pagamentos</h2>
+
+      <div style={{
+        background: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        borderRadius: '8px',
+        padding: '12px',
+        marginBottom: '16px'
+      }}>
+        <p style={{ fontSize: '13px', fontWeight: '800', color: '#1f2937', margin: '0 0 6px 0' }}>Como o app calcula os valores</p>
+        <p style={{ fontSize: '12px', color: '#4b5563', lineHeight: 1.45, margin: 0 }}>
+          O valor por aula vem primeiro do registro da aula, depois da agenda daquele dia, e por ultimo do cadastro do aluno. Em pacote mensal, se existir valor mensal cadastrado ele e usado; se nao existir, o app soma as aulas previstas pelo valor individual de cada aula. O atalho de aulas feitas soma somente presencas ainda sem pagamento.
+        </p>
+      </div>
 
       <div style={{
         background: 'white',
@@ -444,7 +529,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
         </div>
         {packageForm.packageType === 'month' && (
           <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 10px 0' }}>
-            Usa {MONTHS[selectedMonth]} de {selectedYear}: conta as aulas previstas do aluno no mes e sugere o valor pelo plano cadastrado ou pelo preco por aula.
+            Usa {MONTHS[selectedMonth]} de {selectedYear}: conta as aulas previstas do aluno e sugere o valor pelo plano mensal cadastrado ou pela soma do valor individual de cada aula.
           </p>
         )}
         <textarea
@@ -549,18 +634,24 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
             const billingColors = getBillingStatusColors(billingStatus);
             const creditStatus = calculateAdvanceCreditStatus(student, records, payments);
             const creditColors = getAdvanceCreditStatusColors(creditStatus);
-            const form = paymentForms[paymentKey] || getPaymentDefaults(displayPayment, billingStatus, student, records, payments, monthKey, paymentKey);
-            const presentClassesInMonth = getPresentClassesForStudentInMonth({ studentId: student.id, records, monthKey }).length;
+            const form = paymentForms[paymentKey] || getPaymentDefaults(displayPayment, billingStatus, student, records, payments, monthKey, paymentKey, students, scheduleOverrides, selectedYear, selectedMonth);
+            const presentSummary = getPresentClassValueSummary({ student, records, students, scheduleOverrides, monthKey, selectedYear, selectedMonth });
+            const presentClassesInMonth = presentSummary.count;
             const paidClassesInMonth = getPaidClassesForStudentInMonth({ studentId: student.id, payments, monthKey, excludeKey: paymentKey }) + (Number(displayPayment?.classesPaid) || 0);
-            const unpaidClassesInMonth = Math.max(presentClassesInMonth - paidClassesInMonth, 0);
+            const unpaidSummary = getUnpaidClassValueSummary({ presentSummary, paidClasses: paidClassesInMonth });
+            const unpaidClassesInMonth = unpaidSummary.count;
             const history = getStudentHistory(student.id);
             const isMonthlyPackageStudent = billingStatus.billingType === BILLING_TYPES.monthlyPackage;
-            const monthlyClasses = isMonthlyPackageStudent
-              ? countMonthlyClassesForStudent({ studentId: student.id, students, scheduleOverrides, selectedYear, selectedMonth })
-              : 0;
+            const monthlySummary = isMonthlyPackageStudent
+              ? getMonthlyClassSummary({ student, students, scheduleOverrides, selectedYear, selectedMonth })
+              : { count: 0, totalValue: 0, hasVariablePrices: false };
+            const monthlyClasses = monthlySummary.count;
             const monthlyPackageAmount = Number(student.packagePrice) > 0
               ? Number(student.packagePrice)
-              : monthlyClasses * (Number(student.pricePerClass) || 0);
+              : monthlySummary.totalValue;
+            const monthlyPackageAmountSource = Number(student.packagePrice) > 0
+              ? 'valor mensal cadastrado'
+              : 'soma das aulas previstas';
 
             return (
               <div key={student.id} style={{
@@ -686,7 +777,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                           fontSize: '11px',
                           fontWeight: '700'
                         }}>
-                          {unpaidClassesInMonth} de {presentClassesInMonth} aulas feitas sem pagamento
+                          {unpaidClassesInMonth} de {presentClassesInMonth} aulas sem pagamento - {formatCurrency(unpaidSummary.totalValue)}
                         </span>
                       )}
                     </div>
@@ -748,7 +839,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                         Pacote mensal de {MONTHS[selectedMonth]}
                       </p>
                       <p style={{ fontSize: '11px', color: '#4b5563', margin: '0' }}>
-                        {monthlyClasses} aula{monthlyClasses === 1 ? '' : 's'} previstas - {formatCurrency(monthlyPackageAmount)}
+                        {monthlyClasses} aula{monthlyClasses === 1 ? '' : 's'} previstas - {formatCurrency(monthlyPackageAmount)} ({monthlyPackageAmountSource})
                       </p>
                     </div>
                     {!isPaid && (
@@ -782,7 +873,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                   }}>
                     <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                       <p style={{ fontSize: '12px', color: '#4b5563', margin: 0 }}>
-                        {presentClassesInMonth} aula{presentClassesInMonth === 1 ? '' : 's'} feita{presentClassesInMonth === 1 ? '' : 's'} no mes. {unpaidClassesInMonth} ainda sem pagamento registrado.
+                        {presentClassesInMonth} aula{presentClassesInMonth === 1 ? '' : 's'} feita{presentClassesInMonth === 1 ? '' : 's'} no mes ({formatCurrency(presentSummary.totalValue)}). {unpaidClassesInMonth} ainda sem pagamento registrado ({formatCurrency(unpaidSummary.totalValue)}).
                       </p>
                       <button
                         onClick={() => fillUnpaidClasses(student, paymentKey)}
@@ -820,6 +911,9 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                           placeholder="0"
                           style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box' }}
                         />
+                        <p style={{ fontSize: '10px', color: '#6b7280', margin: '4px 0 0 0', lineHeight: 1.35 }}>
+                          Quantas aulas este pagamento cobre.
+                        </p>
                       </div>
                       <div>
                         <label style={{ fontSize: '11px', fontWeight: '700', color: '#4b5563', display: 'block', marginBottom: '4px' }}>Valor da aula</label>
@@ -839,6 +933,9 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                           placeholder={String(student.pricePerClass || '')}
                           style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box' }}
                         />
+                        <p style={{ fontSize: '10px', color: '#6b7280', margin: '4px 0 0 0', lineHeight: 1.35 }}>
+                          Base do cadastro do aluno. Se as aulas tiverem valores diferentes, o total sugerido usa cada aula registrada.
+                        </p>
                       </div>
                       <div>
                         <label style={{ fontSize: '11px', fontWeight: '700', color: '#4b5563', display: 'block', marginBottom: '4px' }}>Valor pago</label>
@@ -850,6 +947,9 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                           step="0.01"
                           style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box' }}
                         />
+                        <p style={{ fontSize: '10px', color: '#6b7280', margin: '4px 0 0 0', lineHeight: 1.35 }}>
+                          Total recebido de fato neste registro.
+                        </p>
                       </div>
                       <div>
                         <label style={{ fontSize: '11px', fontWeight: '700', color: '#4b5563', display: 'block', marginBottom: '4px' }}>Desconto</label>
@@ -861,6 +961,9 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                           step="0.01"
                           style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box' }}
                         />
+                        <p style={{ fontSize: '10px', color: '#6b7280', margin: '4px 0 0 0', lineHeight: 1.35 }}>
+                          Registra abatimento combinado. Ajuste o valor pago final acima.
+                        </p>
                       </div>
                       <div>
                         <label style={{ fontSize: '11px', fontWeight: '700', color: '#4b5563', display: 'block', marginBottom: '4px' }}>Acrescimo</label>
@@ -872,6 +975,9 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                           step="0.01"
                           style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box' }}
                         />
+                        <p style={{ fontSize: '10px', color: '#6b7280', margin: '4px 0 0 0', lineHeight: 1.35 }}>
+                          Registra taxa, atraso ou ajuste extra. Ajuste o valor pago final acima.
+                        </p>
                       </div>
                     </div>
                     <label style={{ fontSize: '11px', fontWeight: '700', color: '#4b5563', display: 'block', marginBottom: '4px' }}>Observacao</label>

@@ -13,7 +13,7 @@ import {
 } from '../../firebase';
 import { DAYS } from '../../lib/constants';
 import { formatCurrency } from '../../lib/money';
-import { formatDate, formatDateISO, parseBrazilianDate } from '../../lib/dates';
+import { formatDate, formatDateISO, getDaysInMonth, jsDayToIndex, parseBrazilianDate } from '../../lib/dates';
 import {
   BILLING_TYPES,
   calculateBillingStatus,
@@ -71,6 +71,41 @@ const DEFAULT_ANAMNESIS = {
   availability: "",
   notes: ""
 };
+
+function getLastDayOfMonthISO(date = new Date()) {
+  const year = date.getFullYear();
+  const monthIndex = date.getMonth();
+  const lastDay = getDaysInMonth(year, monthIndex);
+  return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+}
+
+function getEffectiveSchedulePrice(scheduleItem, defaultPrice) {
+  const itemPrice = Number(scheduleItem?.pricePerClass);
+  if (Number.isFinite(itemPrice) && itemPrice > 0) return itemPrice;
+  const basePrice = Number(defaultPrice);
+  return Number.isFinite(basePrice) && basePrice > 0 ? basePrice : 0;
+}
+
+function calculateScheduleMonthlyEstimate(schedule, defaultPrice, dueDateISO) {
+  const baseDate = dueDateISO ? new Date(`${dueDateISO}T00:00:00`) : new Date();
+  const year = Number.isFinite(baseDate.getTime()) ? baseDate.getFullYear() : new Date().getFullYear();
+  const monthIndex = Number.isFinite(baseDate.getTime()) ? baseDate.getMonth() : new Date().getMonth();
+  const daysInMonth = getDaysInMonth(year, monthIndex);
+  let classes = 0;
+  let total = 0;
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const dayIdx = jsDayToIndex(new Date(year, monthIndex, day).getDay());
+    schedule
+      .filter(item => item.day === dayIdx)
+      .forEach(item => {
+        classes += 1;
+        total += getEffectiveSchedulePrice(item, defaultPrice);
+      });
+  }
+
+  return { classes, total };
+}
 
 function getRecordParts(recordKey) {
   const [date, studentId, ...timeParts] = recordKey.split("_");
@@ -1606,6 +1641,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
     pricePerClass: "",
     defaultLocationId: "",
     schedule: [],
+    scheduleConfirmed: false,
     notes: "",
     cpf: "",
     email: "",
@@ -1615,7 +1651,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
     packageClasses: "",
     packagePrice: "",
     billingCycleStart: formatDateISO(new Date()),
-    billingDueDate: "",
+    billingDueDate: getLastDayOfMonthISO(),
     billingAutoRenew: true
   };
   const [form, setForm] = useState(defaultForm);
@@ -1636,6 +1672,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
       pricePerClass: String(s.pricePerClass),
       defaultLocationId: s.defaultLocationId || "",
       schedule: [...(s.schedule || []).map(x => ({ ...x }))],
+      scheduleConfirmed: (s.schedule || []).length > 0,
       notes: s.notes || "",
       cpf: s.cpf || "",
       email: s.email || "",
@@ -1645,7 +1682,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
       packageClasses: s.packageClasses ? String(s.packageClasses) : "",
       packagePrice: s.packagePrice ? String(s.packagePrice) : "",
       billingCycleStart: s.billingCycleStart || formatDateISO(new Date()),
-      billingDueDate: s.billingDueDate || "",
+      billingDueDate: s.billingDueDate || getLastDayOfMonthISO(),
       billingAutoRenew: s.billingAutoRenew !== false
     });
     setEditId(s.id);
@@ -1661,7 +1698,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
     setForm(f => {
       const exists = f.schedule.find(s => s.day === dayIdx && s.time === time);
       if (exists) return f;
-      return { ...f, schedule: [...f.schedule, { day: dayIdx, time, locationId: f.defaultLocationId || "" }] };
+      return { ...f, scheduleConfirmed: false, schedule: [...f.schedule, { day: dayIdx, time, locationId: f.defaultLocationId || "", pricePerClass: null }] };
     });
     setNewTime(prev => ({ ...prev, [dayIdx]: "" }));
   }
@@ -1670,6 +1707,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
     setFormError("");
     setForm(f => ({
       ...f,
+      scheduleConfirmed: false,
       schedule: f.schedule.filter(s => !(s.day === dayIdx && s.time === time))
     }));
   }
@@ -1678,17 +1716,32 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
     setFormError("");
     setForm(f => ({
       ...f,
+      scheduleConfirmed: false,
       schedule: f.schedule.map(s => (
         s.day === dayIdx && s.time === time ? { ...s, locationId } : s
       ))
     }));
   }
 
+  function updateSchedulePrice(dayIdx, time, pricePerClass) {
+    setFormError("");
+    setForm(f => ({
+      ...f,
+      scheduleConfirmed: false,
+      schedule: f.schedule.map(s => (
+        s.day === dayIdx && s.time === time ? { ...s, pricePerClass: pricePerClass === "" ? null : pricePerClass } : s
+      ))
+    }));
+  }
+
   function validateStudentForm() {
+    if (form.schedule.length === 0) return "Adicione pelo menos um horario da semana. Depois de escolher o horario, clique em + Adicionar.";
+    if (!form.scheduleConfirmed) return "Confirme que todos os dias e horarios de treino foram colocados.";
+    const invalidSchedulePrice = form.schedule.find(item => item.pricePerClass !== null && item.pricePerClass !== undefined && item.pricePerClass !== "" && Number(item.pricePerClass) <= 0);
+    if (invalidSchedulePrice) return "O valor diferente de um horario precisa ser maior que zero.";
     if (!form.name.trim()) return "Informe o nome do aluno.";
     if (!form.pricePerClass) return "Informe o preço por aula. Mesmo em pacote, esse valor é usado nos relatórios.";
     if (Number(form.pricePerClass) <= 0) return "O preço por aula precisa ser maior que zero.";
-    if (form.schedule.length === 0) return "Adicione pelo menos um horário da semana. Depois de escolher o horário, clique em + Adicionar.";
     if (form.billingType !== BILLING_TYPES.perClass && form.billingType !== BILLING_TYPES.monthlyPackage) {
       if (!form.packageClasses) return "Informe a quantidade de aulas contratadas.";
       if (Number(form.packageClasses) <= 0) return "A quantidade de aulas contratadas precisa ser maior que zero.";
@@ -1716,7 +1769,11 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
         name: form.name.trim(),
         pricePerClass: parseFloat(form.pricePerClass),
         defaultLocationId: form.defaultLocationId || "",
-        schedule: form.schedule,
+        schedule: form.schedule.map(item => ({
+          ...item,
+          pricePerClass: item.pricePerClass ? parseFloat(item.pricePerClass) : null
+        })),
+        scheduleConfirmed: form.scheduleConfirmed,
         notes: form.notes.trim(),
         cpf: form.cpf.replace(/\D/g, ""),
         email: form.email.trim(),
@@ -1737,7 +1794,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
         setStudents(prev => prev.map(s => s.id === editId ? { id: editId, ...studentData } : s));
 
         // Propagate schedule changes to future dates
-        await propagateScheduleChanges(editId, oldStudent.schedule, form.schedule, user.uid);
+        await propagateScheduleChanges(editId, oldStudent.schedule, studentData.schedule, user.uid);
       } else {
         // Create new student
         const docRef = await addDoc(collection(db, `users/${user.uid}/students`), studentData);
@@ -1814,6 +1871,143 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
       ].some(value => String(value || "").toLowerCase().includes(normalizedSearch));
     })
     .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"));
+  const monthlyEstimate = calculateScheduleMonthlyEstimate(form.schedule, form.pricePerClass, form.billingDueDate);
+
+  function confirmCalculatedMonthlyValue() {
+    setFormError("");
+    setForm(f => ({
+      ...f,
+      packagePrice: monthlyEstimate.total ? String(monthlyEstimate.total) : f.packagePrice
+    }));
+  }
+
+  function renderScheduleSection() {
+    return (
+      <div style={{ marginBottom: "12px" }}>
+        <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Dias e horarios de treino</label>
+        <p style={{ fontSize: "11px", color: "#6b7280", margin: "0 0 8px 0" }}>
+          Coloque todos os dias fixos do aluno. Depois confirme abaixo para evitar cadastro incompleto.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {DAYS.map((day, dayIdx) => {
+            const dayTimes = form.schedule.filter(s => s.day === dayIdx).sort((a, b) => a.time.localeCompare(b.time));
+            return (
+              <div key={dayIdx} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 12px" }}>
+                <p style={{ fontSize: "12px", fontWeight: "700", color: theme.primary, margin: "0 0 6px" }}>{day}</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: dayTimes.length > 0 ? "8px" : "0" }}>
+                  {dayTimes.map(s => (
+                    <div key={s.time} style={{
+                      display: "grid",
+                      gridTemplateColumns: locations.length > 0 ? "64px minmax(90px, 1fr) minmax(92px, 120px) 22px" : "64px minmax(92px, 120px) 22px",
+                      alignItems: "center",
+                      gap: "6px",
+                      background: theme.light,
+                      color: theme.dark,
+                      padding: "6px 8px",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: "600"
+                    }}>
+                      <span>{s.time}</span>
+                      {locations.length > 0 && (
+                        <select
+                          value={s.locationId || ""}
+                          onChange={(e) => updateScheduleLocation(dayIdx, s.time, e.target.value)}
+                          disabled={saving}
+                          style={{
+                            minWidth: 0,
+                            padding: "5px 6px",
+                            border: `1px solid ${theme.medium}`,
+                            borderRadius: "5px",
+                            fontSize: "11px",
+                            fontFamily: "inherit",
+                            background: "white",
+                            color: "#374151"
+                          }}
+                        >
+                          <option value="">Local padrao</option>
+                          {locations.map(location => (
+                            <option key={location.id} value={location.id}>{location.name}</option>
+                          ))}
+                        </select>
+                      )}
+                      <input
+                        type="number"
+                        value={s.pricePerClass ?? ""}
+                        onChange={(e) => updateSchedulePrice(dayIdx, s.time, e.target.value)}
+                        disabled={saving}
+                        min="0"
+                        step="0.01"
+                        placeholder={form.pricePerClass ? `R$ ${form.pricePerClass}` : "Valor"}
+                        title="Valor diferente apenas para este dia/horario"
+                        style={{
+                          minWidth: 0,
+                          padding: "5px 6px",
+                          border: `1px solid ${theme.medium}`,
+                          borderRadius: "5px",
+                          fontSize: "11px",
+                          fontFamily: "inherit",
+                          background: "white",
+                          color: "#374151",
+                          boxSizing: "border-box"
+                        }}
+                      />
+                      <span onClick={() => removeScheduleTime(dayIdx, s.time)}
+                        style={{ cursor: "pointer", color: theme.soft, fontWeight: "700", fontSize: "14px", lineHeight: "1" }}>x</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                  <input
+                    type="time"
+                    value={newTime[dayIdx] || ""}
+                    onChange={(e) => setNewTime(prev => ({ ...prev, [dayIdx]: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === "Enter") addScheduleTime(dayIdx); }}
+                    disabled={saving}
+                    style={{
+                      flex: 1, padding: "6px 8px", border: "1px solid #d1d5db",
+                      borderRadius: "6px", fontSize: "13px", fontFamily: "inherit"
+                    }}
+                  />
+                  <button
+                    onClick={() => addScheduleTime(dayIdx)}
+                    disabled={saving || !newTime[dayIdx]}
+                    style={{
+                      padding: "6px 12px", background: newTime[dayIdx] ? theme.primary : "#d1d5db",
+                      color: "white", border: "none", borderRadius: "6px",
+                      fontSize: "12px", fontWeight: "600", cursor: newTime[dayIdx] ? "pointer" : "default"
+                    }}
+                  >+ Adicionar</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <label style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "8px",
+          marginTop: "10px",
+          padding: "10px",
+          background: form.scheduleConfirmed ? "#ecfdf5" : "#fff7ed",
+          border: `1px solid ${form.scheduleConfirmed ? "#a7f3d0" : "#fed7aa"}`,
+          borderRadius: "8px",
+          fontSize: "12px",
+          fontWeight: "700",
+          color: form.scheduleConfirmed ? "#047857" : "#c2410c"
+        }}>
+          <input
+            type="checkbox"
+            checked={form.scheduleConfirmed}
+            onChange={(e) => { setFormError(""); setForm(f => ({ ...f, scheduleConfirmed: e.target.checked })); }}
+            disabled={saving || form.schedule.length === 0}
+            style={{ marginTop: "2px" }}
+          />
+          Confirmei que todos os dias e horarios de treino do aluno foram colocados.
+        </label>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: "16px" }}>
@@ -1919,6 +2113,8 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
             />
           </div>
 
+          {renderScheduleSection()}
+
           <div style={{ marginBottom: "12px" }}>
             <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Preço/Aula (R$)</label>
             <input
@@ -1939,6 +2135,42 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                 fontFamily: "inherit"
               }}
             />
+            <p style={{ fontSize: "11px", color: "#6b7280", margin: "5px 0 0 0" }}>
+              Este e o valor padrao. Se algum dia tiver outro valor, preencha no horario especifico acima.
+            </p>
+          </div>
+
+          <div style={{
+            marginBottom: "12px",
+            padding: "12px",
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            borderRadius: "8px"
+          }}>
+            <p style={{ fontSize: "12px", fontWeight: "800", color: "#1f2937", margin: "0 0 6px 0" }}>Resumo calculado do mes</p>
+            <p style={{ fontSize: "12px", color: "#4b5563", margin: "0 0 8px 0", lineHeight: 1.4 }}>
+              Com os dias de treino informados e fim em {form.billingDueDate || "ultimo dia do mes"}, o app calcula {monthlyEstimate.classes} aula{monthlyEstimate.classes === 1 ? "" : "s"} previstas e valor de {formatCurrency(monthlyEstimate.total)}.
+            </p>
+            {form.billingType !== BILLING_TYPES.perClass && (
+              <button
+                type="button"
+                onClick={confirmCalculatedMonthlyValue}
+                disabled={saving || monthlyEstimate.total <= 0}
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  background: monthlyEstimate.total > 0 ? theme.primary : "#d1d5db",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  fontWeight: "800",
+                  cursor: monthlyEstimate.total > 0 ? "pointer" : "default"
+                }}
+              >
+                Confirmar valor calculado no plano
+              </button>
+            )}
           </div>
 
           <div style={{ marginBottom: "12px" }}>
@@ -1951,6 +2183,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                 setForm(f => ({
                   ...f,
                   defaultLocationId: nextLocationId,
+                  scheduleConfirmed: false,
                   schedule: f.schedule.map(item => item.locationId ? item : { ...item, locationId: nextLocationId })
                 }));
               }}
@@ -1979,7 +2212,18 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
               <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Tipo de cobrança</label>
               <select
                 value={form.billingType}
-                onChange={(e) => { setFormError(""); setForm(f => ({ ...f, billingType: e.target.value })); }}
+                onChange={(e) => {
+                  setFormError("");
+                  const nextBillingType = e.target.value;
+                  setForm(f => ({
+                    ...f,
+                    billingType: nextBillingType,
+                    billingDueDate: f.billingDueDate || getLastDayOfMonthISO(),
+                    packagePrice: nextBillingType !== BILLING_TYPES.perClass && !f.packagePrice && monthlyEstimate.total
+                      ? String(monthlyEstimate.total)
+                      : f.packagePrice
+                  }));
+                }}
                 disabled={saving}
                 style={{
                   width: "100%",
@@ -2213,77 +2457,6 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                 resize: "vertical"
               }}
             />
-          </div>
-
-          <div style={{ marginBottom: "12px" }}>
-            <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "8px" }}>Horários da Semana</label>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {DAYS.map((day, dayIdx) => {
-                const dayTimes = form.schedule.filter(s => s.day === dayIdx).sort((a, b) => a.time.localeCompare(b.time));
-                return (
-                  <div key={dayIdx} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 12px" }}>
-                    <p style={{ fontSize: "12px", fontWeight: "700", color: theme.primary, margin: "0 0 6px" }}>{day}</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: dayTimes.length > 0 ? "8px" : "0" }}>
-                      {dayTimes.map(s => (
-                        <div key={s.time} style={{
-                          display: "grid", gridTemplateColumns: locations.length > 0 ? "72px minmax(0, 1fr) 22px" : "1fr 22px", alignItems: "center", gap: "6px",
-                          background: theme.light, color: theme.dark, padding: "4px 8px",
-                          borderRadius: "6px", fontSize: "12px", fontWeight: "600"
-                        }}>
-                          <span>{s.time}</span>
-                          {locations.length > 0 && (
-                            <select
-                              value={s.locationId || ""}
-                              onChange={(e) => updateScheduleLocation(dayIdx, s.time, e.target.value)}
-                              disabled={saving}
-                              style={{
-                                minWidth: 0,
-                                padding: "4px 6px",
-                                border: `1px solid ${theme.medium}`,
-                                borderRadius: "5px",
-                                fontSize: "11px",
-                                fontFamily: "inherit",
-                                background: "white",
-                                color: "#374151"
-                              }}
-                            >
-                              <option value="">Local padrão</option>
-                              {locations.map(location => (
-                                <option key={location.id} value={location.id}>{location.name}</option>
-                              ))}
-                            </select>
-                          )}
-                          <span onClick={() => removeScheduleTime(dayIdx, s.time)}
-                            style={{ cursor: "pointer", color: theme.soft, fontWeight: "700", fontSize: "14px", lineHeight: "1" }}>×</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                      <input
-                        type="time"
-                        value={newTime[dayIdx] || ""}
-                        onChange={(e) => setNewTime(prev => ({ ...prev, [dayIdx]: e.target.value }))}
-                        onKeyDown={(e) => { if (e.key === "Enter") addScheduleTime(dayIdx); }}
-                        disabled={saving}
-                        style={{
-                          flex: 1, padding: "6px 8px", border: "1px solid #d1d5db",
-                          borderRadius: "6px", fontSize: "13px", fontFamily: "inherit"
-                        }}
-                      />
-                      <button
-                        onClick={() => addScheduleTime(dayIdx)}
-                        disabled={saving || !newTime[dayIdx]}
-                        style={{
-                          padding: "6px 12px", background: newTime[dayIdx] ? theme.primary : "#d1d5db",
-                          color: "white", border: "none", borderRadius: "6px",
-                          fontSize: "12px", fontWeight: "600", cursor: newTime[dayIdx] ? "pointer" : "default"
-                        }}
-                      >+ Adicionar</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </div>
 
           <div style={{ display: "flex", gap: "8px" }}>

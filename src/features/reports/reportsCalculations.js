@@ -23,10 +23,13 @@ function isRecordInMonth(record, monthKey) {
   return `${year}-${month}` === monthKey;
 }
 
-function getClassPrice(record, student) {
+function getClassPrice(record, student, classMeta) {
   if (Number.isFinite(record.customPrice)) return record.customPrice;
   const parsedCustomPrice = Number(record.customPrice);
   if (Number.isFinite(parsedCustomPrice) && parsedCustomPrice > 0) return parsedCustomPrice;
+
+  const parsedSchedulePrice = Number(classMeta?.pricePerClass);
+  if (Number.isFinite(parsedSchedulePrice) && parsedSchedulePrice > 0) return parsedSchedulePrice;
 
   const parsedDefaultPrice = Number(student?.pricePerClass);
   return Number.isFinite(parsedDefaultPrice) ? parsedDefaultPrice : 0;
@@ -130,8 +133,8 @@ export function calculateMonthlyReportWithLocations({ students, records, payment
     const { studentId } = getRecordParts(record.key);
     const student = studentsById.get(studentId);
     const row = rowsByStudentId.get(studentId);
-    const classRevenue = getClassPrice(record, student);
     const meta = classMetaByKey.get(record.key);
+    const classRevenue = getClassPrice(record, student, meta);
     const location = locations.find(item => item.id === meta?.locationId);
     const locationRow = getLocationRow(meta?.locationId || "");
     const hasConfiguredLocations = locations.length > 0;
