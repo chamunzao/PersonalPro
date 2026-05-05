@@ -1553,17 +1553,35 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
               </div>
 
               {expandedWorkout === plan.id && plan.exercises && (
-                <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #e5e7eb" }}>
+                <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #e5e7eb", display: "flex", flexDirection: "column", gap: "8px" }}>
                   {plan.exercises.map((ex, idx) => (
-                    <div key={idx} style={{ fontSize: "11px", padding: "4px 0", display: "flex", justifyContent: "space-between" }}>
-                      <span>
-                        <strong>{ex.name}</strong>
-                        {(ex.muscleGroup || ex.equipment) && (
-                          <span style={{ color: "#9ca3af" }}> - {[ex.muscleGroup, ex.equipment].filter(Boolean).join(" / ")}</span>
-                        )}
-                        {ex.instructions && <p style={{ color: "#6b7280", margin: "2px 0 0 0" }}>{ex.instructions}</p>}
-                      </span>
-                      <span style={{ color: "#9ca3af" }}>{ex.sets}s × {ex.reps}r {ex.weight ? `@ ${ex.weight}` : ""}</span>
+                    <div key={idx} style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start", marginBottom: "8px" }}>
+                        <div>
+                          <p style={{ fontSize: "13px", fontWeight: "800", color: "#1f2937", margin: "0 0 3px 0" }}>{idx + 1}. {ex.name || "Exercicio sem nome"}</p>
+                          {(ex.muscleGroup || ex.equipment) && (
+                            <p style={{ fontSize: "11px", color: "#6b7280", margin: 0 }}>{[ex.muscleGroup, ex.equipment].filter(Boolean).join(" / ")}</p>
+                          )}
+                        </div>
+                        <span style={{ flexShrink: 0, padding: "4px 7px", background: plan.active ? theme.light : "#f3f4f6", color: plan.active ? theme.dark : "#6b7280", borderRadius: "4px", fontSize: "11px", fontWeight: "800" }}>
+                          {ex.sets || "-"} series
+                        </span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "6px", marginBottom: ex.notes || ex.instructions ? "8px" : "0" }}>
+                        {[
+                          { label: "Series", value: ex.sets || "-" },
+                          { label: "Repeticoes", value: ex.reps || "-" },
+                          { label: "Carga", value: ex.weight || "-" },
+                          { label: "Descanso", value: ex.rest || "-" }
+                        ].map(item => (
+                          <div key={item.label} style={{ background: "white", border: "1px solid #eef2f7", borderRadius: "6px", padding: "7px", minWidth: 0 }}>
+                            <p style={{ fontSize: "10px", color: "#9ca3af", fontWeight: "800", margin: "0 0 3px 0" }}>{item.label}</p>
+                            <p style={{ fontSize: "12px", color: "#1f2937", fontWeight: "800", margin: 0, overflowWrap: "anywhere" }}>{item.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                      {ex.notes && <p style={{ fontSize: "12px", color: "#4b5563", margin: "0 0 5px 0", whiteSpace: "pre-wrap" }}><strong>Orientacao:</strong> {ex.notes}</p>}
+                      {ex.instructions && <p style={{ fontSize: "11px", color: "#6b7280", margin: 0, whiteSpace: "pre-wrap" }}><strong>Instrucao:</strong> {ex.instructions}</p>}
                     </div>
                   ))}
                 </div>
