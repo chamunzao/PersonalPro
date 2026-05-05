@@ -27,6 +27,56 @@ function IconCheck() {
 
 const EMPTY_EXERCISE = { name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" };
 
+function getExerciseInitial(name) {
+  return String(name || "?").trim().charAt(0).toUpperCase() || "?";
+}
+
+function getExerciseSubtitle(exercise) {
+  const sets = exercise.sets || "-";
+  const reps = exercise.reps || "-";
+  const weight = exercise.weight ? ` · ${exercise.weight}` : "";
+  const rest = exercise.rest ? ` · descanso ${exercise.rest}` : "";
+  return `${sets} series x ${reps} reps${weight}${rest}`;
+}
+
+function getWorkoutSummary(workout) {
+  const total = (workout?.exercises || []).length;
+  return `${total} exercicio${total === 1 ? "" : "s"}`;
+}
+
+function parsePositiveInt(value, fallback = 0) {
+  const match = String(value || "").match(/\d+/);
+  const parsed = match ? parseInt(match[0], 10) : fallback;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function getPlannedSetCount(exercise) {
+  return Math.min(parsePositiveInt(exercise.sets, 1), 12);
+}
+
+function createDefaultSetLog(exercise) {
+  return Array.from({ length: getPlannedSetCount(exercise) }, () => ({
+    done: false,
+    reps: String(exercise.reps || "").match(/\d+/)?.[0] || "",
+    weight: exercise.weight || ""
+  }));
+}
+
+function getExerciseLog(draft, exerciseIndex, exercise) {
+  const existing = draft?.exerciseLogs?.[exerciseIndex]?.sets || [];
+  const defaults = createDefaultSetLog(exercise);
+  return defaults.map((item, index) => ({
+    ...item,
+    ...(existing[index] || {})
+  }));
+}
+
+function hasExerciseLogs(draft) {
+  return Object.values(draft?.exerciseLogs || {}).some(log =>
+    (log?.sets || []).some(set => set.done || String(set.reps || "").trim() || String(set.weight || "").trim())
+  );
+}
+
 function getClassKey(dateBR, studentId, time) {
   return `${dateBR}_${studentId}_${time}`;
 }
@@ -48,6 +98,7 @@ function getActiveWorkout(workoutPlans) {
 
 function hasSessionChanges(draft) {
   if (draft?.sessionNote?.trim()) return true;
+  if (hasExerciseLogs(draft)) return true;
   return Object.values(draft?.exerciseNotes || {}).some(note => String(note || "").trim());
 }
 
@@ -73,7 +124,7 @@ function buildWorkoutVersionFromSession(activeWorkout, draft, selectedDateBR) {
   };
 }
 
-function SessionTab({ students, records, setRecords, payments, scheduleOverrides, loadingData, theme }) {
+function SessionTab({ students, records, setRecords, payments, scheduleOverrides, locations = [], loadingData, theme }) {
   const { user } = useAuth();
   const [selectedDateISO, setSelectedDateISO] = useState(formatDateISO(new Date()));
   const [selectedTime, setSelectedTime] = useState("");
@@ -92,8 +143,8 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
   const selectedDateBR = formatDate(selectedDate);
 
   const classes = useMemo(
-    () => getClassesForDate(selectedDateISO, students, scheduleOverrides),
-    [selectedDateISO, students, scheduleOverrides]
+    () => getClassesForDate(selectedDateISO, students, scheduleOverrides, locations),
+    [selectedDateISO, students, scheduleOverrides, locations]
   );
 
   const timeSlots = useMemo(
@@ -154,7 +205,8 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
         if (!next[key]) {
           next[key] = {
             sessionNote: record?.sessionNote || "",
-            exerciseNotes: record?.exerciseNotes || {}
+            exerciseNotes: record?.exerciseNotes || {},
+            exerciseLogs: record?.exerciseLogs || {}
           };
         }
       });
@@ -166,12 +218,13 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     if (!user) return;
     setSavingKey(classKey);
     try {
-      const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {} };
+      const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {}, exerciseLogs: {} };
       const recordDoc = doc(db, `users/${user.uid}/records/${getAttendanceRecordDocId(classKey)}`);
       await setDoc(recordDoc, {
         key: classKey,
         sessionNote: draft.sessionNote || null,
-        exerciseNotes: draft.exerciseNotes || {}
+        exerciseNotes: draft.exerciseNotes || {},
+        exerciseLogs: draft.exerciseLogs || {}
       }, { merge: true });
 
       setRecords(prev => {
@@ -179,7 +232,8 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
         const nextRecord = {
           ...(existing >= 0 ? prev[existing] : { key: classKey, status: null, activity: null, customPrice: null }),
           sessionNote: draft.sessionNote || null,
-          exerciseNotes: draft.exerciseNotes || {}
+          exerciseNotes: draft.exerciseNotes || {},
+          exerciseLogs: draft.exerciseLogs || {}
         };
 
         if (existing >= 0) {
@@ -226,7 +280,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
 
   async function createWorkoutVersionFromClass(classKey, studentId, activeWorkout) {
     if (!user || !activeWorkout) return;
-    const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {} };
+    const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {}, exerciseLogs: {} };
     if (!hasSessionChanges(draft)) {
       alert("Anote alguma alteracao da aula antes de atualizar o treino.");
       return;
@@ -268,8 +322,30 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
   function updateDraft(classKey, updater) {
     setDrafts(prev => ({
       ...prev,
-      [classKey]: updater(prev[classKey] || { sessionNote: "", exerciseNotes: {} })
+      [classKey]: updater(prev[classKey] || { sessionNote: "", exerciseNotes: {}, exerciseLogs: {} })
     }));
+  }
+
+  function updateExerciseSetLog(classKey, exerciseIndex, setIndex, patch, exercise) {
+    updateDraft(classKey, current => {
+      const currentLogs = current.exerciseLogs || {};
+      const currentSetLogs = currentLogs[exerciseIndex]?.sets || createDefaultSetLog(exercise);
+      const nextSetLogs = createDefaultSetLog(exercise).map((defaultSet, index) => ({
+        ...defaultSet,
+        ...(currentSetLogs[index] || {}),
+        ...(index === setIndex ? patch : {})
+      }));
+
+      return {
+        ...current,
+        exerciseLogs: {
+          ...currentLogs,
+          [exerciseIndex]: {
+            sets: nextSetLogs
+          }
+        }
+      };
+    });
   }
 
   function startEditWorkoutFromClass(classKey, activeWorkout) {
@@ -445,11 +521,11 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
           <p style={{ fontSize: "14px", margin: "0" }}>Nenhum aluno nesse horario</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "10px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "12px", alignItems: "start" }}>
           {classesAtTime.map(cls => {
             const classKey = getClassKey(selectedDateBR, cls.studentId, cls.time);
             const record = records.find(item => item.key === classKey);
-            const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {} };
+            const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {}, exerciseLogs: {} };
             const activeWorkout = getActiveWorkout(workoutsByStudent[cls.studentId]);
             const student = students.find(item => item.id === cls.studentId);
             const creditStatus = student
@@ -473,19 +549,23 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
 
             return (
               <div key={classKey} style={{
-                background: "white",
-                border: `1px solid ${record?.sessionNote || Object.keys(record?.exerciseNotes || {}).length > 0 ? theme.medium : "#e5e7eb"}`,
+                background: "#30364a",
+                border: `1px solid ${record?.sessionNote || Object.keys(record?.exerciseNotes || {}).length > 0 ? theme.medium : "#40465c"}`,
                 borderRadius: "8px",
-                padding: "10px",
+                padding: "12px",
                 display: "flex",
                 flexDirection: "column",
-                gap: "10px"
+                gap: "12px",
+                boxShadow: "0 8px 20px rgba(17, 24, 39, 0.14)"
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: "8px" }}>
                   <div>
-                    <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#111827", margin: "0 0 3px 0" }}>{cls.studentName}</h3>
-                    <p style={{ fontSize: "12px", color: "#6b7280", margin: "0" }}>
+                    <h3 style={{ fontSize: "17px", fontWeight: "800", color: "white", margin: "0 0 3px 0" }}>{cls.studentName}</h3>
+                    <p style={{ fontSize: "12px", color: "#cbd5e1", margin: "0" }}>
                       {cls.time} {cls.scheduleTypeLabel ? `- ${cls.scheduleTypeLabel}` : ""}
+                    </p>
+                    <p style={{ fontSize: "11px", color: "#94a3b8", margin: "3px 0 0 0" }}>
+                      {cls.locationName || "Sem local"}
                     </p>
                     <span style={{
                       display: "inline-block",
@@ -505,13 +585,13 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                       onClick={() => markPresent(classKey)}
                       disabled={saving}
                       style={{
-                        padding: "7px 10px",
-                        background: record?.status === "present" ? "#d1fae5" : theme.primary,
-                        color: record?.status === "present" ? "#047857" : "white",
+                        padding: "9px 11px",
+                        background: record?.status === "present" ? "#22c55e" : "#475569",
+                        color: "white",
                         border: "none",
-                        borderRadius: "6px",
+                        borderRadius: "999px",
                         fontSize: "12px",
-                        fontWeight: "700",
+                        fontWeight: "800",
                         cursor: saving ? "not-allowed" : "pointer",
                         display: "flex",
                         alignItems: "center",
@@ -525,13 +605,13 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                       onClick={() => markAbsent(classKey)}
                       disabled={saving}
                       style={{
-                        padding: "7px 10px",
-                        background: record?.status === "absent" ? "#fee2e2" : "white",
-                        color: "#dc2626",
+                        padding: "9px 11px",
+                        background: record?.status === "absent" ? "#ef4444" : "transparent",
+                        color: record?.status === "absent" ? "white" : "#fecaca",
                         border: "1px solid #fecaca",
-                        borderRadius: "6px",
+                        borderRadius: "999px",
                         fontSize: "12px",
-                        fontWeight: "700",
+                        fontWeight: "800",
                         cursor: saving ? "not-allowed" : "pointer",
                         opacity: saving ? 0.65 : 1
                       }}
@@ -542,17 +622,20 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                 </div>
 
                 {activeWorkout ? (
-                  <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: "10px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "center", marginBottom: "8px" }}>
-                      <p style={{ fontSize: "12px", fontWeight: "800", color: theme.primary, margin: "0" }}>{activeWorkout.name}</p>
+                  <div style={{ borderTop: "1px solid #475569", paddingTop: "12px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "center", marginBottom: "10px" }}>
+                      <div>
+                        <p style={{ fontSize: "14px", fontWeight: "800", color: "white", margin: "0 0 2px 0" }}>{activeWorkout.name}</p>
+                        <p style={{ fontSize: "11px", color: "#94a3b8", margin: 0 }}>{getWorkoutSummary(activeWorkout)}</p>
+                      </div>
                       <button
                         onClick={() => editingWorkout ? setEditingWorkoutKey(null) : startEditWorkoutFromClass(classKey, activeWorkout)}
                         style={{
-                          padding: "5px 8px",
-                          background: editingWorkout ? "#f3f4f6" : theme.light,
-                          color: editingWorkout ? "#6b7280" : theme.dark,
-                          border: "none",
-                          borderRadius: "6px",
+                          padding: "8px 11px",
+                          background: editingWorkout ? "#475569" : "#14b8a6",
+                          color: "white",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          borderRadius: "999px",
                           fontSize: "11px",
                           fontWeight: "800",
                           cursor: "pointer",
@@ -563,21 +646,122 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                       </button>
                     </div>
 
-                    {!editingWorkout && <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {!editingWorkout && <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                       {(activeWorkout.exercises || []).map((exercise, index) => (
-                        <div key={`${exercise.name}-${index}`} style={{ background: "#f9fafb", border: "1px solid #eef2f7", borderRadius: "8px", padding: "8px" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", marginBottom: "6px" }}>
+                        (() => {
+                          const setLogs = getExerciseLog(draft, index, exercise);
+                          const doneCount = setLogs.filter(set => set.done).length;
+                          return (
+                        <div key={`${exercise.name}-${index}`} style={{ background: "#48516b", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", overflow: "hidden" }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "54px minmax(0, 1fr)", gap: "10px", alignItems: "center", padding: "10px" }}>
+                            <div style={{
+                              width: "54px",
+                              height: "54px",
+                              borderRadius: "8px",
+                              background: "white",
+                              color: "#64748b",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "28px",
+                              fontWeight: "500"
+                            }}>
+                              {getExerciseInitial(exercise.name)}
+                            </div>
                             <div style={{ minWidth: 0 }}>
-                              <p style={{ fontSize: "13px", fontWeight: "700", color: "#1f2937", margin: "0" }}>{exercise.name}</p>
+                              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+                                <div style={{ minWidth: 0 }}>
+                                  <p style={{ fontSize: "14px", fontWeight: "800", color: "white", margin: "0 0 3px 0" }}>{index + 1}. {exercise.name}</p>
+                                  <p style={{ fontSize: "12px", color: "#d6d9e6", margin: "0" }}>{getExerciseSubtitle(exercise)}</p>
+                                  <p style={{ fontSize: "11px", color: doneCount === setLogs.length ? "#86efac" : "#cbd5e1", margin: "4px 0 0 0", fontWeight: "800" }}>
+                                    {doneCount}/{setLogs.length} series feitas
+                                  </p>
+                                </div>
+                                <span style={{ flexShrink: 0, width: "28px", height: "28px", borderRadius: "50%", border: "1px solid rgba(255,255,255,0.45)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "12px", fontWeight: "800" }}>
+                                  {index + 1}
+                                </span>
+                              </div>
                               {(exercise.muscleGroup || exercise.equipment) && (
-                                <p style={{ fontSize: "11px", color: "#6b7280", margin: "2px 0 0 0" }}>{[exercise.muscleGroup, exercise.equipment].filter(Boolean).join(" / ")}</p>
+                                <p style={{ fontSize: "11px", color: "#aab2c5", margin: "4px 0 0 0" }}>{[exercise.muscleGroup, exercise.equipment].filter(Boolean).join(" / ")}</p>
                               )}
                             </div>
-                            <span style={{ fontSize: "12px", color: "#374151", fontWeight: "700", whiteSpace: "nowrap" }}>
-                              {exercise.sets || "-"}s x {exercise.reps || "-"}r {exercise.weight ? `@ ${exercise.weight}` : ""}
-                            </span>
                           </div>
-                          {exercise.notes && <p style={{ fontSize: "11px", color: "#6b7280", margin: "0 0 6px 0" }}>{exercise.notes}</p>}
+                          {exercise.notes && <p style={{ fontSize: "12px", color: "#e5e7eb", margin: "0 10px 8px 74px" }}>{exercise.notes}</p>}
+                          <div style={{ display: "flex", flexDirection: "column", gap: "7px", padding: "0 10px 10px 10px" }}>
+                            {setLogs.map((setLog, setIndex) => (
+                              <div key={setIndex} style={{
+                                display: "grid",
+                                gridTemplateColumns: "70px minmax(0, 1fr) minmax(0, 1fr)",
+                                gap: "7px",
+                                alignItems: "center",
+                                background: setLog.done ? "rgba(34,197,94,0.18)" : "#30364a",
+                                border: `1px solid ${setLog.done ? "rgba(134,239,172,0.45)" : "rgba(255,255,255,0.1)"}`,
+                                borderRadius: "8px",
+                                padding: "7px"
+                              }}>
+                                <button
+                                  type="button"
+                                  onClick={() => updateExerciseSetLog(classKey, index, setIndex, { done: !setLog.done }, exercise)}
+                                  style={{
+                                    minHeight: "38px",
+                                    background: setLog.done ? "#22c55e" : "transparent",
+                                    color: setLog.done ? "white" : "#e5e7eb",
+                                    border: `1px solid ${setLog.done ? "#22c55e" : "rgba(255,255,255,0.28)"}`,
+                                    borderRadius: "999px",
+                                    fontSize: "12px",
+                                    fontWeight: "900",
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  S{setIndex + 1}
+                                </button>
+                                <label style={{ minWidth: 0 }}>
+                                  <span style={{ display: "block", fontSize: "10px", color: "#aab2c5", fontWeight: "800", marginBottom: "3px" }}>Reps feitas</span>
+                                  <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    value={setLog.reps || ""}
+                                    onChange={(event) => updateExerciseSetLog(classKey, index, setIndex, { reps: event.target.value }, exercise)}
+                                    min="0"
+                                    placeholder={String(exercise.reps || "")}
+                                    style={{
+                                      width: "100%",
+                                      minHeight: "38px",
+                                      padding: "7px 9px",
+                                      border: "1px solid rgba(255,255,255,0.14)",
+                                      borderRadius: "7px",
+                                      background: "#252b3d",
+                                      color: "white",
+                                      fontSize: "15px",
+                                      fontWeight: "800",
+                                      boxSizing: "border-box"
+                                    }}
+                                  />
+                                </label>
+                                <label style={{ minWidth: 0 }}>
+                                  <span style={{ display: "block", fontSize: "10px", color: "#aab2c5", fontWeight: "800", marginBottom: "3px" }}>Carga</span>
+                                  <input
+                                    type="text"
+                                    value={setLog.weight || ""}
+                                    onChange={(event) => updateExerciseSetLog(classKey, index, setIndex, { weight: event.target.value }, exercise)}
+                                    placeholder={exercise.weight || "kg"}
+                                    style={{
+                                      width: "100%",
+                                      minHeight: "38px",
+                                      padding: "7px 9px",
+                                      border: "1px solid rgba(255,255,255,0.14)",
+                                      borderRadius: "7px",
+                                      background: "#252b3d",
+                                      color: "white",
+                                      fontSize: "15px",
+                                      fontWeight: "800",
+                                      boxSizing: "border-box"
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                            ))}
+                          </div>
                           <input
                             type="text"
                             value={draft.exerciseNotes?.[index] || ""}
@@ -590,98 +774,129 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                             }))}
                             placeholder="Ex: 4x12, 20kg, reduzir carga..."
                             style={{
-                              width: "100%",
-                              padding: "8px 10px",
-                              border: "1px solid #d1d5db",
-                              borderRadius: "6px",
-                              fontSize: "12px",
+                              width: "calc(100% - 20px)",
+                              margin: "0 10px 10px 10px",
+                              padding: "11px 12px",
+                              border: "1px solid rgba(255,255,255,0.14)",
+                              borderRadius: "999px",
+                              fontSize: "13px",
                               boxSizing: "border-box",
-                              fontFamily: "inherit"
+                              fontFamily: "inherit",
+                              background: "#30364a",
+                              color: "white"
                             }}
                           />
                         </div>
+                          );
+                        })()
                       ))}
                     </div>}
 
                     {editingWorkout && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                        <input
-                          type="text"
-                          value={workoutForm.name}
-                          onChange={(event) => updateWorkoutEditForm(classKey, form => ({ ...form, name: event.target.value }))}
-                          placeholder="Nome do treino"
-                          style={{
-                            width: "100%",
-                            padding: "8px 10px",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "6px",
-                            fontSize: "13px",
-                            boxSizing: "border-box",
-                            fontFamily: "inherit"
-                          }}
-                        />
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px", background: "white", borderRadius: "8px", padding: "12px" }}>
+                        <label>
+                          <span style={{ display: "block", fontSize: "11px", fontWeight: "800", color: "#4b5563", marginBottom: "4px" }}>Nome do treino</span>
+                          <input
+                            type="text"
+                            value={workoutForm.name}
+                            onChange={(event) => updateWorkoutEditForm(classKey, form => ({ ...form, name: event.target.value }))}
+                            placeholder="Ex: Treino A - Costas"
+                            style={{
+                              width: "100%",
+                              padding: "10px 11px",
+                              border: "1px solid #d1d5db",
+                              borderRadius: "7px",
+                              fontSize: "13px",
+                              boxSizing: "border-box",
+                              fontFamily: "inherit"
+                            }}
+                          />
+                        </label>
                         {(workoutForm.exercises || []).map((exercise, index) => (
-                          <div key={index} style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "8px" }}>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 72px 72px", gap: "6px", marginBottom: "6px" }}>
-                              <input
-                                type="text"
-                                value={exercise.name || ""}
-                                onChange={(event) => updateWorkoutExercise(classKey, index, { name: event.target.value })}
-                                placeholder="Exercicio"
-                                style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
-                              />
-                              <input
-                                type="text"
-                                value={exercise.sets || ""}
-                                onChange={(event) => updateWorkoutExercise(classKey, index, { sets: event.target.value })}
-                                placeholder="Series"
-                                style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
-                              />
-                              <input
-                                type="text"
-                                value={exercise.reps || ""}
-                                onChange={(event) => updateWorkoutExercise(classKey, index, { reps: event.target.value })}
-                                placeholder="Reps"
-                                style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
-                              />
+                          <div key={index} style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "9px" }}>
+                              <p style={{ fontSize: "12px", fontWeight: "900", color: "#111827", margin: 0 }}>Exercicio {index + 1}</p>
+                              <button
+                                onClick={() => removeWorkoutExercise(classKey, index)}
+                                style={{
+                                  padding: "6px 8px",
+                                  background: "#fee2e2",
+                                  color: "#dc2626",
+                                  border: "none",
+                                  borderRadius: "6px",
+                                  fontSize: "11px",
+                                  fontWeight: "800",
+                                  cursor: "pointer"
+                                }}
+                              >
+                                Remover
+                              </button>
                             </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginBottom: "6px" }}>
-                              <input
-                                type="text"
-                                value={exercise.weight || ""}
-                                onChange={(event) => updateWorkoutExercise(classKey, index, { weight: event.target.value })}
-                                placeholder="Carga"
-                                style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
-                              />
-                              <input
-                                type="text"
-                                value={exercise.rest || ""}
-                                onChange={(event) => updateWorkoutExercise(classKey, index, { rest: event.target.value })}
-                                placeholder="Descanso"
-                                style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
-                              />
+                            <div style={{ display: "grid", gridTemplateColumns: "minmax(160px, 2fr) minmax(72px, 0.7fr) minmax(82px, 0.8fr)", gap: "8px", marginBottom: "8px" }}>
+                              <label style={{ minWidth: 0 }}>
+                                <span style={{ display: "block", fontSize: "10px", fontWeight: "800", color: "#6b7280", marginBottom: "3px" }}>Nome do exercicio</span>
+                                <input
+                                  type="text"
+                                  value={exercise.name || ""}
+                                  onChange={(event) => updateWorkoutExercise(classKey, index, { name: event.target.value })}
+                                  placeholder="Ex: Agachamento livre"
+                                  style={{ width: "100%", padding: "9px 10px", border: "1px solid #d1d5db", borderRadius: "7px", fontSize: "13px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
+                                />
+                              </label>
+                              <label style={{ minWidth: 0 }}>
+                                <span style={{ display: "block", fontSize: "10px", fontWeight: "800", color: "#6b7280", marginBottom: "3px" }}>Series</span>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  value={exercise.sets || ""}
+                                  onChange={(event) => updateWorkoutExercise(classKey, index, { sets: event.target.value })}
+                                  placeholder="4"
+                                  min="1"
+                                  style={{ width: "100%", padding: "9px 10px", border: "1px solid #d1d5db", borderRadius: "7px", fontSize: "13px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
+                                />
+                              </label>
+                              <label style={{ minWidth: 0 }}>
+                                <span style={{ display: "block", fontSize: "10px", fontWeight: "800", color: "#6b7280", marginBottom: "3px" }}>Repeticoes</span>
+                                <input
+                                  type="text"
+                                  value={exercise.reps || ""}
+                                  onChange={(event) => updateWorkoutExercise(classKey, index, { reps: event.target.value })}
+                                  placeholder="10 ou 8-10"
+                                  style={{ width: "100%", padding: "9px 10px", border: "1px solid #d1d5db", borderRadius: "7px", fontSize: "13px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
+                                />
+                              </label>
                             </div>
-                            <textarea
-                              value={exercise.notes || ""}
-                              onChange={(event) => updateWorkoutExercise(classKey, index, { notes: event.target.value })}
-                              placeholder="Observacoes do exercicio"
-                              style={{ width: "100%", minHeight: "44px", padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", resize: "vertical", marginBottom: "6px" }}
-                            />
-                            <button
-                              onClick={() => removeWorkoutExercise(classKey, index)}
-                              style={{
-                                padding: "6px 8px",
-                                background: "#fee2e2",
-                                color: "#dc2626",
-                                border: "none",
-                                borderRadius: "6px",
-                                fontSize: "11px",
-                                fontWeight: "800",
-                                cursor: "pointer"
-                              }}
-                            >
-                              Remover exercicio
-                            </button>
+                            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "8px", marginBottom: "8px" }}>
+                              <label style={{ minWidth: 0 }}>
+                                <span style={{ display: "block", fontSize: "10px", fontWeight: "800", color: "#6b7280", marginBottom: "3px" }}>Carga planejada</span>
+                                <input
+                                  type="text"
+                                  value={exercise.weight || ""}
+                                  onChange={(event) => updateWorkoutExercise(classKey, index, { weight: event.target.value })}
+                                  placeholder="Ex: 40kg"
+                                  style={{ width: "100%", padding: "9px 10px", border: "1px solid #d1d5db", borderRadius: "7px", fontSize: "13px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
+                                />
+                              </label>
+                              <label style={{ minWidth: 0 }}>
+                                <span style={{ display: "block", fontSize: "10px", fontWeight: "800", color: "#6b7280", marginBottom: "3px" }}>Tempo de descanso</span>
+                                <input
+                                  type="text"
+                                  value={exercise.rest || ""}
+                                  onChange={(event) => updateWorkoutExercise(classKey, index, { rest: event.target.value })}
+                                  placeholder="Ex: 90s ou 1min"
+                                  style={{ width: "100%", padding: "9px 10px", border: "1px solid #d1d5db", borderRadius: "7px", fontSize: "13px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
+                                />
+                              </label>
+                            </div>
+                            <label>
+                              <span style={{ display: "block", fontSize: "10px", fontWeight: "800", color: "#6b7280", marginBottom: "3px" }}>Observacoes e orientacoes</span>
+                              <textarea
+                                value={exercise.notes || ""}
+                                onChange={(event) => updateWorkoutExercise(classKey, index, { notes: event.target.value })}
+                                placeholder="Ex: priorizar amplitude, manter postura, evitar dor..."
+                                style={{ width: "100%", minHeight: "58px", padding: "9px 10px", border: "1px solid #d1d5db", borderRadius: "7px", fontSize: "13px", boxSizing: "border-box", fontFamily: "inherit", resize: "vertical" }}
+                              />
+                            </label>
                           </div>
                         ))}
                         <button
@@ -719,8 +934,8 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                     )}
                   </div>
                 ) : (
-                  <div style={{ background: "#f9fafb", border: "1px dashed #d1d5db", borderRadius: "8px", padding: "12px" }}>
-                    <p style={{ fontSize: "13px", color: "#6b7280", margin: "0" }}>Sem treino cadastrado para este aluno.</p>
+                  <div style={{ background: "#48516b", border: "1px dashed rgba(255,255,255,0.22)", borderRadius: "8px", padding: "14px" }}>
+                    <p style={{ fontSize: "13px", color: "#e5e7eb", margin: "0" }}>Sem treino cadastrado para este aluno.</p>
                   </div>
                 )}
 
@@ -731,13 +946,15 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                   style={{
                     width: "100%",
                     minHeight: "76px",
-                    padding: "9px 10px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
+                    padding: "11px 12px",
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    borderRadius: "8px",
                     fontSize: "13px",
                     boxSizing: "border-box",
                     fontFamily: "inherit",
-                    resize: "vertical"
+                    resize: "vertical",
+                    background: "#252b3d",
+                    color: "white"
                   }}
                 />
 
@@ -747,13 +964,13 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                     disabled={saving}
                     style={{
                       width: "100%",
-                      padding: "10px",
-                      background: saving ? "#d1d5db" : theme.primary,
+                      padding: "12px",
+                      background: saving ? "#64748b" : "#22c55e",
                       color: "white",
                       border: "none",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontWeight: "700",
+                      borderRadius: "999px",
+                      fontSize: "13px",
+                      fontWeight: "800",
                       cursor: saving ? "not-allowed" : "pointer"
                     }}
                   >
@@ -766,13 +983,13 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                     disabled={savingWorkout || !hasSessionChanges(draft)}
                     style={{
                       width: "100%",
-                      padding: "10px",
-                      background: savingWorkout || !hasSessionChanges(draft) ? "#e5e7eb" : "#111827",
-                      color: savingWorkout || !hasSessionChanges(draft) ? "#9ca3af" : "white",
+                      padding: "12px",
+                      background: savingWorkout || !hasSessionChanges(draft) ? "#475569" : "#3b82f6",
+                      color: savingWorkout || !hasSessionChanges(draft) ? "#94a3b8" : "white",
                       border: "none",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontWeight: "700",
+                      borderRadius: "999px",
+                      fontSize: "13px",
+                      fontWeight: "800",
                       cursor: savingWorkout || !hasSessionChanges(draft) ? "not-allowed" : "pointer"
                     }}
                   >

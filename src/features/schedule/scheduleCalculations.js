@@ -1,4 +1,5 @@
 import { jsDayToIndex } from "../../lib/dates";
+import { getLocationName } from "../locations/locationCalculations";
 
 export const SCHEDULE_ITEM_TYPES = {
   fixed: "fixed",
@@ -27,7 +28,8 @@ export function getBaseScheduleItemsForStudent(dateISO, student) {
     .filter(scheduleItem => scheduleItem.day === dayIndex)
     .map(scheduleItem => ({
       time: scheduleItem.time,
-      type: SCHEDULE_ITEM_TYPES.fixed
+      type: SCHEDULE_ITEM_TYPES.fixed,
+      locationId: scheduleItem.locationId || student.defaultLocationId || ""
     }))
     .sort((a, b) => a.time.localeCompare(b.time));
 }
@@ -39,7 +41,8 @@ export function getScheduleItemsForStudent(dateISO, student, scheduleOverride) {
         time: item.time,
         type: item.type || SCHEDULE_ITEM_TYPES.extra,
         note: item.note || "",
-        pricePerClass: item.pricePerClass ?? null
+        pricePerClass: item.pricePerClass ?? null,
+        locationId: item.locationId || student.defaultLocationId || ""
       }))
       .sort((a, b) => a.time.localeCompare(b.time));
   }
@@ -65,12 +68,13 @@ export function buildScheduleOverridePayload(items) {
       time: item.time,
       type: item.type || SCHEDULE_ITEM_TYPES.extra,
       note: item.note || "",
-      pricePerClass: item.pricePerClass ?? null
+      pricePerClass: item.pricePerClass ?? null,
+      locationId: item.locationId || ""
     }))
   };
 }
 
-export function getClassesForDate(dateISO, students, scheduleOverrides) {
+export function getClassesForDate(dateISO, students, scheduleOverrides, locations = []) {
   const classes = [];
 
   students.forEach(student => {
@@ -86,6 +90,8 @@ export function getClassesForDate(dateISO, students, scheduleOverrides) {
         studentPhone: student.phone || "",
         time: item.time,
         pricePerClass: item.pricePerClass ?? student.pricePerClass,
+        locationId: item.locationId || student.defaultLocationId || "",
+        locationName: getLocationName(item.locationId || student.defaultLocationId || "", locations),
         scheduleType: item.type || SCHEDULE_ITEM_TYPES.fixed,
         scheduleTypeLabel: getScheduleItemTypeLabel(item.type),
         scheduleNote: item.note || ""

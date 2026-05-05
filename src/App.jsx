@@ -80,6 +80,7 @@ export default function App() {
   const [records, setRecords] = useState([]);
   const [payments, setPayments] = useState([]);
   const [scheduleOverrides, setScheduleOverrides] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
   const [themeKey, setThemeKey] = useState("purple");
   const theme = THEMES[themeKey] || THEMES.purple;
@@ -113,7 +114,8 @@ export default function App() {
           activity: doc.data().activity || null,
           customPrice: doc.data().customPrice || null,
           sessionNote: doc.data().sessionNote || null,
-          exerciseNotes: doc.data().exerciseNotes || {}
+          exerciseNotes: doc.data().exerciseNotes || {},
+          exerciseLogs: doc.data().exerciseLogs || {}
         }));
         setRecords(recordsData);
 
@@ -124,6 +126,14 @@ export default function App() {
           ...doc.data()
         }));
         setPayments(paymentsData);
+
+        // Load service locations
+        const locationsSnap = await getDocs(collection(db, `users/${user.uid}/locations`));
+        const locationsData = locationsSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setLocations(locationsData);
 
         // Load schedule overrides
         const overridesSnap = await getDocs(collection(db, `users/${user.uid}/scheduleOverrides`));
@@ -232,16 +242,16 @@ export default function App() {
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: "auto", paddingBottom: "8px" }}>
-        {activeTab === "dashboard" && <DashboardTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
-        {activeTab === "students" && <StudentsTab students={students} setStudents={setStudents} records={records} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} loadingData={loadingData} theme={theme} />}
-        {activeTab === "agenda" && <AgendaTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} theme={theme} />}
-        {activeTab === "session" && <SessionTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
+        {activeTab === "dashboard" && <DashboardTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} locations={locations} loadingData={loadingData} theme={theme} />}
+        {activeTab === "students" && <StudentsTab students={students} setStudents={setStudents} records={records} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} locations={locations} loadingData={loadingData} theme={theme} />}
+        {activeTab === "agenda" && <AgendaTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} locations={locations} theme={theme} />}
+        {activeTab === "session" && <SessionTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} locations={locations} loadingData={loadingData} theme={theme} />}
         {activeTab === "attendance" && <AttendanceTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "payments" && <PaymentsTab students={students} records={records} payments={payments} setPayments={setPayments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "alerts" && <AlertsTab students={students} records={records} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "communication" && <CommunicationTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
-        {activeTab === "reports" && <ReportsTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
-        {activeTab === "settings" && <SettingsTab themeKey={themeKey} setThemeKey={setThemeKey} themes={THEMES} />}
+        {activeTab === "reports" && <ReportsTab students={students} records={records} payments={payments} scheduleOverrides={scheduleOverrides} locations={locations} loadingData={loadingData} theme={theme} />}
+        {activeTab === "settings" && <SettingsTab themeKey={themeKey} setThemeKey={setThemeKey} themes={THEMES} locations={locations} setLocations={setLocations} theme={theme} />}
       </div>
 
       {/* Bottom Tab Navigation */}

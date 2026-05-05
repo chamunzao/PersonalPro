@@ -5,14 +5,15 @@ import { getClassesForDate } from "../schedule/scheduleCalculations";
 import { getAttendanceStatusStyle, updateAttendanceRecord } from "../attendance/attendanceActions";
 import { calculateDashboard } from "./dashboardCalculations";
 
-export function DashboardTab({ students, records, setRecords, payments, scheduleOverrides, loadingData, theme }) {
+export function DashboardTab({ students, records, setRecords, payments, scheduleOverrides, locations = [], loadingData, theme }) {
   const { user } = useAuth();
   const [savingAttendanceKey, setSavingAttendanceKey] = useState(null);
   const dashboard = calculateDashboard({
     students,
     records,
     payments,
-    getClassesForDate: (dateISO) => getClassesForDate(dateISO, students, scheduleOverrides)
+    locations,
+    getClassesForDate: (dateISO) => getClassesForDate(dateISO, students, scheduleOverrides, locations)
   });
 
   const metricCards = [
@@ -92,6 +93,7 @@ export function DashboardTab({ students, records, setRecords, payments, schedule
                     <div>
                       <p style={{ fontSize: "13px", fontWeight: "700", margin: "0 0 2px 0", color: "#1f2937" }}>{cls.studentName}</p>
                       <p style={{ fontSize: "11px", color: "#6b7280", margin: "0" }}>{cls.time} - {cls.scheduleTypeLabel || "Fixa"}</p>
+                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: "2px 0 0 0" }}>{cls.locationName || "Sem local"}</p>
                     </div>
                     <span style={{
                       fontSize: "11px",

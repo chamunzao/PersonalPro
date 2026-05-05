@@ -1,14 +1,47 @@
 import React, { useState } from 'react';
 import { MONTHS } from '../../lib/constants';
 import { formatCurrency } from '../../lib/money';
-import { calculateMonthlyReport } from './reportsCalculations';
+import { getClassesForDate } from '../schedule/scheduleCalculations';
+import { calculateMonthlyReportWithLocations } from './reportsCalculations';
 // ==================== REPORTS TAB ====================
-function ReportsTab({ students, records, payments, loadingData, theme }) {
+function ReportsTab({ students, records, payments, scheduleOverrides = [], locations = [], loadingData, theme }) {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const monthKey = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
-  const report = calculateMonthlyReport({ students, records, payments, monthKey });
+  const report = calculateMonthlyReportWithLocations({
+    students,
+    records,
+    payments,
+    monthKey,
+    locations,
+    getClassesForDate: (dateISO) => getClassesForDate(dateISO, students, scheduleOverrides, locations)
+  });
+
+  function exportLocationReport() {
+    const header = ["Local", "Aulas", "Presentes", "Faltas", "Receita bruta", "Repasse", "Liquido"];
+    const rows = report.locationRows.map(row => [
+      row.locationName,
+      row.totalClasses,
+      row.presentClasses,
+      row.absentClasses,
+      row.grossRevenue.toFixed(2),
+      row.totalFees.toFixed(2),
+      row.netRevenue.toFixed(2)
+    ]);
+    const csv = [header, ...rows]
+      .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(";"))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `relatorio-locais-${monthKey}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div style={{ padding: "16px" }}>
@@ -120,6 +153,68 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
           <p style={{ fontSize: "18px", fontWeight: "700", margin: "0", color: "#dc2626" }}>{formatCurrency(report.gymFees)}</p>
         </div>
       </div>
+
+      {locations.length > 0 && (
+        <div style={{
+          background: "white",
+          padding: "16px",
+          borderRadius: "8px",
+          border: "1px solid #e5e7eb",
+          marginBottom: "20px"
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "12px" }}>
+            <h3 style={{ fontSize: "14px", fontWeight: "700", margin: 0, color: "#1f2937" }}>Prestação por local</h3>
+            <button
+              onClick={exportLocationReport}
+              disabled={report.locationRows.length === 0}
+              style={{
+                padding: "8px 10px",
+                background: report.locationRows.length === 0 ? "#e5e7eb" : theme.primary,
+                color: report.locationRows.length === 0 ? "#9ca3af" : "white",
+                border: "none",
+                borderRadius: "6px",
+                fontSize: "11px",
+                fontWeight: "800",
+                cursor: report.locationRows.length === 0 ? "not-allowed" : "pointer"
+              }}
+            >
+              Exportar CSV
+            </button>
+          </div>
+          {report.locationRows.length === 0 ? (
+            <p style={{ fontSize: "12px", color: "#9ca3af", margin: 0 }}>Sem aulas no período.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {report.locationRows.map(row => (
+                <div key={row.locationId} style={{
+                  padding: "10px",
+                  background: "#f9fafb",
+                  borderRadius: "6px",
+                  border: "1px solid #e5e7eb",
+                  fontSize: "12px"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", marginBottom: "6px" }}>
+                    <div>
+                      <p style={{ fontWeight: "800", margin: "0 0 2px 0", color: "#1f2937" }}>{row.locationName}</p>
+                      <p style={{ fontSize: "11px", color: "#6b7280", margin: 0 }}>
+                        {row.totalClasses} aulas · {row.presentClasses} presentes · {row.absentClasses} faltas
+                      </p>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <p style={{ fontSize: "13px", fontWeight: "800", margin: 0, color: theme.primary }}>{formatCurrency(row.netRevenue)}</p>
+                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: "2px 0 0 0" }}>líquido</p>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: "11px", color: "#6b7280", margin: 0 }}>
+                    {formatCurrency(row.grossRevenue)} bruto · {formatCurrency(row.totalFees)} repasse
+                    {row.fixedFee > 0 ? ` (${formatCurrency(row.fixedFee)} fixo)` : ""}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{
         background: "white",

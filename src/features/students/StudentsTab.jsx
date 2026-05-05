@@ -20,6 +20,7 @@ import {
   getBillingStatusColors,
   getBillingStatusLabel
 } from '../billing/billingCalculations';
+import { getLocationName } from '../locations/locationCalculations';
 import { EXERCISE_LIBRARY, WORKOUT_TEMPLATES } from '../workouts/workoutPresets';
 
 function IconPlus() {
@@ -92,7 +93,7 @@ function getSafeImageUrl(value) {
 }
 
 // ==================== STUDENT PROFILE ====================
-function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) {
+function StudentProfile({ studentId, student, records, onBack, onEdit, locations = [], theme }) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("dados");
   const [measurements, setMeasurements] = useState([]);
@@ -208,7 +209,7 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
 
       {loadingProfile && <p style={{ color: "#9ca3af", textAlign: "center" }}>Carregando...</p>}
 
-      {activeTab === "dados" && <DataTabContent student={student} records={records} onEdit={onEdit} theme={theme} />}
+      {activeTab === "dados" && <DataTabContent student={student} records={records} onEdit={onEdit} locations={locations} theme={theme} />}
       {activeTab === "anamnese" && <AnamnesisTabContent studentId={studentId} anamnesis={anamnesis} setAnamnesis={setAnamnesis} theme={theme} />}
       {activeTab === "medidas" && <MeasurementsTabContent studentId={studentId} measurements={measurements} setMeasurements={setMeasurements} showNewMeasurement={showNewMeasurement} setShowNewMeasurement={setShowNewMeasurement} expandedMeasurement={expandedMeasurement} setExpandedMeasurement={setExpandedMeasurement} theme={theme} />}
       {activeTab === "fotos" && <ProgressPhotosTabContent studentId={studentId} photos={progressPhotos} setPhotos={setProgressPhotos} showNewPhoto={showNewPhoto} setShowNewPhoto={setShowNewPhoto} theme={theme} />}
@@ -218,7 +219,7 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
   );
 }
 
-function DataTabContent({ student, records, onEdit, theme }) {
+function DataTabContent({ student, records, onEdit, locations = [], theme }) {
   const billingStatus = calculateBillingStatus(student, records);
   const billingColors = getBillingStatusColors(billingStatus);
 
@@ -250,6 +251,10 @@ function DataTabContent({ student, records, onEdit, theme }) {
           <div>
             <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Preço/Aula</p>
             <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: theme.primary }}>{formatCurrency(student.pricePerClass)}</p>
+          </div>
+          <div>
+            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Local padrão</p>
+            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#1f2937" }}>{getLocationName(student.defaultLocationId, locations)}</p>
           </div>
         </div>
       </div>
@@ -305,7 +310,10 @@ function DataTabContent({ student, records, onEdit, theme }) {
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {student.schedule && student.schedule.length > 0 ? (
             DAYS.map((day, idx) => {
-              const times = student.schedule.filter(s => s.day === idx).map(s => s.time).sort();
+              const times = student.schedule
+                .filter(s => s.day === idx)
+                .sort((a, b) => a.time.localeCompare(b.time))
+                .map(s => `${s.time}${s.locationId ? ` (${getLocationName(s.locationId, locations)})` : ""}`);
               return times.length > 0 ? (
                 <div key={idx} style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: "13px", color: "#4b5563", fontWeight: "600" }}>{day}:</span>
@@ -394,7 +402,8 @@ function ClassHistoryTabContent({ studentId, records, workoutPlans, theme }) {
         {studentRecords.map(record => {
           const isOpen = expandedKey === record.key;
           const exerciseEntries = Object.entries(record.exerciseNotes || {}).filter(([, note]) => String(note || "").trim());
-          const hasDetails = record.sessionNote || record.activity || exerciseEntries.length > 0;
+          const exerciseLogEntries = Object.entries(record.exerciseLogs || {}).filter(([, log]) => (log?.sets || []).length > 0);
+          const hasDetails = record.sessionNote || record.activity || exerciseEntries.length > 0 || exerciseLogEntries.length > 0;
           const statusColors = record.status === "present"
             ? { background: "#d1fae5", color: "#047857", label: "Presente" }
             : record.status === "absent"
@@ -432,6 +441,34 @@ function ClassHistoryTabContent({ studentId, records, workoutPlans, theme }) {
                           Exercicio {Number(index) + 1}: {note}
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {exerciseLogEntries.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px" }}>
+                      <p style={{ fontSize: "11px", fontWeight: "800", color: theme.primary, margin: 0 }}>Series registradas</p>
+                      {exerciseLogEntries.map(([index, log]) => {
+                        const sets = log.sets || [];
+                        const doneSets = sets.filter(set => set.done).length;
+                        return (
+                          <div key={index} style={{ padding: "7px 8px", background: "#f9fafb", borderRadius: "6px", fontSize: "12px", color: "#374151" }}>
+                            <p style={{ margin: "0 0 5px 0", fontWeight: "800" }}>Exercicio {Number(index) + 1}: {doneSets}/{sets.length} series</p>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                              {sets.map((set, setIndex) => (
+                                <span key={setIndex} style={{
+                                  padding: "3px 6px",
+                                  background: set.done ? "#d1fae5" : "#f3f4f6",
+                                  color: set.done ? "#047857" : "#6b7280",
+                                  borderRadius: "4px",
+                                  fontSize: "11px",
+                                  fontWeight: "700"
+                                }}>
+                                  S{setIndex + 1}: {set.reps || "-"} reps{set.weight ? ` · ${set.weight}` : ""}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   {!hasDetails && <p style={{ fontSize: "12px", color: "#9ca3af", margin: 0 }}>Nenhum detalhe registrado nesta aula.</p>}
@@ -1540,7 +1577,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
 }
 
 // ==================== STUDENTS TAB ====================
-function StudentsTab({ students, setStudents, records, scheduleOverrides, setScheduleOverrides, loadingData, theme }) {
+function StudentsTab({ students, setStudents, records, scheduleOverrides, setScheduleOverrides, locations = [], loadingData, theme }) {
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -1549,6 +1586,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
   const defaultForm = {
     name: "",
     pricePerClass: "",
+    defaultLocationId: "",
     schedule: [],
     notes: "",
     cpf: "",
@@ -1578,7 +1616,8 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
     setForm({
       name: s.name,
       pricePerClass: String(s.pricePerClass),
-      schedule: [...s.schedule.map(x => ({ ...x }))],
+      defaultLocationId: s.defaultLocationId || "",
+      schedule: [...(s.schedule || []).map(x => ({ ...x }))],
       notes: s.notes || "",
       cpf: s.cpf || "",
       email: s.email || "",
@@ -1604,7 +1643,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
     setForm(f => {
       const exists = f.schedule.find(s => s.day === dayIdx && s.time === time);
       if (exists) return f;
-      return { ...f, schedule: [...f.schedule, { day: dayIdx, time }] };
+      return { ...f, schedule: [...f.schedule, { day: dayIdx, time, locationId: f.defaultLocationId || "" }] };
     });
     setNewTime(prev => ({ ...prev, [dayIdx]: "" }));
   }
@@ -1614,6 +1653,16 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
     setForm(f => ({
       ...f,
       schedule: f.schedule.filter(s => !(s.day === dayIdx && s.time === time))
+    }));
+  }
+
+  function updateScheduleLocation(dayIdx, time, locationId) {
+    setFormError("");
+    setForm(f => ({
+      ...f,
+      schedule: f.schedule.map(s => (
+        s.day === dayIdx && s.time === time ? { ...s, locationId } : s
+      ))
     }));
   }
 
@@ -1648,6 +1697,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
       const studentData = {
         name: form.name.trim(),
         pricePerClass: parseFloat(form.pricePerClass),
+        defaultLocationId: form.defaultLocationId || "",
         schedule: form.schedule,
         notes: form.notes.trim(),
         cpf: form.cpf.replace(/\D/g, ""),
@@ -1871,6 +1921,38 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                 fontFamily: "inherit"
               }}
             />
+          </div>
+
+          <div style={{ marginBottom: "12px" }}>
+            <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Local padrão</label>
+            <select
+              value={form.defaultLocationId}
+              onChange={(e) => {
+                setFormError("");
+                const nextLocationId = e.target.value;
+                setForm(f => ({
+                  ...f,
+                  defaultLocationId: nextLocationId,
+                  schedule: f.schedule.map(item => item.locationId ? item : { ...item, locationId: nextLocationId })
+                }));
+              }}
+              disabled={saving}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontSize: "13px",
+                boxSizing: "border-box",
+                fontFamily: "inherit",
+                background: "white"
+              }}
+            >
+              <option value="">Sem local / definir por horário</option>
+              {locations.map(location => (
+                <option key={location.id} value={location.id}>{location.name}</option>
+              ))}
+            </select>
           </div>
 
           <div style={{ marginBottom: "12px", padding: "12px", background: "#fff", border: `1px solid ${theme.light}`, borderRadius: "8px" }}>
@@ -2123,17 +2205,39 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                 return (
                   <div key={dayIdx} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 12px" }}>
                     <p style={{ fontSize: "12px", fontWeight: "700", color: theme.primary, margin: "0 0 6px" }}>{day}</p>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: dayTimes.length > 0 ? "8px" : "0" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: dayTimes.length > 0 ? "8px" : "0" }}>
                       {dayTimes.map(s => (
-                        <span key={s.time} style={{
-                          display: "inline-flex", alignItems: "center", gap: "4px",
+                        <div key={s.time} style={{
+                          display: "grid", gridTemplateColumns: locations.length > 0 ? "72px minmax(0, 1fr) 22px" : "1fr 22px", alignItems: "center", gap: "6px",
                           background: theme.light, color: theme.dark, padding: "4px 8px",
                           borderRadius: "6px", fontSize: "12px", fontWeight: "600"
                         }}>
-                          {s.time}
+                          <span>{s.time}</span>
+                          {locations.length > 0 && (
+                            <select
+                              value={s.locationId || ""}
+                              onChange={(e) => updateScheduleLocation(dayIdx, s.time, e.target.value)}
+                              disabled={saving}
+                              style={{
+                                minWidth: 0,
+                                padding: "4px 6px",
+                                border: `1px solid ${theme.medium}`,
+                                borderRadius: "5px",
+                                fontSize: "11px",
+                                fontFamily: "inherit",
+                                background: "white",
+                                color: "#374151"
+                              }}
+                            >
+                              <option value="">Local padrão</option>
+                              {locations.map(location => (
+                                <option key={location.id} value={location.id}>{location.name}</option>
+                              ))}
+                            </select>
+                          )}
                           <span onClick={() => removeScheduleTime(dayIdx, s.time)}
                             style={{ cursor: "pointer", color: theme.soft, fontWeight: "700", fontSize: "14px", lineHeight: "1" }}>×</span>
-                        </span>
+                        </div>
                       ))}
                     </div>
                     <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
@@ -2346,6 +2450,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
           records={records}
           onBack={() => setSelectedStudentId(null)}
           onEdit={(s) => { setSelectedStudentId(null); startEdit(s); }}
+          locations={locations}
           theme={theme}
         />
       )}
