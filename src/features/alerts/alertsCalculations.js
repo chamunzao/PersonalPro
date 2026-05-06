@@ -186,7 +186,10 @@ function buildUnmarkedClassAlerts(students, records, getClassesForDate, today) {
       title: "Aula sem registro",
       message: `${cls.studentName} teve aula às ${cls.time} hoje e ainda não foi marcada.`,
       studentId: cls.studentId,
-      studentName: cls.studentName
+      studentName: cls.studentName,
+      classKey: `${todayText}_${cls.studentId}_${cls.time}`,
+      date: todayText,
+      time: cls.time
     }));
 }
 

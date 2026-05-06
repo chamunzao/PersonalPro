@@ -673,7 +673,7 @@ function ProgressPhotosTabContent({ studentId, photos, setPhotos, showNewPhoto, 
       {photos.length === 0 ? (
         <p style={{ color: "#9ca3af", textAlign: "center", padding: "20px" }}>Nenhuma foto de evolucao cadastrada</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="students-list">
           {photos.map(photo => (
             <div key={photo.id} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", marginBottom: "10px" }}>
@@ -1746,62 +1746,84 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
       ].some(value => String(value || "").toLowerCase().includes(normalizedSearch));
     })
     .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"));
+  const billingStatuses = students.map(student => calculateBillingStatus(student, records));
+  const overdueStudents = billingStatuses.filter(status => status.status === "overdue").length;
+  const packageStudents = students.filter(student => student.billingType && student.billingType !== BILLING_TYPES.perClass).length;
+  const getInitials = (name) => String(name || "?")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0])
+    .join("")
+    .toUpperCase();
 
   return (
-    <div style={{ padding: "16px" }}>
-      <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ fontSize: "18px", fontWeight: "600", margin: "0", color: "#1f2937" }}>
-          Alunos ({students.length})
-        </h2>
+    <div className="students-page">
+      {!selectedStudentId && (
+        <section className="app-card students-header-panel">
+          <div className="students-header-row">
+            <div>
+              <p style={{ margin: "0 0 5px", color: theme.primary, fontSize: "12px", fontWeight: "900" }}>CARTEIRA DE ALUNOS</p>
+              <h2 className="app-page-title">Alunos</h2>
+              <p className="app-page-kicker">Organize agenda, cobranca e historico de treino de cada pessoa.</p>
+            </div>
         <button
           onClick={() => setShowForm(!showForm)}
           style={{
-            padding: "8px 12px",
+            padding: "10px 13px",
             background: theme.primary,
             color: "white",
             border: "none",
-            borderRadius: "6px",
+            borderRadius: "9px",
             fontSize: "13px",
-            fontWeight: "600",
+            fontWeight: "900",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            transition: "background 0.2s"
+            boxShadow: "0 10px 24px rgba(13, 148, 136, 0.16)",
+            flexShrink: 0
           }}
           onMouseEnter={(e) => e.target.style.background = theme.dark}
           onMouseLeave={(e) => e.target.style.background = theme.primary}
         >
           <IconPlus /> Novo
         </button>
-      </div>
+          </div>
+          <div className="students-summary-grid">
+            <div className="students-summary-item">
+              <p style={{ margin: 0, color: theme.primary, fontSize: "24px", fontWeight: "900", fontVariantNumeric: "tabular-nums" }}>{students.length}</p>
+              <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "12px", fontWeight: "800" }}>alunos cadastrados</p>
+            </div>
+            <div className="students-summary-item">
+              <p style={{ margin: 0, color: "#0f766e", fontSize: "24px", fontWeight: "900", fontVariantNumeric: "tabular-nums" }}>{packageStudents}</p>
+              <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "12px", fontWeight: "800" }}>com plano/pacote</p>
+            </div>
+            <div className="students-summary-item">
+              <p style={{ margin: 0, color: overdueStudents ? "#dc2626" : "#059669", fontSize: "24px", fontWeight: "900", fontVariantNumeric: "tabular-nums" }}>{overdueStudents}</p>
+              <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "12px", fontWeight: "800" }}>vencidos</p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {loadingData && <p style={{ color: "#9ca3af", fontSize: "14px", textAlign: "center" }}>Carregando...</p>}
 
       {!selectedStudentId && students.length > 0 && (
-        <div style={{ marginBottom: "14px" }}>
+        <section className="students-search-panel">
           <input
             type="search"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Buscar por nome, telefone, e-mail ou observacao..."
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: "13px",
-              boxSizing: "border-box",
-              fontFamily: "inherit",
-              background: "white"
-            }}
+            className="students-search-input"
           />
           {normalizedSearch && (
             <p style={{ fontSize: "11px", color: "#6b7280", margin: "6px 0 0 0" }}>
               {visibleStudents.length} aluno{visibleStudents.length === 1 ? "" : "s"} encontrado{visibleStudents.length === 1 ? "" : "s"}
             </p>
           )}
-        </div>
+        </section>
       )}
 
       {showForm && (
@@ -2202,43 +2224,22 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
       )}
 
       {!loadingData && !selectedStudentId && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="students-list">
           {visibleStudents.length === 0 && (
-            <div style={{
-              textAlign: "center",
-              padding: "28px 16px",
-              background: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "8px",
-              color: "#9ca3af"
-            }}>
-              <p style={{ fontSize: "13px", margin: 0, fontWeight: "700" }}>Nenhum aluno encontrado</p>
+            <div className="app-card" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "32px 16px", color: "#64748b" }}>
+              <p style={{ fontSize: "14px", margin: "0 0 4px", fontWeight: "900", color: "#334155" }}>Nenhum aluno encontrado</p>
+              <p style={{ fontSize: "12px", margin: 0 }}>Tente buscar por outro nome, telefone ou e-mail.</p>
             </div>
           )}
           {visibleStudents.map(student => {
             const billingStatus = calculateBillingStatus(student, records);
             const billingColors = getBillingStatusColors(billingStatus);
             return (
-            <div key={student.id} onClick={() => setSelectedStudentId(student.id)} style={{
-              background: "white",
-              padding: "12px",
-              borderRadius: "8px",
-              border: "1px solid #e5e7eb",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              cursor: "pointer",
-              transition: "all 0.2s"
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
-              e.currentTarget.style.borderColor = theme.primary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "#e5e7eb";
-            }}>
-              <div style={{ flex: 1 }}>
+              <article key={student.id} onClick={() => setSelectedStudentId(student.id)} className="student-list-card">
+                <div className="student-card-top">
+                  <div style={{ display: "flex", gap: "11px", minWidth: 0 }}>
+                    <div className="student-avatar">{getInitials(student.name)}</div>
+                    <div style={{ minWidth: 0 }}>
                 <p style={{ fontSize: "14px", fontWeight: "600", margin: "0 0 4px 0", color: "#1f2937" }}>{student.name}</p>
                 <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 4px 0" }}>
                   {billingStatus.billingTypeLabel} · {formatCurrency(student.pricePerClass)}/aula
@@ -2296,7 +2297,8 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                     {student.notes}
                   </p>
                 )}
-              </div>
+                    </div>
+                  </div>
               <div style={{ display: "flex", gap: "6px" }}>
                 <button
                   onClick={(e) => { e.stopPropagation(); startEdit(student); }}
@@ -2333,7 +2335,8 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                   <IconTrash />
                 </button>
               </div>
-            </div>
+                </div>
+              </article>
             );
           })}
         </div>

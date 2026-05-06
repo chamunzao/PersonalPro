@@ -1,155 +1,48 @@
-PERSONALPRO - NEXT STEPS FOR DEPLOYMENT
+PERSONALPRO - PROXIMOS PASSOS
 
-The complete PersonalPro SaaS application has been built and is ready for use.
-Follow these steps to get it running:
+Estado atual:
+- App em MVP avancado / beta utilizavel.
+- Firebase real configurado.
+- Build de producao funcionando.
+- Central de Acoes criada na aba Alertas.
 
-STEP 1: PREPARE YOUR FIREBASE PROJECT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Go to https://console.firebase.google.com
-2. Create a new project (or use existing)
-3. Go to Project Settings
-4. Copy the web app config values
+COMO RODAR
 
-STEP 2: UPDATE FIREBASE CONFIGURATION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Open: src/firebase.js
-2. Replace these placeholders with your Firebase values:
-   - YOUR_API_KEY
-   - YOUR_PROJECT.firebaseapp.com
-   - YOUR_PROJECT_ID
-   - YOUR_PROJECT.appspot.com
-   - YOUR_SENDER_ID
-   - YOUR_APP_ID
+1. Instalar dependencias
+   npm install
 
-STEP 3: ENABLE FIREBASE SERVICES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-In Firebase Console:
+2. Rodar localmente
+   npm run dev
 
-Authentication:
-  → Go to Authentication → Sign-in method
-  → Enable "Email/Password"
-  → Click Save
+3. Gerar build
+   npm run build
 
-Firestore Database:
-  → Go to Firestore Database
-  → Click "Create database"
-  → Select "Start in test mode"
-  → Choose your region
-  → Click Enable
+O build atual passa. O unico aviso conhecido e o bundle JavaScript grande, que deve ser tratado depois com code splitting.
 
-STEP 4: SET FIRESTORE SECURITY RULES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-In Firestore Database → Rules, paste this:
+PROXIMA VALIDACAO DE VALOR
 
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow create: if request.auth.uid == userId;
-      allow read, write: if request.auth.uid == userId;
-      
-      match /students/{document=**} {
-        allow read, write: if request.auth.uid == userId;
-      }
-      
-      match /records/{document=**} {
-        allow read, write: if request.auth.uid == userId;
-      }
-      
-      match /payments/{document=**} {
-        allow read, write: if request.auth.uid == userId;
-      }
-    }
-  }
-}
+1. Entrar pela conta demo ou por uma conta real.
+2. Cadastrar de 5 a 10 alunos.
+3. Criar horarios fixos e algumas aulas avulsas/reposicoes.
+4. Executar uma aula pela aba Aula.
+5. Marcar presencas e faltas pelo Inicio, Agenda, Registro e Alertas.
+6. Registrar pagamentos e pacotes.
+7. Usar Alertas como Central de Acoes:
+   - enviar WhatsApp;
+   - marcar pagamento como pago;
+   - resolver aula sem registro.
+8. Conferir se o Relatorio fecha com a expectativa financeira.
 
-STEP 5: INSTALL DEPENDENCIES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Run in the project folder:
-  npm install
+O QUE MAIS GERA VALOR AGORA
 
-STEP 6: RUN DEVELOPMENT SERVER
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Run:
-  npm run dev
+1. Teste piloto real no celular.
+2. Ajustar qualquer atrito encontrado nos fluxos de aula, cobranca e renovacao.
+3. Corrigir textos com acentos quebrados.
+4. Criar testes automatizados para cobranca, pacotes, agenda e alertas.
+5. Aplicar code splitting para reduzir o bundle.
 
-Open http://localhost:5173 in your browser
+DOCUMENTOS ATUALIZADOS
 
-STEP 7: CREATE YOUR ACCOUNT
-━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Click "Registrar" tab
-2. Enter your email
-3. Enter password (6+ characters)
-4. Click "Registrar"
-5. You're logged in!
-
-STEP 8: ADD YOUR FIRST STUDENT
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Go to "Alunos" tab
-2. Click "+ Novo"
-3. Fill in:
-   - Name: Student name
-   - Price/Class: 70 (or your price)
-   - Schedule: Click time slots (e.g., "Segunda 06:00")
-4. Click "Salvar"
-
-STEP 9: TRACK ATTENDANCE
-━━━━━━━━━━━━━━━━━━━━━━
-1. Go to "Registro" tab
-2. Select a date
-3. Click "Presente" or "Ausente" for each class
-4. Changes save automatically
-
-STEP 10: VIEW FINANCIAL REPORT
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Go to "Relatório" tab
-2. Select month and year
-3. See:
-   - Gross revenue
-   - Gym fee (R$21 per class)
-   - Net income
-   - Per-student breakdown
-
-READY FOR PRODUCTION?
-━━━━━━━━━━━━━━━━━━━
-Build for production:
-  npm run build
-
-This creates a "dist" folder with optimized files.
-
-Deploy to:
-  • Firebase Hosting (recommended)
-  • Vercel (vercel.com)
-  • Netlify (netlify.com)
-  • Any static web host
-
-DOCUMENTATION
-━━━━━━━━━━━━
-Read these for more details:
-  • QUICKSTART.md - 5-minute setup guide
-  • SETUP.md - Complete setup with all options
-  • ARCHITECTURE.md - Technical details
-  • PROJECT_COMPLETE.md - Feature checklist
-
-NEED HELP?
-━━━━━━━━
-Check these:
-1. Firebase Console for errors
-2. Browser Console (F12) for JavaScript errors
-3. Network tab for failed requests
-4. SETUP.md troubleshooting section
-
-FEATURES YOU GET
-━━━━━━━━━━━━━━━━
-✓ Student management (name, price, schedule)
-✓ Calendar/agenda view
-✓ Attendance tracking
-✓ Payment tracking (PIX-ready)
-✓ Financial reports with gym fee calculation
-✓ Mobile-responsive design
-✓ User authentication
-✓ Data backup (Firebase)
-✓ PWA support (install as app)
-✓ Offline capability
-
-Let's go! PersonalPro is ready to help manage your personal training business.
+- PROJECT_COMPLETE.md: retrato atual do produto.
+- DELIVERY_CHECKLIST.md: checklist funcional atualizado.
+- NEXT_STEPS.txt: este roteiro operacional.

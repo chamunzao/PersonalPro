@@ -194,7 +194,7 @@ export default function App() {
         {activeTab === "session" && <SessionTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "attendance" && <AttendanceTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "payments" && <PaymentsTab students={students} records={records} payments={payments} setPayments={setPayments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
-        {activeTab === "alerts" && <AlertsTab students={students} records={records} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
+        {activeTab === "alerts" && <AlertsTab students={students} records={records} setRecords={setRecords} payments={payments} setPayments={setPayments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "communication" && <CommunicationTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
         {activeTab === "reports" && <ReportsTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
         {activeTab === "settings" && <SettingsTab themeKey={themeKey} setThemeKey={setThemeKey} themes={THEMES} />}

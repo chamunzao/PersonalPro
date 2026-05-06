@@ -1,7 +1,87 @@
-import { calculateAlerts } from './alertsCalculations';
+import { useState } from 'react';
+import { useAuth } from '../../AuthContext';
+import { db, doc, setDoc } from '../../firebase';
+import { formatDate, formatDateISO } from '../../lib/dates';
+import { formatCurrency } from '../../lib/money';
+import { updateAttendanceRecord } from '../attendance/attendanceActions';
+import { calculateBillingStatus } from '../billing/billingCalculations';
 import { getClassesForDate } from '../schedule/scheduleCalculations';
-// ==================== ALERTS TAB ====================
-function AlertsTab({ students, records, payments, scheduleOverrides, loadingData, theme }) {
+import { calculateAlerts } from './alertsCalculations';
+
+function openWhatsAppMessage(phone, message) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) {
+    alert('Cadastre o WhatsApp do aluno para usar esta acao.');
+    return;
+  }
+  const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
+  window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+}
+
+function getMonthKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function buildMessage(alert, student, billingStatus) {
+  const firstName = student?.name?.split(' ')[0] || alert.studentName || 'tudo bem';
+  const value = billingStatus?.planValue || student?.packagePrice || student?.pricePerClass || 0;
+
+  if (alert.type === 'payment_overdue') {
+    return `Ola, ${firstName}! Passando para lembrar que seu pagamento esta em atraso. Valor previsto: ${formatCurrency(value)}. Pode me confirmar por aqui quando fizer o envio?`;
+  }
+  if (alert.type === 'payment_due') {
+    return `Ola, ${firstName}! Seu vencimento esta chegando. Valor previsto: ${formatCurrency(value)}. Qualquer duvida me chama por aqui.`;
+  }
+  if (alert.type.includes('credit') || alert.type.includes('package')) {
+    return `Ola, ${firstName}! Seu pacote de aulas esta perto do fim. Vamos alinhar a renovacao para manter sua rotina em dia?`;
+  }
+  if (alert.type === 'inactive_student') {
+    return `Ola, ${firstName}! Senti sua falta nos treinos. Como voce esta? Vamos combinar o melhor dia para retomar?`;
+  }
+  if (alert.type === 'unmarked_class') {
+    return `Ola, ${firstName}! Confirmando sua aula de hoje as ${alert.time}. Foi tudo certo?`;
+  }
+  return `Ola, ${firstName}! Passando para alinharmos seu acompanhamento.`;
+}
+
+function getPaymentClasses(student, billingStatus) {
+  if (billingStatus.contractedClasses > 0) return billingStatus.contractedClasses;
+  return 0;
+}
+
+function ActionButton({ children, onClick, disabled, tone = 'neutral', theme }) {
+  const tones = {
+    primary: { background: theme.primary, color: 'white', border: theme.primary },
+    success: { background: '#ecfdf5', color: '#047857', border: '#a7f3d0' },
+    danger: { background: '#fef2f2', color: '#dc2626', border: '#fecaca' },
+    neutral: { background: 'white', color: '#334155', border: '#dbe3ec' }
+  };
+  const style = tones[tone] || tones.neutral;
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        padding: '8px 10px',
+        background: disabled ? '#f1f5f9' : style.background,
+        color: disabled ? '#94a3b8' : style.color,
+        border: `1px solid ${disabled ? '#e2e8f0' : style.border}`,
+        borderRadius: '8px',
+        fontSize: '12px',
+        fontWeight: '850',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        whiteSpace: 'nowrap'
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function AlertsTab({ students, records, setRecords, payments, setPayments, scheduleOverrides, loadingData, theme }) {
+  const { user } = useAuth();
+  const [savingKey, setSavingKey] = useState(null);
   const alerts = calculateAlerts({
     students,
     records,
@@ -14,33 +94,90 @@ function AlertsTab({ students, records, payments, scheduleOverrides, loadingData
   }, { danger: 0, warning: 0, info: 0 });
 
   const severityStyles = {
-    danger: { background: "#fee2e2", color: "#dc2626", border: "#fecaca" },
-    warning: { background: "#fef3c7", color: "#d97706", border: "#fde68a" },
-    info: { background: "#dbeafe", color: "#2563eb", border: "#bfdbfe" }
+    danger: { background: '#fee2e2', color: '#dc2626', border: '#fecaca', label: 'Critico' },
+    warning: { background: '#fef3c7', color: '#d97706', border: '#fde68a', label: 'Atencao' },
+    info: { background: '#dbeafe', color: '#2563eb', border: '#bfdbfe', label: 'Hoje' }
   };
 
+  async function savePaymentFromAlert(alert, student, billingStatus) {
+    if (!user || !student) return;
+    const monthKey = getMonthKey();
+    const paymentKey = `${monthKey}_${student.id}`;
+    const amountPaid = Number(billingStatus.planValue || student.packagePrice || 0);
+    const paymentData = {
+      paid: true,
+      date: formatDate(new Date()),
+      dateISO: formatDateISO(new Date()),
+      month: monthKey,
+      studentId: student.id,
+      amountPaid,
+      classesPaid: getPaymentClasses(student, billingStatus),
+      classUnitPrice: Number(student.pricePerClass) || 0,
+      discount: 0,
+      surcharge: 0,
+      note: `Registrado pela Central de Acoes: ${alert.title}`
+    };
+
+    setSavingKey(`${alert.id}-payment`);
+    try {
+      await setDoc(doc(db, `users/${user.uid}/payments/${paymentKey}`), paymentData, { merge: true });
+      setPayments(prev => {
+        const existing = prev.findIndex(payment => payment.key === paymentKey);
+        const nextPayment = { key: paymentKey, ...paymentData };
+        if (existing >= 0) {
+          const next = [...prev];
+          next[existing] = { ...next[existing], ...nextPayment };
+          return next;
+        }
+        return [...prev, nextPayment];
+      });
+    } catch (error) {
+      console.error('Error saving payment from alert:', error);
+      alert('Erro ao registrar pagamento');
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function markAttendance(alert, status) {
+    if (!user || !alert.classKey) return;
+    setSavingKey(`${alert.id}-${status}`);
+    try {
+      await updateAttendanceRecord({ user, classKey: alert.classKey, status, setRecords });
+    } catch (error) {
+      console.error('Error marking attendance from alert:', error);
+      alert('Erro ao marcar aula');
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
   return (
-    <div style={{ padding: "16px" }}>
-      <h2 style={{ fontSize: "18px", fontWeight: "600", margin: "0 0 16px 0", color: "#1f2937" }}>Alertas</h2>
+    <div style={{ padding: '16px' }}>
+      <div className="app-card" style={{ padding: '16px', marginBottom: '16px' }}>
+        <p style={{ margin: '0 0 5px', color: theme.primary, fontSize: '12px', fontWeight: '900' }}>CENTRAL DE ACOES</p>
+        <h2 className="app-page-title">Alertas</h2>
+        <p className="app-page-kicker">Resolva cobrancas, pacotes e registros do dia sem sair da tela.</p>
+      </div>
 
-      {loadingData && <p style={{ color: "#9ca3af", fontSize: "14px", textAlign: "center" }}>Carregando...</p>}
+      {loadingData && <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center' }}>Carregando...</p>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "16px" }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px', marginBottom: '16px' }}>
         {[
-          { key: "danger", label: "Críticos" },
-          { key: "warning", label: "Atenção" },
-          { key: "info", label: "Hoje" }
+          { key: 'danger', label: 'Criticos' },
+          { key: 'warning', label: 'Atencao' },
+          { key: 'info', label: 'Hoje' }
         ].map(item => {
           const style = severityStyles[item.key];
           return (
             <div key={item.key} style={{
               background: style.background,
               border: `1px solid ${style.border}`,
-              borderRadius: "8px",
-              padding: "12px"
+              borderRadius: '8px',
+              padding: '12px'
             }}>
-              <p style={{ fontSize: "11px", color: style.color, margin: "0 0 6px 0", fontWeight: "700" }}>{item.label}</p>
-              <p style={{ fontSize: "24px", color: style.color, margin: "0", fontWeight: "800" }}>{counts[item.key] || 0}</p>
+              <p style={{ fontSize: '11px', color: style.color, margin: '0 0 6px 0', fontWeight: '700' }}>{item.label}</p>
+              <p style={{ fontSize: '24px', color: style.color, margin: '0', fontWeight: '800' }}>{counts[item.key] || 0}</p>
             </div>
           );
         })}
@@ -48,44 +185,96 @@ function AlertsTab({ students, records, payments, scheduleOverrides, loadingData
 
       {alerts.length === 0 ? (
         <div style={{
-          textAlign: "center",
-          padding: "40px 20px",
-          background: "white",
-          borderRadius: "8px",
-          border: "1px solid #e5e7eb",
-          color: "#9ca3af"
+          textAlign: 'center',
+          padding: '40px 20px',
+          background: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb',
+          color: '#9ca3af'
         }}>
-          <p style={{ fontSize: "14px", margin: "0", fontWeight: "600" }}>Nenhum alerta pendente</p>
-          <p style={{ fontSize: "12px", margin: "6px 0 0 0" }}>Pagamentos, pacotes e registros estão em ordem.</p>
+          <p style={{ fontSize: '14px', margin: '0', fontWeight: '600' }}>Nenhum alerta pendente</p>
+          <p style={{ fontSize: '12px', margin: '6px 0 0 0' }}>Pagamentos, pacotes e registros estao em ordem.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {alerts.map(alert => {
             const style = severityStyles[alert.severity];
+            const student = students.find(item => item.id === alert.studentId);
+            const billingStatus = student ? calculateBillingStatus(student, records) : null;
+            const hasPhone = !!String(student?.phone || '').replace(/\D/g, '');
+            const canSavePayment = ['payment_overdue', 'payment_due'].includes(alert.type) && student;
+            const canMarkAttendance = alert.type === 'unmarked_class' && alert.classKey;
+            const isSavingPayment = savingKey === `${alert.id}-payment`;
+            const isSavingPresent = savingKey === `${alert.id}-present`;
+            const isSavingAbsent = savingKey === `${alert.id}-absent`;
+
             return (
               <div key={alert.id} style={{
-                background: "white",
+                background: 'white',
                 border: `1px solid ${style.border}`,
                 borderLeft: `4px solid ${style.color}`,
-                borderRadius: "8px",
-                padding: "12px"
+                borderRadius: '8px',
+                padding: '12px'
               }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start" }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'flex-start', marginBottom: '10px' }}>
                   <div>
-                    <p style={{ fontSize: "14px", fontWeight: "700", color: "#1f2937", margin: "0 0 4px 0" }}>{alert.title}</p>
-                    <p style={{ fontSize: "12px", color: "#4b5563", margin: "0" }}>{alert.message}</p>
+                    <p style={{ fontSize: '14px', fontWeight: '800', color: '#1f2937', margin: '0 0 4px 0' }}>{alert.title}</p>
+                    <p style={{ fontSize: '12px', color: '#4b5563', margin: '0', lineHeight: 1.4 }}>{alert.message}</p>
                   </div>
                   <span style={{
                     flexShrink: 0,
                     background: style.background,
                     color: style.color,
-                    borderRadius: "4px",
-                    padding: "4px 8px",
-                    fontSize: "11px",
-                    fontWeight: "700"
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    fontSize: '11px',
+                    fontWeight: '700'
                   }}>
-                    {alert.severity === "danger" ? "Crítico" : alert.severity === "warning" ? "Atenção" : "Hoje"}
+                    {style.label}
                   </span>
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
+                  <ActionButton
+                    theme={theme}
+                    tone="primary"
+                    disabled={!hasPhone}
+                    onClick={() => openWhatsAppMessage(student?.phone, buildMessage(alert, student, billingStatus))}
+                  >
+                    WhatsApp
+                  </ActionButton>
+
+                  {canSavePayment && (
+                    <ActionButton
+                      theme={theme}
+                      tone="success"
+                      disabled={isSavingPayment}
+                      onClick={() => savePaymentFromAlert(alert, student, billingStatus)}
+                    >
+                      {isSavingPayment ? 'Salvando...' : 'Marcar pago'}
+                    </ActionButton>
+                  )}
+
+                  {canMarkAttendance && (
+                    <>
+                      <ActionButton
+                        theme={theme}
+                        tone="success"
+                        disabled={isSavingPresent}
+                        onClick={() => markAttendance(alert, 'present')}
+                      >
+                        Presente
+                      </ActionButton>
+                      <ActionButton
+                        theme={theme}
+                        tone="danger"
+                        disabled={isSavingAbsent}
+                        onClick={() => markAttendance(alert, 'absent')}
+                      >
+                        Falta
+                      </ActionButton>
+                    </>
+                  )}
                 </div>
               </div>
             );
