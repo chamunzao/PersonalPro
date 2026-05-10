@@ -111,7 +111,7 @@ export function DashboardTab({ students, records, setRecords, payments, schedule
                 const statusStyle = getAttendanceStatusStyle(cls.attendance, theme);
                 const isSaving = savingAttendanceKey === cls.key;
                 return (
-                  <div key={cls.key} style={{
+                  <div key={cls.key} className="dashboard-today-class-card" style={{
                     padding: "12px",
                     background: "#1E2035",
                     borderRadius: "12px",

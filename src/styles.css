@@ -624,6 +624,11 @@ body .student-list-card {
   border-radius: 12px !important;
 }
 
+body .dashboard-today-class-card {
+  background: #2E3154 !important;
+  border-color: #46507D !important;
+}
+
 body .student-list-card:hover {
   border-color: #4A9EFF !important;
   transform: translateY(-1px);
@@ -807,8 +812,8 @@ body .payments-list {
 }
 
 body .payment-student-card > div:first-child {
-  background: #1E2035;
-  border: 0.5px solid #3D4270;
+  background: #2E3154;
+  border: 0.5px solid #46507D;
   border-radius: 12px;
   padding: 12px;
 }
@@ -1833,8 +1838,8 @@ body .reports-revenue-card p:nth-child(2) {
 }
 
 body .reports-student-row {
-  background: #1E2035 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #2E3154 !important;
+  border: 0.5px solid #46507D !important;
   border-left: 4px solid #4A9EFF !important;
   border-radius: 12px !important;
   padding: 12px !important;
