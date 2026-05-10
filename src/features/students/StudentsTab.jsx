@@ -1756,6 +1756,11 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
     .map(part => part[0])
     .join("")
     .toUpperCase();
+  const getBillingStatusClassName = (billingStatus) => {
+    if (billingStatus.status === "overdue" || billingStatus.status === "depleted") return "status-atrasado";
+    if (billingStatus.status === "due_soon" || billingStatus.status === "low_classes") return "status-pendente";
+    return "status-pago";
+  };
 
   return (
     <div className="students-page">
@@ -1763,45 +1768,46 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
         <section className="app-card students-header-panel">
           <div className="students-header-row">
             <div>
-              <p style={{ margin: "0 0 5px", color: theme.primary, fontSize: "12px", fontWeight: "900" }}>CARTEIRA DE ALUNOS</p>
+              <p style={{ margin: "0 0 6px", color: "#4A9EFF", fontSize: "12px", fontWeight: "700" }}>CARTEIRA DE ALUNOS</p>
               <h2 className="app-page-title">Alunos</h2>
               <p className="app-page-kicker">Organize agenda, cobranca e historico de treino de cada pessoa.</p>
             </div>
         <button
           onClick={() => setShowForm(!showForm)}
           style={{
-            padding: "10px 13px",
-            background: theme.primary,
-            color: "white",
+            minHeight: "44px",
+            padding: "10px 14px",
+            background: "#4A9EFF",
+            color: "#FFFFFF",
             border: "none",
-            borderRadius: "9px",
+            borderRadius: "14px",
             fontSize: "13px",
-            fontWeight: "900",
+            fontWeight: "500",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            boxShadow: "0 10px 24px rgba(13, 148, 136, 0.16)",
+            boxShadow: "none",
             flexShrink: 0
           }}
-          onMouseEnter={(e) => e.target.style.background = theme.dark}
-          onMouseLeave={(e) => e.target.style.background = theme.primary}
+          onMouseEnter={(e) => e.target.style.background = "#2f8ef0"}
+          onMouseLeave={(e) => e.target.style.background = "#4A9EFF"}
         >
           <IconPlus /> Novo
         </button>
           </div>
           <div className="students-summary-grid">
             <div className="students-summary-item">
-              <p style={{ margin: 0, color: theme.primary, fontSize: "24px", fontWeight: "900", fontVariantNumeric: "tabular-nums" }}>{students.length}</p>
-              <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "12px", fontWeight: "800" }}>alunos cadastrados</p>
+              <p style={{ margin: 0, color: "#4A9EFF", fontSize: "24px", fontWeight: "700", fontVariantNumeric: "tabular-nums" }}>{students.length}</p>
+              <p style={{ margin: "4px 0 0", color: "#9CA3AF", fontSize: "11px", fontWeight: "500" }}>alunos cadastrados</p>
             </div>
             <div className="students-summary-item">
-              <p style={{ margin: 0, color: "#0f766e", fontSize: "24px", fontWeight: "900", fontVariantNumeric: "tabular-nums" }}>{packageStudents}</p>
-              <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "12px", fontWeight: "800" }}>com plano/pacote</p>
+              <p style={{ margin: 0, color: "#10B981", fontSize: "24px", fontWeight: "700", fontVariantNumeric: "tabular-nums" }}>{packageStudents}</p>
+              <p style={{ margin: "4px 0 0", color: "#9CA3AF", fontSize: "11px", fontWeight: "500" }}>com plano/pacote</p>
             </div>
             <div className="students-summary-item">
-              <p style={{ margin: 0, color: overdueStudents ? "#dc2626" : "#059669", fontSize: "24px", fontWeight: "900", fontVariantNumeric: "tabular-nums" }}>{overdueStudents}</p>
-              <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "12px", fontWeight: "800" }}>vencidos</p>
+              <p style={{ margin: 0, color: overdueStudents ? "#EF4444" : "#10B981", fontSize: "24px", fontWeight: "700", fontVariantNumeric: "tabular-nums" }}>{overdueStudents}</p>
+              <p style={{ margin: "4px 0 0", color: "#9CA3AF", fontSize: "11px", fontWeight: "500" }}>vencidos</p>
             </div>
           </div>
         </section>
@@ -1827,7 +1833,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
       )}
 
       {showForm && (
-        <div style={{
+        <div className="student-form-panel" style={{
           background: "#f9fafb",
           padding: "16px",
           borderRadius: "8px",
@@ -2226,111 +2232,56 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
       {!loadingData && !selectedStudentId && (
         <div className="students-list">
           {visibleStudents.length === 0 && (
-            <div className="app-card" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "32px 16px", color: "#64748b" }}>
-              <p style={{ fontSize: "14px", margin: "0 0 4px", fontWeight: "900", color: "#334155" }}>Nenhum aluno encontrado</p>
+            <div className="app-card" style={{ textAlign: "center", padding: "32px 16px", color: "#9CA3AF" }}>
+              <p style={{ fontSize: "14px", margin: "0 0 4px", fontWeight: "700", color: "#FFFFFF" }}>Nenhum aluno encontrado</p>
               <p style={{ fontSize: "12px", margin: 0 }}>Tente buscar por outro nome, telefone ou e-mail.</p>
             </div>
           )}
           {visibleStudents.map(student => {
             const billingStatus = calculateBillingStatus(student, records);
-            const billingColors = getBillingStatusColors(billingStatus);
             return (
               <article key={student.id} onClick={() => setSelectedStudentId(student.id)} className="student-list-card">
                 <div className="student-card-top">
-                  <div style={{ display: "flex", gap: "11px", minWidth: 0 }}>
+                  <div style={{ display: "flex", gap: "11px", minWidth: 0, flex: 1 }}>
                     <div className="student-avatar">{getInitials(student.name)}</div>
-                    <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: "14px", fontWeight: "600", margin: "0 0 4px 0", color: "#1f2937" }}>{student.name}</p>
-                <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 4px 0" }}>
-                  {billingStatus.billingTypeLabel} · {formatCurrency(student.pricePerClass)}/aula
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                <p style={{ fontSize: "13px", fontWeight: "500", margin: "0 0 4px 0", color: "#FFFFFF" }}>{student.name}</p>
+                <p style={{ fontSize: "11px", color: "#9CA3AF", margin: "0 0 8px 0" }}>
+                  {billingStatus.billingTypeLabel} - {formatCurrency(student.pricePerClass)}/aula
                 </p>
                 {billingStatus.billingType !== BILLING_TYPES.perClass && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "6px" }}>
-                    <span style={{
-                      padding: "3px 7px",
-                      background: billingColors.background,
-                      color: billingColors.color,
-                      borderRadius: "4px",
-                      fontSize: "11px",
-                      fontWeight: "700"
-                    }}>
+                  <div className="student-badge-row">
+                    <span className={getBillingStatusClassName(billingStatus)}>
                       {getBillingStatusLabel(billingStatus)}
                     </span>
-                    {billingStatus.contractedClasses > 0 && <span style={{
-                      padding: "3px 7px",
-                      background: "#eef2ff",
-                      color: "#4338ca",
-                      borderRadius: "4px",
-                      fontSize: "11px",
-                      fontWeight: "700"
-                    }}>
+                    {billingStatus.contractedClasses > 0 && <span className="student-pill student-pill-info">
                       {billingStatus.usedClasses}/{billingStatus.contractedClasses} usadas
                     </span>}
-                    {billingStatus.contractedClasses > 0 && <span style={{
-                      padding: "3px 7px",
-                      background: "#f3f4f6",
-                      color: "#4b5563",
-                      borderRadius: "4px",
-                      fontSize: "11px",
-                      fontWeight: "700"
-                    }}>
+                    {billingStatus.contractedClasses > 0 && <span className="student-pill student-pill-muted">
                       {billingStatus.remainingClasses} restantes
                     </span>}
-                    {billingStatus.billingType === BILLING_TYPES.monthlyPackage && billingStatus.contractedClasses === 0 && <span style={{
-                      padding: "3px 7px",
-                      background: "#eef2ff",
-                      color: "#4338ca",
-                      borderRadius: "4px",
-                      fontSize: "11px",
-                      fontWeight: "700"
-                    }}>
+                    {billingStatus.billingType === BILLING_TYPES.monthlyPackage && billingStatus.contractedClasses === 0 && <span className="student-pill student-pill-info">
                       Aulas calculadas no mes
                     </span>}
                   </div>
                 )}
-                <div style={{ display: "flex", gap: "8px", fontSize: "11px", color: "#6b7280" }}>
-                  {student.phone && <span>📱 {student.phone}</span>}
-                  {student.email && <span>✉️ {student.email}</span>}
-                </div>
-                {student.notes && (
-                  <p style={{ fontSize: "11px", color: "#6b7280", margin: "4px 0 0 0", fontStyle: "italic" }}>
-                    {student.notes}
-                  </p>
+                {billingStatus.billingType === BILLING_TYPES.perClass && (
+                  <div className="student-badge-row">
+                    <span className="status-pago">Em dia</span>
+                  </div>
                 )}
                     </div>
                   </div>
-              <div style={{ display: "flex", gap: "6px" }}>
+              <div className="student-card-actions">
                 <button
                   onClick={(e) => { e.stopPropagation(); startEdit(student); }}
-                  style={{
-                    padding: "6px 10px",
-                    background: "#f3f4f6",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    fontSize: "12px",
-                    color: "#6b7280"
-                  }}
+                  className="student-icon-button"
                 >
                   <IconEdit />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); deleteStudent(student.id); }}
-                  style={{
-                    padding: "6px 10px",
-                    background: "#fee2e2",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    fontSize: "12px",
-                    color: "#dc2626"
-                  }}
+                  className="student-icon-button student-icon-danger"
                 >
                   <IconTrash />
                 </button>

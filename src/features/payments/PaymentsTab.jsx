@@ -113,6 +113,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
     method: 'Pix',
     note: ''
   });
+  const [showPackageForm, setShowPackageForm] = useState(false);
 
   const monthKey = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
 
@@ -315,6 +316,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
   }
 
   function useMonthlyPackageSuggestion(student) {
+    setShowPackageForm(true);
     const monthlyClasses = countMonthlyClassesForStudent({
       studentId: student.id,
       students,
@@ -338,18 +340,61 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
     }));
   }
 
-  return (
-    <div style={{ padding: '16px' }}>
-      <h2 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 16px 0', color: '#1f2937' }}>Controle de Pagamentos</h2>
+  const monthPayments = payments.filter(payment => payment.month === monthKey && payment.paid);
+  const monthReceived = monthPayments.reduce((sum, payment) => sum + (Number(payment.amountPaid) || 0), 0);
+  const paidStudentCount = new Set(monthPayments.map(getPaymentStudentId)).size;
+  const pendingStudentCount = Math.max(students.length - paidStudentCount, 0);
 
-      <div style={{
+  return (
+    <div className="payments-page">
+      <section className="app-card payments-hero-panel">
+        <p className="dashboard-kicker">CONTROLE FINANCEIRO</p>
+        <h2 className="payments-page-title">Pagamentos</h2>
+        <p className="payments-page-kicker">Veja recebidos, pendencias e registre pacotes sem sair do fluxo do mes.</p>
+        <div className="payments-hero-summary">
+          <div>
+            <p>Recebido no mes</p>
+            <strong>{formatCurrency(monthReceived)}</strong>
+          </div>
+          <span>{paidStudentCount}/{students.length} alunos</span>
+        </div>
+      </section>
+
+      <div className="payments-metrics-grid">
+        <div className="app-card payments-metric-card">
+          <p>Recebidos</p>
+          <strong>{paidStudentCount}</strong>
+          <span>alunos pagos</span>
+        </div>
+        <div className="app-card payments-metric-card">
+          <p>Pendentes</p>
+          <strong style={{ color: pendingStudentCount ? '#EF4444' : '#10B981' }}>{pendingStudentCount}</strong>
+          <span>para conferir</span>
+        </div>
+      </div>
+
+      <div className="payments-package-panel" style={{
         background: 'white',
         border: `1px solid ${theme.light}`,
         borderRadius: '8px',
         padding: '14px',
         marginBottom: '16px'
       }}>
-        <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#1f2937', margin: '0 0 10px 0' }}>Registrar pacote adiantado</h3>
+        <div className="payments-package-header">
+          <div>
+            <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#1f2937', margin: '0 0 4px 0' }}>Registrar pacote adiantado</h3>
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>Use quando receber mensalidade ou pacote fora da lista.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowPackageForm(prev => !prev)}
+            className="payments-package-toggle"
+          >
+            {showPackageForm ? 'Fechar' : 'Abrir'}
+          </button>
+        </div>
+        {showPackageForm && (
+        <>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
           {[
             { id: 'month', label: 'Pacote do mes' },
@@ -357,6 +402,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
           ].map(item => (
             <button
               key={item.id}
+              className={`payments-tab-button ${packageForm.packageType === item.id ? 'payments-tab-button-active' : ''}`}
               onClick={() => updatePackageForm({ packageType: item.id, note: item.id === 'custom' ? '' : packageForm.note })}
               style={{
                 padding: '9px',
@@ -481,9 +527,11 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
         >
           {savingKey === 'advance-package' ? 'Registrando...' : packageForm.packageType === 'month' ? 'Registrar pacote do mes' : 'Registrar pacote e criar creditos'}
         </button>
+        </>
+        )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+      <div className="payments-filter-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
         <div>
           <label style={{ fontSize: '13px', fontWeight: '600', color: '#4b5563', display: 'block', marginBottom: '6px' }}>Mes</label>
           <select
@@ -525,7 +573,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
       {loadingData && <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center' }}>Carregando...</p>}
 
       {students.length === 0 ? (
-        <div style={{
+        <div className="app-card payments-empty" style={{
           textAlign: 'center',
           padding: '40px 20px',
           background: '#f9fafb',
@@ -535,7 +583,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
           <p style={{ fontSize: '14px', margin: '0' }}>Nenhum aluno cadastrado</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="payments-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {students.map(student => {
             const paymentKey = `${monthKey}_${student.id}`;
             const payment = payments.find(p => p.key === paymentKey);
@@ -563,7 +611,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
               : monthlyClasses * (Number(student.pricePerClass) || 0);
 
             return (
-              <div key={student.id} style={{
+              <div key={student.id} className="payment-student-card" style={{
                 background: 'white',
                 padding: '12px',
                 borderRadius: '8px',
@@ -695,6 +743,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                     <button
                       onClick={() => openPaymentForm(student, billingStatus, payment)}
                       disabled={isSaving}
+                      className="payment-action payment-action-primary"
                       style={{
                         padding: '8px 12px',
                         background: isPaid ? '#d1fae5' : theme.primary,
@@ -713,6 +762,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                       <button
                         onClick={() => payment ? deletePayment(student.id) : deletePaymentByKey(displayPayment.key)}
                         disabled={isSaving}
+                        className="payment-action payment-action-danger"
                         style={{
                           padding: '8px 12px',
                           background: '#fee2e2',
@@ -732,7 +782,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                 </div>
 
                 {isMonthlyPackageStudent && (
-                  <div style={{
+                  <div className="payment-month-package" style={{
                     marginTop: '10px',
                     padding: '10px',
                     background: isPaid ? '#ecfdf5' : '#fff7ed',
@@ -773,7 +823,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                 )}
 
                 {isEditing && (
-                  <div style={{
+                  <div className="payment-edit-panel" style={{
                     marginTop: '12px',
                     padding: '12px',
                     background: '#f9fafb',
@@ -787,6 +837,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                       <button
                         onClick={() => fillUnpaidClasses(student, paymentKey)}
                         type="button"
+                        className="payment-secondary-action"
                         style={{
                           padding: '8px 10px',
                           background: theme.light,
@@ -930,7 +981,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                 )}
 
                 {history.length > 0 && (
-                  <div style={{ marginTop: '10px', borderTop: '1px solid #f3f4f6', paddingTop: '8px' }}>
+                  <div className="payment-history-row" style={{ marginTop: '10px', borderTop: '1px solid #f3f4f6', paddingTop: '8px' }}>
                     <p style={{ fontSize: '11px', fontWeight: '700', color: '#9ca3af', margin: '0 0 6px 0' }}>Historico recente</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       {history.map(item => (

@@ -15,14 +15,14 @@ import { SessionTab } from './features/session/SessionTab';
 
 // ==================== THEME COLORS ====================
 const THEMES = {
-  purple: { name: "Roxo", primary: "#7c3aed", dark: "#6d28d9", light: "#ede9fe", medium: "#c4b5fd", soft: "#a78bfa", gradient: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)" },
-  blue: { name: "Azul", primary: "#2563eb", dark: "#1d4ed8", light: "#dbeafe", medium: "#93c5fd", soft: "#60a5fa", gradient: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)" },
-  pink: { name: "Rosa", primary: "#db2777", dark: "#be185d", light: "#fce7f3", medium: "#f9a8d4", soft: "#f472b6", gradient: "linear-gradient(135deg, #db2777 0%, #be185d 100%)" },
-  green: { name: "Verde", primary: "#059669", dark: "#047857", light: "#d1fae5", medium: "#6ee7b7", soft: "#34d399", gradient: "linear-gradient(135deg, #059669 0%, #047857 100%)" },
-  orange: { name: "Laranja", primary: "#ea580c", dark: "#c2410c", light: "#ffedd5", medium: "#fdba74", soft: "#fb923c", gradient: "linear-gradient(135deg, #ea580c 0%, #c2410c 100%)" },
-  red: { name: "Vermelho", primary: "#dc2626", dark: "#b91c1c", light: "#fee2e2", medium: "#fca5a5", soft: "#f87171", gradient: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)" },
-  teal: { name: "Turquesa", primary: "#0d9488", dark: "#0f766e", light: "#ccfbf1", medium: "#5eead4", soft: "#2dd4bf", gradient: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)" },
-  slate: { name: "Cinza", primary: "#475569", dark: "#334155", light: "#f1f5f9", medium: "#94a3b8", soft: "#64748b", gradient: "linear-gradient(135deg, #475569 0%, #334155 100%)" },
+  purple: { name: "Roxo", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
+  blue: { name: "Azul", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
+  pink: { name: "Rosa", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
+  green: { name: "Verde", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
+  orange: { name: "Laranja", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
+  red: { name: "Vermelho", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
+  teal: { name: "Turquesa", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
+  slate: { name: "Cinza", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
 };
 
 const ThemeContext = React.createContext(THEMES.purple);
@@ -187,7 +187,7 @@ export default function App() {
       </div>
 
       {/* Content */}
-      <main className="app-main">
+      <main className={`app-main ${activeTab === "session" ? "app-main-session" : ""}`}>
         {activeTab === "dashboard" && <DashboardTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "students" && <StudentsTab students={students} setStudents={setStudents} records={records} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "agenda" && <AgendaTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} theme={theme} />}

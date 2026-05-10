@@ -60,6 +60,7 @@ function ActionButton({ children, onClick, disabled, tone = 'neutral', theme }) 
 
   return (
     <button
+      className={`alert-action-button alert-action-${tone}`}
       onClick={onClick}
       disabled={disabled}
       style={{
@@ -153,8 +154,8 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
   }
 
   return (
-    <div style={{ padding: '16px' }}>
-      <div className="app-card" style={{ padding: '16px', marginBottom: '16px' }}>
+    <div className="alerts-page">
+      <div className="app-card alerts-hero-panel" style={{ padding: '16px', marginBottom: '16px' }}>
         <p style={{ margin: '0 0 5px', color: theme.primary, fontSize: '12px', fontWeight: '900' }}>CENTRAL DE ACOES</p>
         <h2 className="app-page-title">Alertas</h2>
         <p className="app-page-kicker">Resolva cobrancas, pacotes e registros do dia sem sair da tela.</p>
@@ -162,7 +163,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
 
       {loadingData && <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center' }}>Carregando...</p>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px', marginBottom: '16px' }}>
+      <div className="alerts-metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px', marginBottom: '16px' }}>
         {[
           { key: 'danger', label: 'Criticos' },
           { key: 'warning', label: 'Atencao' },
@@ -170,7 +171,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
         ].map(item => {
           const style = severityStyles[item.key];
           return (
-            <div key={item.key} style={{
+            <div key={item.key} className={`alerts-metric-card alerts-metric-${item.key}`} style={{
               background: style.background,
               border: `1px solid ${style.border}`,
               borderRadius: '8px',
@@ -184,7 +185,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
       </div>
 
       {alerts.length === 0 ? (
-        <div style={{
+        <div className="app-card alerts-empty" style={{
           textAlign: 'center',
           padding: '40px 20px',
           background: 'white',
@@ -196,7 +197,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
           <p style={{ fontSize: '12px', margin: '6px 0 0 0' }}>Pagamentos, pacotes e registros estao em ordem.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div className="alerts-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {alerts.map(alert => {
             const style = severityStyles[alert.severity];
             const student = students.find(item => item.id === alert.studentId);
@@ -209,7 +210,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
             const isSavingAbsent = savingKey === `${alert.id}-absent`;
 
             return (
-              <div key={alert.id} style={{
+              <div key={alert.id} className={`alert-card alert-card-${alert.severity}`} style={{
                 background: 'white',
                 border: `1px solid ${style.border}`,
                 borderLeft: `4px solid ${style.color}`,
@@ -221,7 +222,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
                     <p style={{ fontSize: '14px', fontWeight: '800', color: '#1f2937', margin: '0 0 4px 0' }}>{alert.title}</p>
                     <p style={{ fontSize: '12px', color: '#4b5563', margin: '0', lineHeight: 1.4 }}>{alert.message}</p>
                   </div>
-                  <span style={{
+                  <span className="alert-severity-pill" style={{
                     flexShrink: 0,
                     background: style.background,
                     color: style.color,

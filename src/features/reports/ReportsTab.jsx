@@ -11,10 +11,21 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
   const report = calculateMonthlyReport({ students, records, payments, monthKey });
 
   return (
-    <div style={{ padding: "16px" }}>
-      <h2 style={{ fontSize: "18px", fontWeight: "600", margin: "0 0 16px 0", color: "#1f2937" }}>Relatório</h2>
+    <div className="reports-page">
+      <section className="app-card reports-hero-panel">
+        <p className="dashboard-kicker">VISAO DO MES</p>
+        <h2 className="reports-page-title">Relatorio</h2>
+        <p className="reports-page-kicker">Acompanhe aulas, faltas, receita e pagamentos por aluno.</p>
+        <div className="reports-hero-summary">
+          <div>
+            <p>Receita liquida</p>
+            <strong>{formatCurrency(report.netRevenue)}</strong>
+          </div>
+          <span>{report.paymentRate.toFixed(0)}% pagamento</span>
+        </div>
+      </section>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
+      <div className="reports-filter-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
         <div>
           <label style={{ fontSize: "13px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "6px" }}>Mês</label>
           <select
@@ -55,8 +66,8 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
 
       {loadingData && <p style={{ color: "#9ca3af", fontSize: "14px", textAlign: "center" }}>Carregando...</p>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
-        <div style={{
+      <div className="reports-metrics-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
+        <div className="reports-metric-card" style={{
           background: "white",
           padding: "16px",
           borderRadius: "8px",
@@ -67,7 +78,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
           <p style={{ fontSize: "11px", color: "#d1d5db", margin: "6px 0 0 0" }}>{report.presentClasses} presentes ({report.attendanceRate.toFixed(0)}%)</p>
         </div>
 
-        <div style={{
+        <div className="reports-metric-card reports-metric-danger" style={{
           background: "white",
           padding: "16px",
           borderRadius: "8px",
@@ -78,7 +89,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
           <p style={{ fontSize: "11px", color: "#d1d5db", margin: "6px 0 0 0" }}>{report.absentClasses} faltas</p>
         </div>
 
-        <div style={{
+        <div className="reports-metric-card" style={{
           background: "white",
           padding: "16px",
           borderRadius: "8px",
@@ -89,7 +100,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
           <p style={{ fontSize: "11px", color: "#d1d5db", margin: "6px 0 0 0" }}>{report.revenuePercentage.toFixed(0)}% após taxa da academia</p>
         </div>
 
-        <div style={{
+        <div className="reports-metric-card" style={{
           background: "white",
           padding: "16px",
           borderRadius: "8px",
@@ -101,7 +112,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
         </div>
       </div>
 
-      <div style={{
+      <div className="reports-revenue-card" style={{
         background: "white",
         padding: "16px",
         borderRadius: "8px",
@@ -121,7 +132,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
         </div>
       </div>
 
-      <div style={{
+      <div className="reports-detail-card" style={{
         background: "white",
         padding: "16px",
         borderRadius: "8px",
@@ -131,7 +142,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {report.studentRows.map(({ student, totalClasses, presentClasses, absentClasses, grossRevenue, gymFees, netRevenue, paid }) => {
             return (
-              <div key={student.id} style={{
+              <div key={student.id} className={`reports-student-row ${paid ? "reports-student-paid" : "reports-student-pending"}`} style={{
                 padding: "10px",
                 background: "#f9fafb",
                 borderRadius: "6px",
@@ -150,7 +161,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
                     {formatCurrency(grossRevenue)} bruto · {formatCurrency(gymFees)} taxa · {formatCurrency(netRevenue)} líquido
                   </p>
                 </div>
-                <span style={{
+                <span className={`reports-payment-pill ${paid ? "reports-paid" : "reports-pending"}`} style={{
                   padding: "4px 8px",
                   background: paid ? "#d1fae5" : "#fee2e2",
                   color: paid ? "#059669" : "#dc2626",

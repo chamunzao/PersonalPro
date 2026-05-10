@@ -10,8 +10,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png'],
       workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
         navigateFallback: '/PersonalPro/index.html',
-        runtimeCaching: []
+        runtimeCaching: [],
+        skipWaiting: true
       },
       manifest: {
         name: 'PersonalPro',

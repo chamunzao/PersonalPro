@@ -27,6 +27,7 @@ function IconCheck() {
 }
 
 const EMPTY_EXERCISE = { name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" };
+const MAX_VISIBLE_SETS = 8;
 
 function getClassKey(dateBR, studentId, time) {
   return `${dateBR}_${studentId}_${time}`;
@@ -49,11 +50,45 @@ function getActiveWorkout(workoutPlans) {
 
 function hasSessionChanges(draft) {
   if (draft?.sessionNote?.trim()) return true;
+  if (hasExerciseLogChanges(draft)) return true;
   return Object.values(draft?.exerciseNotes || {}).some(note => String(note || "").trim());
+}
+
+function getSetCount(sets) {
+  const parsed = parseInt(String(sets || "").match(/\d+/)?.[0] || "0", 10);
+  return Math.min(Math.max(parsed || 1, 1), MAX_VISIBLE_SETS);
+}
+
+function hasExerciseLogChanges(draft) {
+  return Object.values(draft?.exerciseLogs || {}).some(exerciseLog => (
+    Object.values(exerciseLog || {}).some(setLog => (
+      String(setLog?.repsDone || "").trim() || String(setLog?.weightDone || "").trim()
+    ))
+  ));
+}
+
+function formatExerciseSessionChange(note, exerciseLog) {
+  const setLines = Object.entries(exerciseLog || {})
+    .filter(([, value]) => String(value?.repsDone || "").trim() || String(value?.weightDone || "").trim())
+    .map(([setIndex, value]) => {
+      const parts = [];
+      if (String(value.repsDone || "").trim()) parts.push(`${value.repsDone} reps`);
+      if (String(value.weightDone || "").trim()) parts.push(value.weightDone);
+      return `S${Number(setIndex) + 1}: ${parts.join(", ")}`;
+    });
+  const freeNote = String(note || "").trim();
+  return [...setLines, freeNote].filter(Boolean).join("\n");
+}
+
+function countCompletedSets(exerciseLog) {
+  return Object.values(exerciseLog || {}).filter(setLog => (
+    String(setLog?.repsDone || "").trim() || String(setLog?.weightDone || "").trim()
+  )).length;
 }
 
 function buildWorkoutVersionFromSession(activeWorkout, draft, selectedDateBR) {
   const exerciseNotes = draft?.exerciseNotes || {};
+  const exerciseLogs = draft?.exerciseLogs || {};
   return {
     ...activeWorkout,
     name: `${activeWorkout.name} - atualizado ${selectedDateBR}`,
@@ -61,7 +96,7 @@ function buildWorkoutVersionFromSession(activeWorkout, draft, selectedDateBR) {
     updatedFromSessionAt: selectedDateBR,
     active: true,
     exercises: (activeWorkout.exercises || []).map((exercise, index) => {
-      const sessionChange = String(exerciseNotes[index] || "").trim();
+      const sessionChange = formatExerciseSessionChange(exerciseNotes[index], exerciseLogs[index]);
       if (!sessionChange) return { ...exercise };
 
       const previousNotes = exercise.notes ? `${exercise.notes}\n` : "";
@@ -155,7 +190,8 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
         if (!next[key]) {
           next[key] = {
             sessionNote: record?.sessionNote || "",
-            exerciseNotes: record?.exerciseNotes || {}
+            exerciseNotes: record?.exerciseNotes || {},
+            exerciseLogs: record?.exerciseLogs || {}
           };
         }
       });
@@ -172,12 +208,14 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
         userId: user.uid,
         classKey,
         sessionNote: draft.sessionNote,
-        exerciseNotes: draft.exerciseNotes
+        exerciseNotes: draft.exerciseNotes,
+        exerciseLogs: draft.exerciseLogs
       });
       setRecords(prev => applySessionNotesUpdate(prev, {
         classKey,
         sessionNote: draft.sessionNote,
-        exerciseNotes: draft.exerciseNotes
+        exerciseNotes: draft.exerciseNotes,
+        exerciseLogs: draft.exerciseLogs
       }));
     } catch (error) {
       console.error("Error saving session notes:", error);
@@ -257,7 +295,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
   function updateDraft(classKey, updater) {
     setDrafts(prev => ({
       ...prev,
-      [classKey]: updater(prev[classKey] || { sessionNote: "", exerciseNotes: {} })
+      [classKey]: updater(prev[classKey] || { sessionNote: "", exerciseNotes: {}, exerciseLogs: {} })
     }));
   }
 
@@ -345,9 +383,16 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     <div className="session-page">
       <section className="app-card session-command-panel">
         <div>
-          <p style={{ margin: "0 0 5px", color: theme.primary, fontSize: "12px", fontWeight: "900" }}>AULA RAPIDA</p>
-          <h2 className="app-page-title">Treinos do horario</h2>
-          <p className="app-page-kicker">Abra o horario, acompanhe todos os alunos em sequencia e registre ajustes sem trocar de tela.</p>
+          <p className="dashboard-kicker">AULA DO HORARIO</p>
+          <h2 className="session-page-title">Aula Rapida</h2>
+          <p className="session-page-kicker">Marque presenca, acompanhe treinos e registre series, repeticoes e carga no mesmo fluxo.</p>
+          <div className="session-hero-summary">
+            <div>
+              <p>Horario aberto</p>
+              <strong>{selectedTime || "--:--"}</strong>
+            </div>
+            <span>{classesAtTime.length} aluno{classesAtTime.length === 1 ? "" : "s"}</span>
+          </div>
         </div>
 
         <div className="session-command-grid">
@@ -409,7 +454,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
           {classesAtTime.map(cls => {
             const classKey = getClassKey(selectedDateBR, cls.studentId, cls.time);
             const record = records.find(item => item.key === classKey);
-            const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {} };
+            const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {}, exerciseLogs: {} };
             const activeWorkout = getActiveWorkout(workoutsByStudent[cls.studentId]);
             const student = students.find(item => item.id === cls.studentId);
             const creditStatus = student
@@ -431,14 +476,17 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
             const editingWorkout = editingWorkoutKey === classKey;
             const workoutForm = workoutEditForms[classKey] || { name: activeWorkout?.name || "", active: activeWorkout?.active !== false, exercises: activeWorkout?.exercises || [] };
 
+            const hasNotes = record?.sessionNote || Object.keys(record?.exerciseNotes || {}).length > 0 || Object.keys(record?.exerciseLogs || {}).length > 0;
+
             return (
-              <div key={classKey} className={`session-student-card ${record?.sessionNote || Object.keys(record?.exerciseNotes || {}).length > 0 ? "session-student-card-active" : ""}`}>
+              <div key={classKey} className={`session-student-card ${hasNotes ? "session-student-card-active" : ""}`}>
                 <div className="session-student-header">
                   <div style={{ minWidth: 0 }}>
-                    <h3 style={{ fontSize: "18px", fontWeight: "900", color: "#111827", margin: "0 0 4px 0", lineHeight: 1.1 }}>{cls.studentName}</h3>
-                    <p style={{ fontSize: "13px", color: "#64748b", margin: "0" }}>
+                    <h3 className="session-student-name">{cls.studentName}</h3>
+                    <p className="session-student-meta">
                       {cls.time} {cls.scheduleTypeLabel ? `- ${cls.scheduleTypeLabel}` : ""}
                     </p>
+                    <p className="session-student-place">{cls.location || student?.location || "Sem local"}</p>
                     <span style={{
                       display: "inline-block",
                       marginTop: "6px",
@@ -476,13 +524,13 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                   <div className="session-card-body">
                     <div className="session-workout-header">
                       <div>
-                        <p style={{ fontSize: "12px", fontWeight: "900", color: theme.primary, margin: "0 0 2px" }}>TREINO ATIVO</p>
-                        <p style={{ fontSize: "15px", fontWeight: "900", color: "#111827", margin: "0" }}>{activeWorkout.name}</p>
+                        <p className="session-workout-name">{activeWorkout.name}</p>
+                        <p className="session-workout-count">{(activeWorkout.exercises || []).length} exercicios</p>
                       </div>
                       <button
                         onClick={() => editingWorkout ? setEditingWorkoutKey(null) : startEditWorkoutFromClass(classKey, activeWorkout)}
                         className="session-action-muted"
-                        style={{ background: editingWorkout ? "#f3f4f6" : theme.light, color: editingWorkout ? "#6b7280" : theme.dark, flexShrink: 0 }}
+                        style={{ flexShrink: 0 }}
                       >
                         {editingWorkout ? "Fechar edicao" : "Editar treino"}
                       </button>
@@ -492,17 +540,76 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                       {(activeWorkout.exercises || []).map((exercise, index) => (
                         <div key={`${exercise.name}-${index}`} className="session-exercise">
                           <div className="session-exercise-title-row">
-                            <div style={{ minWidth: 0 }}>
-                              <p style={{ fontSize: "14px", fontWeight: "900", color: "#1f2937", margin: "0" }}>{exercise.name}</p>
+                            <div className="session-exercise-letter">{String.fromCharCode(65 + (index % 26))}</div>
+                            <div className="session-exercise-copy">
+                              <p className="session-exercise-name">{index + 1}. {exercise.name}</p>
+                              <p className="session-exercise-prescription">
+                                {exercise.sets || "-"} series x {exercise.reps || "-"} reps
+                                {exercise.weight ? ` · ${exercise.weight}` : ""}
+                                {exercise.rest ? ` · descanso ${exercise.rest}` : ""}
+                              </p>
+                              <p className="session-exercise-progress">{countCompletedSets(draft.exerciseLogs?.[index])}/{getSetCount(exercise.sets)} series feitas</p>
                               {(exercise.muscleGroup || exercise.equipment) && (
-                                <p style={{ fontSize: "12px", color: "#64748b", margin: "2px 0 0 0" }}>{[exercise.muscleGroup, exercise.equipment].filter(Boolean).join(" / ")}</p>
+                                <p className="session-exercise-equipment">{[exercise.muscleGroup, exercise.equipment].filter(Boolean).join(" / ")}</p>
                               )}
+                              {exercise.notes && <p className="session-exercise-note">{exercise.notes}</p>}
                             </div>
-                            <span style={{ fontSize: "12px", color: "#334155", fontWeight: "900", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                              {exercise.sets || "-"}s x {exercise.reps || "-"}r {exercise.weight ? `@ ${exercise.weight}` : ""}
-                            </span>
+                            <span className="session-exercise-index">{index + 1}</span>
                           </div>
-                          {exercise.notes && <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 8px 0", lineHeight: 1.4 }}>{exercise.notes}</p>}
+                          <div className="session-set-list">
+                            {Array.from({ length: getSetCount(exercise.sets) }).map((_, setIndex) => {
+                              const setLog = draft.exerciseLogs?.[index]?.[setIndex] || {};
+                              return (
+                                <div className="session-set-row" key={setIndex}>
+                                  <span className="session-set-badge">S{setIndex + 1}</span>
+                                  <label className="session-set-field">
+                                    <span>Reps feitas</span>
+                                    <input
+                                      type="text"
+                                      value={setLog.repsDone || ""}
+                                      onChange={(event) => updateDraft(classKey, current => ({
+                                        ...current,
+                                        exerciseLogs: {
+                                          ...(current.exerciseLogs || {}),
+                                          [index]: {
+                                            ...((current.exerciseLogs || {})[index] || {}),
+                                            [setIndex]: {
+                                              ...(((current.exerciseLogs || {})[index] || {})[setIndex] || {}),
+                                              repsDone: event.target.value
+                                            }
+                                          }
+                                        }
+                                      }))}
+                                      placeholder={exercise.reps || "10"}
+                                      className="session-set-input"
+                                    />
+                                  </label>
+                                  <label className="session-set-field">
+                                    <span>Carga</span>
+                                    <input
+                                      type="text"
+                                      value={setLog.weightDone || ""}
+                                      onChange={(event) => updateDraft(classKey, current => ({
+                                        ...current,
+                                        exerciseLogs: {
+                                          ...(current.exerciseLogs || {}),
+                                          [index]: {
+                                            ...((current.exerciseLogs || {})[index] || {}),
+                                            [setIndex]: {
+                                              ...(((current.exerciseLogs || {})[index] || {})[setIndex] || {}),
+                                              weightDone: event.target.value
+                                            }
+                                          }
+                                        }
+                                      }))}
+                                      placeholder={exercise.weight || "Carga"}
+                                      className="session-set-input"
+                                    />
+                                  </label>
+                                </div>
+                              );
+                            })}
+                          </div>
                           <input
                             type="text"
                             value={draft.exerciseNotes?.[index] || ""}

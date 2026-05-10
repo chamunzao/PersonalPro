@@ -56,6 +56,7 @@ function buildMessages({ student, records, payments }) {
 function CommunicationButton({ label, description, onClick, disabled, theme }) {
   return (
     <button
+      className="communication-action-button"
       onClick={onClick}
       disabled={disabled}
       style={{
@@ -79,16 +80,24 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
   const monthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
 
   return (
-    <div style={{ padding: '16px' }}>
-      <h2 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 6px 0', color: '#1f2937' }}>Comunicacao</h2>
-      <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 16px 0' }}>
-        Acoes rapidas com mensagens prontas para WhatsApp.
-      </p>
+    <div className="communication-page">
+      <section className="app-card communication-hero-panel">
+        <p className="dashboard-kicker">CENTRAL DE CONTATO</p>
+        <h2 className="communication-page-title">Comunicacao</h2>
+        <p className="communication-page-kicker">Acoes rapidas com mensagens prontas para WhatsApp.</p>
+        <div className="communication-hero-summary">
+          <div>
+            <p>Alunos na lista</p>
+            <strong>{students.length}</strong>
+          </div>
+          <span>{students.filter(student => String(student.phone || '').replace(/\D/g, '')).length} com WhatsApp</span>
+        </div>
+      </section>
 
       {loadingData && <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center' }}>Carregando...</p>}
 
       {students.length === 0 ? (
-        <div style={{
+        <div className="app-card communication-empty" style={{
           textAlign: 'center',
           padding: '40px 20px',
           background: '#f9fafb',
@@ -98,7 +107,7 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
           <p style={{ fontSize: '14px', margin: '0' }}>Nenhum aluno cadastrado</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="communication-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {students.map(student => {
             const messages = buildMessages({ student, records, payments });
             const hasPhone = !!String(student.phone || '').replace(/\D/g, '');
@@ -110,7 +119,7 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
               : billingStatus.remainingClasses !== null && billingStatus.remainingClasses <= 2;
 
             return (
-              <div key={student.id} style={{
+              <div key={student.id} className="communication-student-card" style={{
                 background: 'white',
                 padding: '12px',
                 borderRadius: '8px',
@@ -124,7 +133,7 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
                     </p>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <span style={{
+                    <span className={`communication-payment-pill ${payment ? 'communication-paid' : 'communication-pending'}`} style={{
                       display: 'inline-block',
                       padding: '4px 8px',
                       background: payment ? '#d1fae5' : '#fee2e2',
