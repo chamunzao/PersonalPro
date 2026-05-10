@@ -619,8 +619,8 @@ body .students-search-input {
 
 body .student-list-card {
   padding: 14px;
-  background: #1E2035 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #2E3154 !important;
+  border: 0.5px solid #46507D !important;
   border-radius: 12px !important;
 }
 
@@ -1462,7 +1462,7 @@ body .app-main-session .session-action-danger {
   }
 
   body .app-main-session .session-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 }
 
