@@ -13,7 +13,7 @@ import {
 } from '../../firebase';
 import { DAYS } from '../../lib/constants';
 import { formatCurrency } from '../../lib/money';
-import { formatDate, formatDateISO, parseBrazilianDate } from '../../lib/dates';
+import { formatDate, formatDateISO, getDaysInMonth, parseBrazilianDate } from '../../lib/dates';
 import {
   BILLING_TYPES,
   calculateBillingStatus,
@@ -89,6 +89,49 @@ function getSafeImageUrl(value) {
   } catch {
     return "";
   }
+}
+
+function parseISODate(dateText) {
+  if (!dateText) return null;
+  const [year, month, day] = dateText.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function getCurrentMonthPeriod() {
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const lastDay = new Date(today.getFullYear(), today.getMonth(), getDaysInMonth(today.getFullYear(), today.getMonth()));
+
+  return {
+    start: formatDateISO(firstDay),
+    end: formatDateISO(lastDay)
+  };
+}
+
+function getStudentScheduleDayIndex(date) {
+  return date.getDay() === 0 ? 6 : date.getDay() - 1;
+}
+
+function countScheduledClassesBetween(schedule, startISO, endISO) {
+  const startDate = parseISODate(startISO);
+  const endDate = parseISODate(endISO);
+  if (!startDate || !endDate || endDate < startDate) return 0;
+
+  const scheduledSlotsByDay = schedule.reduce((acc, item) => {
+    const day = Number(item.day);
+    acc[day] = (acc[day] || 0) + 1;
+    return acc;
+  }, {});
+
+  let total = 0;
+  const cursor = new Date(startDate);
+  while (cursor <= endDate) {
+    total += scheduledSlotsByDay[getStudentScheduleDayIndex(cursor)] || 0;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return total;
 }
 
 // ==================== STUDENT PROFILE ====================
@@ -1542,6 +1585,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
 // ==================== STUDENTS TAB ====================
 function StudentsTab({ students, setStudents, records, scheduleOverrides, setScheduleOverrides, loadingData, theme }) {
   const { user } = useAuth();
+  const defaultMonthlyPeriod = getCurrentMonthPeriod();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
@@ -1558,23 +1602,32 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
     billingType: BILLING_TYPES.perClass,
     packageClasses: "",
     packagePrice: "",
-    billingCycleStart: formatDateISO(new Date()),
-    billingDueDate: "",
+    monthlyScheduleUndefined: false,
+    billingCycleStart: defaultMonthlyPeriod.start,
+    billingDueDate: defaultMonthlyPeriod.end,
     billingAutoRenew: true
   };
   const [form, setForm] = useState(defaultForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [monthlyPackagePriceTouched, setMonthlyPackagePriceTouched] = useState(false);
+
+  const monthlyClassCount = form.billingType === BILLING_TYPES.monthlyPackage && !form.monthlyScheduleUndefined
+    ? countScheduledClassesBetween(form.schedule, form.billingCycleStart, form.billingDueDate)
+    : 0;
+  const monthlySuggestedPrice = monthlyClassCount * (Number(form.pricePerClass) || 0);
 
   function resetForm() {
     setForm(defaultForm);
     setEditId(null);
     setShowForm(false);
     setFormError("");
+    setMonthlyPackagePriceTouched(false);
   }
 
   function startEdit(s) {
     setFormError("");
+    const monthlyPeriod = getCurrentMonthPeriod();
     setForm({
       name: s.name,
       pricePerClass: String(s.pricePerClass),
@@ -1587,13 +1640,33 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
       billingType: s.billingType || BILLING_TYPES.perClass,
       packageClasses: s.packageClasses ? String(s.packageClasses) : "",
       packagePrice: s.packagePrice ? String(s.packagePrice) : "",
-      billingCycleStart: s.billingCycleStart || formatDateISO(new Date()),
-      billingDueDate: s.billingDueDate || "",
+      monthlyScheduleUndefined: s.monthlyScheduleUndefined || false,
+      billingCycleStart: s.billingCycleStart || monthlyPeriod.start,
+      billingDueDate: s.billingDueDate || monthlyPeriod.end,
       billingAutoRenew: s.billingAutoRenew !== false
     });
+    setMonthlyPackagePriceTouched(Boolean(s.packagePrice));
     setEditId(s.id);
     setShowForm(true);
   }
+
+  useEffect(() => {
+    if (form.billingType !== BILLING_TYPES.monthlyPackage) return;
+    if (form.monthlyScheduleUndefined) return;
+    if (monthlyPackagePriceTouched) return;
+
+    const nextValue = monthlySuggestedPrice > 0 ? String(monthlySuggestedPrice.toFixed(2)) : "";
+    setForm(current => current.packagePrice === nextValue ? current : { ...current, packagePrice: nextValue });
+  }, [
+    form.billingType,
+    form.monthlyScheduleUndefined,
+    form.schedule,
+    form.pricePerClass,
+    form.billingCycleStart,
+    form.billingDueDate,
+    monthlyPackagePriceTouched,
+    monthlySuggestedPrice
+  ]);
 
   const [newTime, setNewTime] = useState({});
 
@@ -1621,15 +1694,19 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
     if (!form.name.trim()) return "Informe o nome do aluno.";
     if (!form.pricePerClass) return "Informe o preço por aula. Mesmo em pacote, esse valor é usado nos relatórios.";
     if (Number(form.pricePerClass) <= 0) return "O preço por aula precisa ser maior que zero.";
-    if (form.schedule.length === 0) return "Adicione pelo menos um horário da semana. Depois de escolher o horário, clique em + Adicionar.";
+    if (form.schedule.length === 0 && !(form.billingType === BILLING_TYPES.monthlyPackage && form.monthlyScheduleUndefined)) {
+      return "Adicione pelo menos um horário da semana. Depois de escolher o horário, clique em + Adicionar.";
+    }
     if (form.billingType !== BILLING_TYPES.perClass && form.billingType !== BILLING_TYPES.monthlyPackage) {
       if (!form.packageClasses) return "Informe a quantidade de aulas contratadas.";
       if (Number(form.packageClasses) <= 0) return "A quantidade de aulas contratadas precisa ser maior que zero.";
     }
 
     if (form.billingType !== BILLING_TYPES.perClass) {
-      if (!form.packagePrice) return "Informe o valor do plano.";
-      if (Number(form.packagePrice) <= 0) return "O valor do plano precisa ser maior que zero.";
+      if (!(form.billingType === BILLING_TYPES.monthlyPackage && form.monthlyScheduleUndefined && !form.packagePrice)) {
+        if (!form.packagePrice) return "Informe o valor do plano.";
+        if (Number(form.packagePrice) <= 0) return "O valor do plano precisa ser maior que zero.";
+      }
     }
     return "";
   }
@@ -1656,7 +1733,8 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
         birthDate: form.birthDate,
         billingType: form.billingType,
         packageClasses: form.billingType === BILLING_TYPES.perClass || form.billingType === BILLING_TYPES.monthlyPackage ? null : parseInt(form.packageClasses, 10),
-        packagePrice: form.billingType === BILLING_TYPES.perClass ? null : parseFloat(form.packagePrice),
+        packagePrice: form.billingType === BILLING_TYPES.perClass || !form.packagePrice ? null : parseFloat(form.packagePrice),
+        monthlyScheduleUndefined: form.billingType === BILLING_TYPES.monthlyPackage ? form.monthlyScheduleUndefined : false,
         billingCycleStart: form.billingType === BILLING_TYPES.perClass ? null : form.billingCycleStart,
         billingDueDate: form.billingType === BILLING_TYPES.perClass ? null : form.billingDueDate,
         billingAutoRenew: form.billingType === BILLING_TYPES.monthly || form.billingType === BILLING_TYPES.monthlyPackage ? form.billingAutoRenew : false
@@ -1907,7 +1985,20 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
               <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Tipo de cobrança</label>
               <select
                 value={form.billingType}
-                onChange={(e) => { setFormError(""); setForm(f => ({ ...f, billingType: e.target.value })); }}
+                onChange={(e) => {
+                  const nextBillingType = e.target.value;
+                  const monthlyPeriod = getCurrentMonthPeriod();
+                  setFormError("");
+                  setMonthlyPackagePriceTouched(false);
+                  setForm(f => ({
+                    ...f,
+                    billingType: nextBillingType,
+                    monthlyScheduleUndefined: nextBillingType === BILLING_TYPES.monthlyPackage ? f.monthlyScheduleUndefined : false,
+                    billingCycleStart: nextBillingType === BILLING_TYPES.monthlyPackage ? (f.billingCycleStart || monthlyPeriod.start) : f.billingCycleStart,
+                    billingDueDate: nextBillingType === BILLING_TYPES.monthlyPackage ? (f.billingDueDate || monthlyPeriod.end) : f.billingDueDate,
+                    packagePrice: nextBillingType === BILLING_TYPES.perClass ? "" : f.packagePrice
+                  }));
+                }}
                 disabled={saving}
                 style={{
                   width: "100%",
@@ -1928,6 +2019,101 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
 
             {form.billingType !== BILLING_TYPES.perClass && (
               <>
+                {form.billingType === BILLING_TYPES.monthlyPackage && (
+                  <div style={{ display: "grid", gap: "10px", marginBottom: "10px" }}>
+                    <div style={{ padding: "10px", background: "#1E2035", border: "1px solid #3D4270", borderRadius: "10px" }}>
+                      <p style={{ fontSize: "12px", fontWeight: "800", color: "#FFFFFF", margin: "0 0 6px 0" }}>1. Dias de aula do pacote</p>
+                      <p style={{ fontSize: "11px", color: "#A8B3CF", margin: "0 0 10px 0" }}>
+                        Cadastre os horários da semana do aluno. Se ele ainda não tiver dias fixos, marque a opção abaixo para não gerar valor automático.
+                      </p>
+                      <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", fontWeight: "700", color: "#FFFFFF" }}>
+                        <input
+                          type="checkbox"
+                          checked={form.monthlyScheduleUndefined}
+                          onChange={(e) => {
+                            setFormError("");
+                            setMonthlyPackagePriceTouched(false);
+                            setForm(f => ({
+                              ...f,
+                              monthlyScheduleUndefined: e.target.checked,
+                              packagePrice: e.target.checked ? "" : f.packagePrice
+                            }));
+                          }}
+                          disabled={saving}
+                        />
+                        Aluno ainda sem dias definidos
+                      </label>
+                      {!form.monthlyScheduleUndefined && (
+                        <p style={{ fontSize: "11px", color: "#A8B3CF", margin: "10px 0 0 0" }}>
+                          Dias cadastrados agora: {form.schedule.length}. Aulas previstas no período: {monthlyClassCount}.
+                        </p>
+                      )}
+                    </div>
+
+                    <div style={{ padding: "10px", background: "#1E2035", border: "1px solid #3D4270", borderRadius: "10px" }}>
+                      <p style={{ fontSize: "12px", fontWeight: "800", color: "#FFFFFF", margin: "0 0 8px 0" }}>2. Período do pacote</p>
+                      <p style={{ fontSize: "11px", color: "#A8B3CF", margin: "0 0 10px 0" }}>
+                        O padrão é do primeiro ao último dia do mês. Pode alterar se combinar outro período.
+                      </p>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                        <div>
+                          <label style={{ fontSize: "12px", fontWeight: "600", color: "#A8B3CF", display: "block", marginBottom: "4px" }}>Início</label>
+                          <input
+                            type="date"
+                            value={form.billingCycleStart}
+                            onChange={(e) => setForm(f => ({ ...f, billingCycleStart: e.target.value }))}
+                            disabled={saving}
+                            style={{
+                              width: "100%",
+                              padding: "8px 10px",
+                              border: "1px solid #3D4270",
+                              borderRadius: "8px",
+                              fontSize: "13px",
+                              boxSizing: "border-box",
+                              fontFamily: "inherit",
+                              color: "#FFFFFF",
+                              background: "#181A2E"
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: "12px", fontWeight: "600", color: "#A8B3CF", display: "block", marginBottom: "4px" }}>Fim</label>
+                          <input
+                            type="date"
+                            value={form.billingDueDate}
+                            onChange={(e) => setForm(f => ({ ...f, billingDueDate: e.target.value }))}
+                            disabled={saving}
+                            style={{
+                              width: "100%",
+                              padding: "8px 10px",
+                              border: "1px solid #3D4270",
+                              borderRadius: "8px",
+                              fontSize: "13px",
+                              boxSizing: "border-box",
+                              fontFamily: "inherit",
+                              color: "#FFFFFF",
+                              background: "#181A2E"
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: "10px", background: "#1E2035", border: "1px solid #3D4270", borderRadius: "10px" }}>
+                      <p style={{ fontSize: "12px", fontWeight: "800", color: "#FFFFFF", margin: "0 0 6px 0" }}>3. Valor sugerido</p>
+                      {form.monthlyScheduleUndefined ? (
+                        <p style={{ fontSize: "11px", color: "#A8B3CF", margin: 0 }}>
+                          Sem dias definidos, o app não preenche valor automaticamente. Informe um valor manual se já houver combinado.
+                        </p>
+                      ) : (
+                        <p style={{ fontSize: "11px", color: "#A8B3CF", margin: 0 }}>
+                          {monthlyClassCount} aula(s) x {formatCurrency(Number(form.pricePerClass) || 0)} = {formatCurrency(monthlySuggestedPrice)}.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div style={{ display: "grid", gridTemplateColumns: form.billingType === BILLING_TYPES.monthlyPackage ? "1fr" : "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
                   {form.billingType !== BILLING_TYPES.monthlyPackage && <div>
                     <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Aulas contratadas</label>
@@ -1956,7 +2142,11 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                     <input
                       type="number"
                       value={form.packagePrice}
-                      onChange={(e) => { setFormError(""); setForm(f => ({ ...f, packagePrice: e.target.value })); }}
+                      onChange={(e) => {
+                        setFormError("");
+                        if (form.billingType === BILLING_TYPES.monthlyPackage) setMonthlyPackagePriceTouched(true);
+                        setForm(f => ({ ...f, packagePrice: e.target.value }));
+                      }}
                       placeholder="840"
                       disabled={saving}
                       step="0.01"
@@ -1974,13 +2164,29 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                   </div>
                 </div>
 
-                {form.billingType === BILLING_TYPES.monthlyPackage && (
-                  <p style={{ fontSize: "11px", color: "#6b7280", margin: "0 0 10px 0" }}>
-                    No pacote mensal, o app calcula as aulas do mes pela agenda do aluno e usa este valor como cobranca prevista.
-                  </p>
+                {form.billingType === BILLING_TYPES.monthlyPackage && monthlyPackagePriceTouched && !form.monthlyScheduleUndefined && (
+                  <button
+                    type="button"
+                    onClick={() => setMonthlyPackagePriceTouched(false)}
+                    disabled={saving}
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      background: "#DBEAFE",
+                      color: "#1D4ED8",
+                      border: "1px solid #93C5FD",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      fontWeight: "800",
+                      cursor: saving ? "not-allowed" : "pointer",
+                      marginBottom: "10px"
+                    }}
+                  >
+                    Recalcular pelo período e agenda
+                  </button>
                 )}
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: form.billingType === BILLING_TYPES.monthly ? "10px" : "0" }}>
+                {form.billingType !== BILLING_TYPES.monthlyPackage && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: form.billingType === BILLING_TYPES.monthly ? "10px" : "0" }}>
                   <div>
                     <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Início do ciclo</label>
                     <input
@@ -2017,7 +2223,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                       }}
                     />
                   </div>
-                </div>
+                </div>}
 
                 {(form.billingType === BILLING_TYPES.monthly || form.billingType === BILLING_TYPES.monthlyPackage) && (
                   <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", fontWeight: "600", color: "#4b5563" }}>
