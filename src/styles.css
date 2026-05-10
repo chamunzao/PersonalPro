@@ -654,8 +654,9 @@ body .student-icon-danger {
 
 body .student-form-panel {
   background: #2E3154 !important;
-  border: 0.5px solid #3D4270 !important;
+  border: 0.5px solid #46507D !important;
   border-radius: 16px !important;
+  padding: 18px !important;
 }
 
 body .student-form-panel h3,
@@ -663,11 +664,139 @@ body .student-form-panel label {
   color: #FFFFFF !important;
 }
 
+body .student-form-panel h3 {
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  margin-bottom: 16px !important;
+}
+
 body .student-form-panel > div,
 body .student-form-panel textarea,
 body .student-form-panel input,
 body .student-form-panel select {
   border-color: #3D4270 !important;
+}
+
+body .student-form-field,
+body .student-form-section {
+  background: #2E3154 !important;
+  border-color: #46507D !important;
+  border-radius: 14px !important;
+}
+
+body .student-form-section {
+  padding: 14px !important;
+}
+
+body .student-form-section > p,
+body .student-form-section > label,
+body .student-form-field > label {
+  color: #4A9EFF !important;
+  font-weight: 800 !important;
+}
+
+body .student-form-panel input,
+body .student-form-panel select,
+body .student-form-panel textarea {
+  min-height: 46px;
+  background: #1E2035 !important;
+  border: 0.5px solid #46507D !important;
+  border-radius: 14px !important;
+  color: #FFFFFF !important;
+  padding: 10px 12px !important;
+}
+
+body .student-form-panel input::placeholder,
+body .student-form-panel textarea::placeholder {
+  color: #7E8BAA !important;
+}
+
+body .student-form-step-card,
+body .student-schedule-day-card {
+  background: #25294A !important;
+  border: 0.5px solid #46507D !important;
+  border-radius: 12px !important;
+}
+
+body .student-schedule-day-card p:first-child {
+  color: #4A9EFF !important;
+}
+
+body .student-schedule-day-card button {
+  border-radius: 12px !important;
+}
+
+body .student-profile-page {
+  margin-top: 0;
+  padding: 0 !important;
+}
+
+body .student-profile-back {
+  width: fit-content;
+  min-height: 40px;
+  margin-bottom: 12px !important;
+  padding: 8px 12px !important;
+  background: rgba(74, 158, 255, 0.15) !important;
+  border: 0.5px solid #46507D !important;
+  border-radius: 14px !important;
+  color: #4A9EFF !important;
+}
+
+body .student-profile-page > h2 {
+  margin: 0 !important;
+  padding: 18px 18px 4px !important;
+  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%);
+  border: 0.5px solid #46507D;
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  color: #FFFFFF !important;
+  font-size: 30px !important;
+  line-height: 1.05 !important;
+}
+
+body .student-profile-page > h2 + div {
+  margin-bottom: 14px !important;
+  padding: 0 18px 18px !important;
+  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%);
+  border: 0.5px solid #46507D;
+  border-top: 0;
+  border-radius: 0 0 16px 16px;
+  color: #9CA3AF !important;
+}
+
+body .student-profile-tabs {
+  display: flex !important;
+  gap: 8px !important;
+  padding: 10px !important;
+  overflow-x: auto;
+  background: #2E3154;
+  border: 0.5px solid #46507D !important;
+  border-radius: 16px;
+}
+
+body .student-profile-tabs button {
+  min-height: 42px;
+  flex: 0 0 auto;
+  padding: 9px 12px !important;
+  background: #1E2035 !important;
+  border: 0.5px solid #3D4270 !important;
+  border-radius: 14px !important;
+  color: #9CA3AF !important;
+  margin-bottom: 0 !important;
+}
+
+body .student-profile-tabs .student-profile-tab-active {
+  background: #4A9EFF !important;
+  border-color: #4A9EFF !important;
+  color: #FFFFFF !important;
+}
+
+body .student-profile-page [style*="background: \"#f9fafb\""],
+body .student-profile-page [style*="background: #f9fafb"] {
+  background: #2E3154 !important;
+  border: 0.5px solid #46507D !important;
+  border-radius: 16px !important;
+  color: #FFFFFF !important;
 }
 
 .payments-page {

@@ -198,9 +198,10 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
   ];
 
   return (
-    <div style={{ padding: "16px" }}>
+    <div className="student-profile-page" style={{ padding: "16px" }}>
       <button
         onClick={onBack}
+        className="student-profile-back"
         style={{
           padding: "8px 12px",
           background: "none",
@@ -224,11 +225,12 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
         {student.phone && <p style={{ margin: "0" }}>📱 {student.phone}</p>}
       </div>
 
-      <div style={{ display: "flex", gap: "16px", marginBottom: "16px", borderBottom: `2px solid #e5e7eb` }}>
+      <div className="student-profile-tabs" style={{ display: "flex", gap: "16px", marginBottom: "16px", borderBottom: `2px solid #e5e7eb` }}>
         {tabItems.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
+            className={activeTab === tab.id ? "student-profile-tab-active" : ""}
             style={{
               padding: "12px 0",
               background: "none",
@@ -1192,7 +1194,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
 
       {showNewWorkout && (
         <div style={{ background: "#f9fafb", padding: "16px", borderRadius: "8px", border: `1px solid ${theme.light}` }}>
-          <div style={{ marginBottom: "12px" }}>
+          <div className="student-form-field" style={{ marginBottom: "12px" }}>
             <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Usar template</label>
             <select
               onChange={(e) => applyTemplate(e.target.value)}
@@ -1215,7 +1217,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
             </select>
           </div>
 
-          <div style={{ marginBottom: "12px" }}>
+          <div className="student-form-field" style={{ marginBottom: "12px" }}>
             <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Nome do Treino</label>
             <input
               type="text"
@@ -1752,6 +1754,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
         // Create new student
         const docRef = await addDoc(collection(db, `users/${user.uid}/students`), studentData);
         setStudents(prev => [...prev, { id: docRef.id, ...studentData }]);
+        setSelectedStudentId(docRef.id);
       }
       resetForm();
     } catch (error) {
@@ -1979,7 +1982,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
             />
           </div>
 
-          <div style={{ marginBottom: "12px", padding: "12px", background: "#fff", border: `1px solid ${theme.light}`, borderRadius: "8px" }}>
+          <div className="student-form-section" style={{ marginBottom: "12px", padding: "12px", background: "#fff", border: `1px solid ${theme.light}`, borderRadius: "8px" }}>
             <p style={{ fontSize: "12px", fontWeight: "600", color: theme.primary, margin: "0 0 10px 0" }}>Cobrança</p>
             <div style={{ marginBottom: "10px" }}>
               <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Tipo de cobrança</label>
@@ -2021,7 +2024,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
               <>
                 {form.billingType === BILLING_TYPES.monthlyPackage && (
                   <div style={{ display: "grid", gap: "10px", marginBottom: "10px" }}>
-                    <div style={{ padding: "10px", background: "#1E2035", border: "1px solid #3D4270", borderRadius: "10px" }}>
+                    <div className="student-form-step-card" style={{ padding: "10px", background: "#1E2035", border: "1px solid #3D4270", borderRadius: "10px" }}>
                       <p style={{ fontSize: "12px", fontWeight: "800", color: "#FFFFFF", margin: "0 0 6px 0" }}>1. Dias de aula do pacote</p>
                       <p style={{ fontSize: "11px", color: "#A8B3CF", margin: "0 0 10px 0" }}>
                         Cadastre os horários da semana do aluno. Se ele ainda não tiver dias fixos, marque a opção abaixo para não gerar valor automático.
@@ -2050,7 +2053,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                       )}
                     </div>
 
-                    <div style={{ padding: "10px", background: "#1E2035", border: "1px solid #3D4270", borderRadius: "10px" }}>
+                    <div className="student-form-step-card" style={{ padding: "10px", background: "#1E2035", border: "1px solid #3D4270", borderRadius: "10px" }}>
                       <p style={{ fontSize: "12px", fontWeight: "800", color: "#FFFFFF", margin: "0 0 8px 0" }}>2. Período do pacote</p>
                       <p style={{ fontSize: "11px", color: "#A8B3CF", margin: "0 0 10px 0" }}>
                         O padrão é do primeiro ao último dia do mês. Pode alterar se combinar outro período.
@@ -2099,7 +2102,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                       </div>
                     </div>
 
-                    <div style={{ padding: "10px", background: "#1E2035", border: "1px solid #3D4270", borderRadius: "10px" }}>
+                    <div className="student-form-step-card" style={{ padding: "10px", background: "#1E2035", border: "1px solid #3D4270", borderRadius: "10px" }}>
                       <p style={{ fontSize: "12px", fontWeight: "800", color: "#FFFFFF", margin: "0 0 6px 0" }}>3. Valor sugerido</p>
                       {form.monthlyScheduleUndefined ? (
                         <p style={{ fontSize: "11px", color: "#A8B3CF", margin: 0 }}>
@@ -2240,7 +2243,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
             )}
           </div>
 
-          <div style={{ marginBottom: "12px", padding: "12px", background: "#fff", border: `1px solid ${theme.light}`, borderRadius: "8px" }}>
+          <div className="student-form-section" style={{ marginBottom: "12px", padding: "12px", background: "#fff", border: `1px solid ${theme.light}`, borderRadius: "8px" }}>
             <p style={{ fontSize: "12px", fontWeight: "600", color: theme.primary, margin: "0 0 10px 0" }}>Dados Pessoais (opcional)</p>
             <div style={{ marginBottom: "10px" }}>
               <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>CPF</label>
@@ -2329,7 +2332,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
             </div>
           </div>
 
-          <div style={{ marginBottom: "12px" }}>
+          <div className="student-form-field" style={{ marginBottom: "12px" }}>
             <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Observações (opcional)</label>
             <textarea
               value={form.notes}
@@ -2349,13 +2352,13 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
             />
           </div>
 
-          <div style={{ marginBottom: "12px" }}>
+          <div className="student-form-section" style={{ marginBottom: "12px" }}>
             <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "8px" }}>Horários da Semana</label>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {DAYS.map((day, dayIdx) => {
                 const dayTimes = form.schedule.filter(s => s.day === dayIdx).sort((a, b) => a.time.localeCompare(b.time));
                 return (
-                  <div key={dayIdx} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 12px" }}>
+                  <div key={dayIdx} className="student-schedule-day-card" style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 12px" }}>
                     <p style={{ fontSize: "12px", fontWeight: "700", color: theme.primary, margin: "0 0 6px" }}>{day}</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: dayTimes.length > 0 ? "8px" : "0" }}>
                       {dayTimes.map(s => (
@@ -2414,7 +2417,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                 cursor: saving ? "not-allowed" : "pointer"
               }}
             >
-              {editId ? "Atualizar" : "Criar"} Aluno
+              {editId ? "Atualizar Aluno" : "Criar e abrir perfil"}
             </button>
             <button
               onClick={resetForm}
