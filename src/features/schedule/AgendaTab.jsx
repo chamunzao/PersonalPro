@@ -36,7 +36,7 @@ function getDateText(date) {
   return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
 }
 
-export function AgendaTab({ students, records, setRecords, scheduleOverrides, setScheduleOverrides, theme }) {
+export function AgendaTab({ students, records, setRecords, scheduleOverrides, setScheduleOverrides, locations = [], theme }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState("month");
   const [selectedDayModal, setSelectedDayModal] = useState(null);
@@ -52,7 +52,7 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
   const getClassesForDay = (dayNum) => {
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum);
     const dateISO = formatDateISO(date);
-    const classes = getClassesForDate(dateISO, students, scheduleOverrides);
+    const classes = getClassesForDate(dateISO, students, scheduleOverrides, locations);
 
     return classes.map(cls => {
       const key = `${String(dayNum).padStart(2, "0")}/${String(currentDate.getMonth() + 1).padStart(2, "0")}/${currentDate.getFullYear()}_${cls.studentId}_${cls.time}`;
@@ -64,7 +64,7 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
   const getClassesForDateObject = (date) => {
     const dateISO = formatDateISO(date);
     const dateText = getDateText(date);
-    const classes = getClassesForDate(dateISO, students, scheduleOverrides);
+    const classes = getClassesForDate(dateISO, students, scheduleOverrides, locations);
 
     return classes.map(cls => {
       const key = `${dateText}_${cls.studentId}_${cls.time}`;
@@ -90,7 +90,7 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
   const getTodayClasses = () => {
     const today = new Date();
     const todayISO = formatDateISO(today);
-    const classes = getClassesForDate(todayISO, students, scheduleOverrides);
+    const classes = getClassesForDate(todayISO, students, scheduleOverrides, locations);
 
     return classes.map(cls => {
       const key = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}_${cls.studentId}_${cls.time}`;
@@ -309,6 +309,7 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
               setRecords={setRecords}
               scheduleOverrides={scheduleOverrides}
               setScheduleOverrides={setScheduleOverrides}
+              locations={locations}
               theme={theme}
             />
           </div>
@@ -458,14 +459,14 @@ function WeekCalendar({ weekDays, getClassesForDateObject, setCurrentDate, setSe
   );
 }
 
-function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, scheduleOverrides, setScheduleOverrides, theme }) {
+function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, scheduleOverrides, setScheduleOverrides, locations = [], theme }) {
   const { user } = useAuth();
   const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum);
   const dateISO = formatDateISO(date);
   const dateLabel = `${String(dayNum).padStart(2, "0")}/${String(currentDate.getMonth() + 1).padStart(2, "0")}/${currentDate.getFullYear()}`;
-  const classes = getClassesForDate(dateISO, students, scheduleOverrides);
+  const classes = getClassesForDate(dateISO, students, scheduleOverrides, locations);
   const [showAddClass, setShowAddClass] = useState(false);
-  const [addForm, setAddForm] = useState({ studentId: "", time: "", type: SCHEDULE_ITEM_TYPES.extra, note: "", pricePerClass: "" });
+  const [addForm, setAddForm] = useState({ studentId: "", time: "", type: SCHEDULE_ITEM_TYPES.extra, note: "", pricePerClass: "", locationId: "" });
   const [rescheduleKey, setRescheduleKey] = useState(null);
   const [rescheduleForm, setRescheduleForm] = useState({ date: "", time: "" });
   const [savingSchedule, setSavingSchedule] = useState(false);
@@ -537,11 +538,12 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
           time: addForm.time,
           type: addForm.type,
           note: addForm.note.trim(),
-          pricePerClass: addForm.pricePerClass ? parseFloat(addForm.pricePerClass) : null
+          pricePerClass: addForm.pricePerClass ? parseFloat(addForm.pricePerClass) : null,
+          locationId: addForm.locationId || student.defaultLocationId || ""
         }
       ];
       await saveStudentScheduleItems(student, nextItems);
-      setAddForm({ studentId: "", time: "", type: SCHEDULE_ITEM_TYPES.extra, note: "", pricePerClass: "" });
+      setAddForm({ studentId: "", time: "", type: SCHEDULE_ITEM_TYPES.extra, note: "", pricePerClass: "", locationId: "" });
       setShowAddClass(false);
     } catch (error) {
       console.error("Error saving schedule item:", error);
@@ -596,7 +598,8 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
           time: rescheduleForm.time,
           type: SCHEDULE_ITEM_TYPES.rescheduled,
           note: `Remarcada de ${String(dayNum).padStart(2, "0")}/${String(currentDate.getMonth() + 1).padStart(2, "0")}`,
-          pricePerClass: cls.pricePerClass
+          pricePerClass: cls.pricePerClass,
+          locationId: cls.locationId || student.defaultLocationId || ""
         }
       ], rescheduleForm.date);
       setRescheduleKey(null);
@@ -670,6 +673,16 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
             placeholder="Observação opcional"
             style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", marginBottom: "8px" }}
           />
+          <select
+            value={addForm.locationId}
+            onChange={(e) => setAddForm(form => ({ ...form, locationId: e.target.value }))}
+            style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", marginBottom: "8px", background: "white" }}
+          >
+            <option value="">Local padrão do aluno</option>
+            {locations.map(location => (
+              <option key={location.id} value={location.id}>{location.name}</option>
+            ))}
+          </select>
           <button
             onClick={addScheduleItem}
             disabled={savingSchedule || !addForm.studentId || !addForm.time}
@@ -714,6 +727,9 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
               </p>
               <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0" }}>
                 {cls.time} · {formatCurrency(cls.pricePerClass)}
+              </p>
+              <p style={{ fontSize: "11px", color: "#6b7280", margin: "3px 0 0 0" }}>
+                {cls.locationName || "Sem local"}
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "6px" }}>
                 <span style={{ padding: "3px 7px", borderRadius: "4px", background: theme.light, color: theme.dark, fontSize: "11px", fontWeight: "700" }}>

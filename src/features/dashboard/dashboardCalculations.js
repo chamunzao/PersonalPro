@@ -1,5 +1,5 @@
 import { calculateAlerts } from "../alerts/alertsCalculations";
-import { calculateMonthlyReport } from "../reports/reportsCalculations";
+import { calculateMonthlyReportWithLocations } from "../reports/reportsCalculations";
 import { formatDate, formatDateISO } from "../../lib/dates";
 
 function getAttendanceForClass(cls, records, dateText) {
@@ -7,7 +7,7 @@ function getAttendanceForClass(cls, records, dateText) {
   return records.find(record => record.key === key)?.status || null;
 }
 
-export function calculateDashboard({ students, records, payments, getClassesForDate, today = new Date() }) {
+export function calculateDashboard({ students, records, payments, locations = [], getClassesForDate, today = new Date() }) {
   const todayISO = formatDateISO(today);
   const todayText = formatDate(today);
   const monthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
@@ -18,7 +18,7 @@ export function calculateDashboard({ students, records, payments, getClassesForD
   }));
   const pendingTodayClasses = todayClasses.filter(cls => !cls.attendance);
   const alerts = calculateAlerts({ students, records, payments, getClassesForDate, today });
-  const report = calculateMonthlyReport({ students, records, payments, monthKey });
+  const report = calculateMonthlyReportWithLocations({ students, records, payments, monthKey, locations, getClassesForDate });
   const criticalAlerts = alerts.filter(alert => alert.severity === "danger");
   const warningAlerts = alerts.filter(alert => alert.severity === "warning");
   const infoAlerts = alerts.filter(alert => alert.severity === "info");
