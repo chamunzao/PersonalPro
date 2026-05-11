@@ -634,6 +634,25 @@ body .student-list-card:hover {
   transform: translateY(-1px);
 }
 
+body .student-open-profile-button {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 12px;
+  background: rgba(74, 158, 255, 0.15);
+  border: 0.5px solid #46507D;
+  border-radius: 14px;
+  color: #4A9EFF;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+body .student-open-profile-button:hover {
+  background: #4A9EFF;
+  border-color: #4A9EFF;
+  color: #FFFFFF;
+}
+
 body .student-avatar {
   border-radius: 14px;
   background: rgba(74, 158, 255, 0.15);
@@ -765,10 +784,11 @@ body .student-profile-page > h2 + div {
 }
 
 body .student-profile-tabs {
-  display: flex !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px !important;
   padding: 10px !important;
-  overflow-x: auto;
+  overflow: visible;
   background: #2E3154;
   border: 0.5px solid #46507D !important;
   border-radius: 16px;
@@ -776,7 +796,8 @@ body .student-profile-tabs {
 
 body .student-profile-tabs button {
   min-height: 42px;
-  flex: 0 0 auto;
+  width: 100%;
+  justify-content: center;
   padding: 9px 12px !important;
   background: #1E2035 !important;
   border: 0.5px solid #3D4270 !important;
@@ -789,6 +810,13 @@ body .student-profile-tabs .student-profile-tab-active {
   background: #4A9EFF !important;
   border-color: #4A9EFF !important;
   color: #FFFFFF !important;
+  box-shadow: 0 0 0 4px rgba(74, 158, 255, 0.12);
+}
+
+@media (min-width: 720px) {
+  body .student-profile-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 body .student-profile-page [style*="background: \"#f9fafb\""],

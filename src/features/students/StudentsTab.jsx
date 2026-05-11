@@ -2496,6 +2496,12 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                 </button>
               </div>
                 </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSelectedStudentId(student.id); }}
+                  className="student-open-profile-button"
+                >
+                  Abrir perfil completo
+                </button>
               </article>
             );
           })}
