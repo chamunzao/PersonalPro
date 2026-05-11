@@ -85,7 +85,7 @@ export default function App() {
     const loadData = async () => {
       setLoadingData(true);
       try {
-        const data = await loadAppData(user.uid);
+        const data = await loadAppData(user.uid, user.email);
 
         if (data.themeKey) setThemeKey(data.themeKey);
         setStudents(data.students);

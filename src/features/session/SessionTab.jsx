@@ -21,6 +21,7 @@ import {
 import { getClassesForDate } from '../schedule/scheduleCalculations';
 import { updateAttendanceRecord } from '../attendance/attendanceActions';
 import { applySessionNotesUpdate, saveSessionNotes as saveSessionNotesRecord } from '../../services/recordsService';
+import { DEMO_EMAIL, getDemoWorkoutPlans } from '../../services/demoData';
 
 function IconCheck() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -162,7 +163,9 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
       try {
         const entries = await Promise.all(missingStudents.map(async cls => {
           const snap = await getDocs(collection(db, `users/${user.uid}/students/${cls.studentId}/workoutPlans`));
-          const plans = snap.docs.map(item => ({ id: item.id, ...item.data() }));
+          const plans = snap.empty && user.email === DEMO_EMAIL
+            ? getDemoWorkoutPlans(cls.studentId)
+            : snap.docs.map(item => ({ id: item.id, ...item.data() }));
           return [cls.studentId, plans];
         }));
 
@@ -172,7 +175,14 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
         }));
       } catch (error) {
         console.error("Error loading workouts:", error);
-        alert("Erro ao carregar treinos");
+        if (user.email === DEMO_EMAIL) {
+          setWorkoutsByStudent(prev => ({
+            ...prev,
+            ...Object.fromEntries(missingStudents.map(cls => [cls.studentId, getDemoWorkoutPlans(cls.studentId)]))
+          }));
+        } else {
+          alert("Erro ao carregar treinos");
+        }
       } finally {
         setLoadingWorkouts(false);
       }

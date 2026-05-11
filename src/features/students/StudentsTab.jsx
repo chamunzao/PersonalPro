@@ -14,6 +14,7 @@ import {
 import { DAYS } from '../../lib/constants';
 import { formatCurrency } from '../../lib/money';
 import { formatDate, formatDateISO, getDaysInMonth, parseBrazilianDate } from '../../lib/dates';
+import { DEMO_EMAIL, getDemoWorkoutPlans } from '../../services/demoData';
 import {
   BILLING_TYPES,
   calculateBillingStatus,
@@ -166,10 +167,12 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
       setMeasurements(measurementsData);
 
       const workoutSnap = await getDocs(collection(db, `users/${user.uid}/students/${studentId}/workoutPlans`));
-      const workoutData = workoutSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })).sort((a, b) => (b.active ? 1 : -1) - (a.active ? 1 : -1));
+      const workoutData = workoutSnap.empty && user.email === DEMO_EMAIL
+        ? getDemoWorkoutPlans(studentId)
+        : workoutSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })).sort((a, b) => (b.active ? 1 : -1) - (a.active ? 1 : -1));
       setWorkoutPlans(workoutData);
 
       const anamnesisSnap = await getDoc(doc(db, `users/${user.uid}/students/${studentId}/profile/anamnesis`));
@@ -183,6 +186,15 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
       setProgressPhotos(photosData);
     } catch (error) {
       console.error("Error loading profile:", error);
+      if (user.email === DEMO_EMAIL) {
+        setWorkoutPlans(getDemoWorkoutPlans(studentId));
+        setAnamnesis({
+          ...DEFAULT_ANAMNESIS,
+          goal: "Hipertrofia com acompanhamento de carga.",
+          trainingHistory: "Dados ficticios para demonstracao.",
+          notes: "Conta demo criada para testar o aplicativo."
+        });
+      }
     } finally {
       setLoadingProfile(false);
     }

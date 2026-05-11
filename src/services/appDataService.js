@@ -3,6 +3,7 @@ import {
   collection,
   getDocs
 } from '../firebase';
+import { DEMO_EMAIL, getDemoAppData } from './demoData';
 import { getThemeKey } from './settingsService';
 
 function mapStudentDoc(studentDoc) {
@@ -41,18 +42,32 @@ function mapScheduleOverrideDoc(overrideDoc) {
   };
 }
 
-export async function loadAppData(userId) {
-  const themeKey = await getThemeKey(userId);
-  const studentsSnap = await getDocs(collection(db, `users/${userId}/students`));
-  const recordsSnap = await getDocs(collection(db, `users/${userId}/records`));
-  const paymentsSnap = await getDocs(collection(db, `users/${userId}/payments`));
-  const overridesSnap = await getDocs(collection(db, `users/${userId}/scheduleOverrides`));
+export async function loadAppData(userId, userEmail = "") {
+  const isDemoAccount = String(userEmail || "").toLowerCase() === DEMO_EMAIL;
 
-  return {
-    themeKey,
-    students: studentsSnap.docs.map(mapStudentDoc),
-    records: recordsSnap.docs.map(mapRecordDoc),
-    payments: paymentsSnap.docs.map(mapPaymentDoc),
-    scheduleOverrides: overridesSnap.docs.map(mapScheduleOverrideDoc)
-  };
+  try {
+    const themeKey = await getThemeKey(userId);
+    const studentsSnap = await getDocs(collection(db, `users/${userId}/students`));
+    const recordsSnap = await getDocs(collection(db, `users/${userId}/records`));
+    const paymentsSnap = await getDocs(collection(db, `users/${userId}/payments`));
+    const overridesSnap = await getDocs(collection(db, `users/${userId}/scheduleOverrides`));
+
+    if (isDemoAccount && studentsSnap.empty) {
+      return getDemoAppData();
+    }
+
+    return {
+      themeKey,
+      students: studentsSnap.docs.map(mapStudentDoc),
+      records: recordsSnap.docs.map(mapRecordDoc),
+      payments: paymentsSnap.docs.map(mapPaymentDoc),
+      scheduleOverrides: overridesSnap.docs.map(mapScheduleOverrideDoc)
+    };
+  } catch (error) {
+    if (isDemoAccount) {
+      console.warn("Using bundled demo data because Firestore demo data could not be loaded.", error);
+      return getDemoAppData();
+    }
+    throw error;
+  }
 }
