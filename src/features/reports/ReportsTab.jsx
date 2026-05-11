@@ -14,7 +14,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
     <div className="reports-page">
       <section className="app-card reports-hero-panel">
         <p className="dashboard-kicker">VISAO DO MES</p>
-        <h2 className="reports-page-title">Relatorio</h2>
+        <h2 className="reports-page-title">Relatório</h2>
         <p className="reports-page-kicker">Acompanhe aulas, faltas, receita e pagamentos por aluno.</p>
         <div className="reports-hero-summary">
           <div>

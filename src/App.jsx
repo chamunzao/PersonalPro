@@ -12,6 +12,7 @@ import { AlertsTab } from './features/alerts/AlertsTab';
 import { SettingsTab } from './features/settings/SettingsTab';
 import { CommunicationTab } from './features/communication/CommunicationTab';
 import { SessionTab } from './features/session/SessionTab';
+import { getMoreNavigation, getPrimaryNavigation, isMoreSectionActive } from './appNavigation';
 
 // ==================== THEME COLORS ====================
 const THEMES = {
@@ -64,6 +65,56 @@ function IconLogOut() {
 
 function IconSettings() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
+}
+
+function IconMore() {
+  return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>;
+}
+
+function getTabIcon(id) {
+  const icons = {
+    dashboard: <IconHome />,
+    session: <IconDumbbell />,
+    agenda: <IconCalendar />,
+    students: <IconUsers />,
+    more: <IconMore />,
+    attendance: <IconClipboard />,
+    payments: <IconCreditCard />,
+    alerts: <IconBell />,
+    communication: <IconMessage />,
+    reports: <IconChart />,
+    settings: <IconSettings />
+  };
+  return icons[id] || <IconMore />;
+}
+
+function MoreTab({ onSelectTab, theme }) {
+  return (
+    <div className="app-page more-page">
+      <section className="app-card more-hero-panel">
+        <p className="more-page-kicker">ATALHOS DO APP</p>
+        <h2 className="app-page-title">Mais</h2>
+        <p className="app-page-kicker">Acesse cobranças, registros, mensagens e relatórios sem lotar a barra principal.</p>
+      </section>
+
+      <div className="more-menu-grid">
+        {getMoreNavigation().map(item => (
+          <button
+            key={item.id}
+            type="button"
+            className="more-menu-item"
+            onClick={() => onSelectTab(item.id)}
+          >
+            <span className="more-menu-icon" style={{ color: theme.primary }}>{getTabIcon(item.id)}</span>
+            <span>
+              <strong>{item.label}</strong>
+              <small>{item.description}</small>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ==================== MAIN APP ====================
@@ -137,6 +188,7 @@ export default function App() {
       }
     }
   };
+  const primaryNavigation = getPrimaryNavigation();
 
   return (
     <ThemeContext.Provider value={theme}>
@@ -151,35 +203,16 @@ export default function App() {
       {/* Header */}
       <div className="app-header">
         <div className="app-header-inner">
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+        <div className="app-header-brand">
           <div className="app-brand-mark">PP</div>
-          <div style={{ minWidth: 0 }}>
-            <h1 style={{ fontSize: "20px", lineHeight: "1.1", fontWeight: "850", margin: "0 0 3px 0", color: "#111827" }}>PersonalPro</h1>
-            <p style={{ fontSize: "12px", margin: "0", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
+          <div className="app-brand-copy">
+            <h1>PersonalPro</h1>
+            <p>{user.email}</p>
           </div>
         </div>
         <button
           onClick={handleLogout}
-          style={{
-            padding: "9px 12px",
-            background: "white",
-            color: theme.dark,
-            border: "1px solid rgba(15, 23, 42, 0.1)",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontSize: "12px",
-            fontWeight: "800",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)"
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = theme.light;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "white";
-          }}
+          className="app-logout-button"
         >
           <IconLogOut /> Sair
         </button>
@@ -188,7 +221,7 @@ export default function App() {
 
       {/* Content */}
       <main className={`app-main ${activeTab === "session" ? "app-main-session" : ""}`}>
-        {activeTab === "dashboard" && <DashboardTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
+        {activeTab === "dashboard" && <DashboardTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} onOpenSession={() => setActiveTab("session")} onSelectTab={setActiveTab} />}
         {activeTab === "students" && <StudentsTab students={students} setStudents={setStudents} records={records} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "agenda" && <AgendaTab students={students} records={records} setRecords={setRecords} scheduleOverrides={scheduleOverrides} setScheduleOverrides={setScheduleOverrides} theme={theme} />}
         {activeTab === "session" && <SessionTab students={students} records={records} setRecords={setRecords} payments={payments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
@@ -198,32 +231,25 @@ export default function App() {
         {activeTab === "communication" && <CommunicationTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
         {activeTab === "reports" && <ReportsTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
         {activeTab === "settings" && <SettingsTab themeKey={themeKey} setThemeKey={setThemeKey} themes={THEMES} />}
+        {activeTab === "more" && <MoreTab onSelectTab={setActiveTab} theme={theme} />}
       </main>
 
       {/* Bottom Tab Navigation */}
       <nav className="bottom-nav">
         <div className="bottom-nav-inner">
-        {[
-          { id: "dashboard", icon: <IconHome />, label: "Início" },
-          { id: "students", icon: <IconUsers />, label: "Alunos" },
-          { id: "agenda", icon: <IconCalendar />, label: "Agenda" },
-          { id: "session", icon: <IconDumbbell />, label: "Aula" },
-          { id: "attendance", icon: <IconClipboard />, label: "Registro" },
-          { id: "payments", icon: <IconCreditCard />, label: "Pagamentos" },
-          { id: "alerts", icon: <IconBell />, label: "Alertas" },
-          { id: "communication", icon: <IconMessage />, label: "Contato" },
-          { id: "reports", icon: <IconChart />, label: "Relatório" },
-          { id: "settings", icon: <IconSettings />, label: "Config" }
-        ].map(tab => (
+        {primaryNavigation.map(tab => {
+          const active = tab.id === "more" ? isMoreSectionActive(activeTab) : activeTab === tab.id;
+          return (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`nav-item ${activeTab === tab.id ? "nav-item-active" : ""}`}
+            className={`nav-item ${active ? "nav-item-active" : ""}`}
           >
-            <span style={{ fontSize: "18px" }}>{tab.icon}</span>
+            <span style={{ fontSize: "18px" }}>{getTabIcon(tab.id)}</span>
             {tab.label}
           </button>
-        ))}
+          );
+        })}
         </div>
       </nav>
     </div>

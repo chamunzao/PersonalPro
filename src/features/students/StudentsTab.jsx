@@ -21,6 +21,7 @@ import {
   getBillingStatusColors,
   getBillingStatusLabel
 } from '../billing/billingCalculations';
+import { getStudentsEmptyState } from '../emptyStates/setupEmptyStates';
 import { EXERCISE_LIBRARY, WORKOUT_TEMPLATES } from '../workouts/workoutPresets';
 
 function IconPlus() {
@@ -343,7 +344,7 @@ function DataTabContent({ student, records, onEdit, theme }) {
             </p>
           </div>}
           {billingStatus.billingType === BILLING_TYPES.monthlyPackage && billingStatus.contractedClasses === 0 && <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Aulas do mes</p>
+            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Aulas do mês</p>
             <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#1f2937" }}>Calculadas em pagamentos</p>
           </div>}
           {billingStatus.remainingClasses !== null && <div>
@@ -539,15 +540,15 @@ function AnamnesisTabContent({ studentId, anamnesis, setAnamnesis, theme }) {
 
   const fields = [
     { key: "goal", label: "Objetivo principal", placeholder: "Ex: emagrecimento, hipertrofia, condicionamento..." },
-    { key: "trainingHistory", label: "Historico de treino", placeholder: "Tempo de treino, modalidades, rotina atual..." },
-    { key: "injuries", label: "Lesoes", placeholder: "Dores, cirurgias, lesoes antigas ou atuais..." },
+    { key: "trainingHistory", label: "Histórico de treino", placeholder: "Tempo de treino, modalidades, rotina atual..." },
+    { key: "injuries", label: "Lesões", placeholder: "Dores, cirurgias, lesões antigas ou atuais..." },
     { key: "restrictions", label: "Restricoes", placeholder: "Movimentos proibidos, limitacoes, recomendacoes medicas..." },
     { key: "conditions", label: "Doencas/condicoes", placeholder: "Hipertensao, diabetes, problemas cardiacos..." },
     { key: "medications", label: "Medicamentos", placeholder: "Medicamentos em uso e frequencia..." },
     { key: "sleep", label: "Sono", placeholder: "Horas por noite e qualidade do sono..." },
-    { key: "nutrition", label: "Alimentacao", placeholder: "Rotina alimentar, acompanhamento nutricional..." },
-    { key: "availability", label: "Disponibilidade", placeholder: "Dias, horarios e frequencia possivel..." },
-    { key: "notes", label: "Observacoes gerais", placeholder: "Qualquer informacao importante para acompanhamento..." }
+    { key: "nutrition", label: "Alimentação", placeholder: "Rotina alimentar, acompanhamento nutricional..." },
+    { key: "availability", label: "Disponibilidade", placeholder: "Dias, horários e frequência possível..." },
+    { key: "notes", label: "Observações gerais", placeholder: "Qualquer informação importante para acompanhamento..." }
   ];
 
   return (
@@ -706,7 +707,7 @@ function ProgressPhotosTabContent({ studentId, photos, setPhotos, showNewPhoto, 
           <textarea
             value={form.notes}
             onChange={(e) => setForm(prev => ({ ...prev, notes: e.target.value }))}
-            placeholder="Observacoes sobre postura, medidas, aderencia..."
+            placeholder="Observações sobre postura, medidas, aderência..."
             style={{ width: "100%", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minHeight: "58px", resize: "vertical", marginBottom: "10px" }}
           />
           <div style={{ display: "flex", gap: "8px" }}>
@@ -1278,7 +1279,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                   <input type="text" value={ex.weight || ""} onChange={(e) => updateExercise(idx, { weight: e.target.value })} placeholder="Carga" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
                   <input type="text" value={ex.rest || ""} onChange={(e) => updateExercise(idx, { rest: e.target.value })} placeholder="Descanso" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
                 </div>
-                <textarea value={ex.notes || ""} onChange={(e) => updateExercise(idx, { notes: e.target.value })} placeholder="Observacoes do exercicio" style={{ width: "100%", minHeight: "44px", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", resize: "vertical" }} />
+                <textarea value={ex.notes || ""} onChange={(e) => updateExercise(idx, { notes: e.target.value })} placeholder="Observações do exercício" style={{ width: "100%", minHeight: "44px", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", resize: "vertical" }} />
               </div>
             ))}
           </div>
@@ -1839,6 +1840,10 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
       ].some(value => String(value || "").toLowerCase().includes(normalizedSearch));
     })
     .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"));
+  const studentsEmptyState = getStudentsEmptyState({
+    hasStudents: students.length > 0,
+    hasSearch: !!normalizedSearch
+  });
   const billingStatuses = students.map(student => calculateBillingStatus(student, records));
   const overdueStudents = billingStatuses.filter(status => status.status === "overdue").length;
   const packageStudents = students.filter(student => student.billingType && student.billingType !== BILLING_TYPES.perClass).length;
@@ -1863,7 +1868,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
             <div>
               <p style={{ margin: "0 0 6px", color: "#4A9EFF", fontSize: "12px", fontWeight: "700" }}>CARTEIRA DE ALUNOS</p>
               <h2 className="app-page-title">Alunos</h2>
-              <p className="app-page-kicker">Organize agenda, cobranca e historico de treino de cada pessoa.</p>
+              <p className="app-page-kicker">Organize agenda, cobrança e histórico de treino de cada pessoa.</p>
             </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -1914,7 +1919,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
             type="search"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Buscar por nome, telefone, e-mail ou observacao..."
+            placeholder="Buscar por nome, telefone, e-mail ou observação..."
             className="students-search-input"
           />
           {normalizedSearch && (
@@ -2453,9 +2458,14 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
       {!loadingData && !selectedStudentId && (
         <div className="students-list">
           {visibleStudents.length === 0 && (
-            <div className="app-card" style={{ textAlign: "center", padding: "32px 16px", color: "#9CA3AF" }}>
-              <p style={{ fontSize: "14px", margin: "0 0 4px", fontWeight: "700", color: "#FFFFFF" }}>Nenhum aluno encontrado</p>
-              <p style={{ fontSize: "12px", margin: 0 }}>Tente buscar por outro nome, telefone ou e-mail.</p>
+            <div className="app-card setup-empty-card">
+              <p>{studentsEmptyState.title}</p>
+              <small>{studentsEmptyState.description}</small>
+              {studentsEmptyState.actionLabel && (
+                <button type="button" onClick={() => setShowForm(true)}>
+                  <IconPlus /> {studentsEmptyState.actionLabel}
+                </button>
+              )}
             </div>
           )}
           {visibleStudents.map(student => {
@@ -2482,7 +2492,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                       {billingStatus.remainingClasses} restantes
                     </span>}
                     {billingStatus.billingType === BILLING_TYPES.monthlyPackage && billingStatus.contractedClasses === 0 && <span className="student-pill student-pill-info">
-                      Aulas calculadas no mes
+                      Aulas calculadas no mês
                     </span>}
                   </div>
                 )}

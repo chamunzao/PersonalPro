@@ -14,10 +14,14 @@ import {
 } from "./scheduleCalculations";
 import { getAttendanceStatusStyle, updateAttendanceRecord } from "../attendance/attendanceActions";
 
+function formatClassCount(count) {
+  return `${count} ${count === 1 ? "aula" : "aulas"}`;
+}
+
 function openWhatsAppMessage(phone, message) {
   const digits = String(phone || "").replace(/\D/g, "");
   if (!digits) {
-    alert("Cadastre o WhatsApp do aluno para usar esta acao.");
+    alert("Cadastre o WhatsApp do aluno para usar esta ação.");
     return;
   }
   const phoneWithCountry = digits.startsWith("55") ? digits : `55${digits}`;
@@ -109,36 +113,30 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
   const todayClasses = getTodayClasses();
 
   return (
-    <div style={{ padding: "16px" }}>
-      <div style={{
-        background: theme.gradient,
-        color: "white",
-        padding: "16px",
-        borderRadius: "8px",
-        marginBottom: "20px"
-      }}>
-        <p style={{ fontSize: "14px", fontWeight: "600", margin: "0 0 8px 0" }}>
+    <div className="agenda-page">
+      <section className="app-card agenda-hero-panel">
+        <p className="agenda-hero-greeting">
           {getTodayGreeting()}, Instrutor!
         </p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-          <div>
-            <p style={{ fontSize: "12px", opacity: 0.9, margin: "0" }}>Aulas Hoje</p>
-            <p style={{ fontSize: "20px", fontWeight: "700", margin: "4px 0 0 0" }}>{todayClasses.length}</p>
+        <div className="agenda-hero-metrics">
+          <div className="agenda-hero-metric">
+            <p>Aulas hoje</p>
+            <strong>{todayClasses.length}</strong>
           </div>
-          <div>
-            <p style={{ fontSize: "12px", opacity: 0.9, margin: "0" }}>Total de Alunos</p>
-            <p style={{ fontSize: "20px", fontWeight: "700", margin: "4px 0 0 0" }}>{students.length}</p>
+          <div className="agenda-hero-metric">
+            <p>Total de alunos</p>
+            <strong>{students.length}</strong>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ fontSize: "18px", fontWeight: "600", margin: "0", color: "#1f2937" }}>
+      <section className="agenda-period-panel">
+        <h2>
           {viewMode === "month"
             ? `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`
             : `${getDateText(weekDays[0])} - ${getDateText(weekDays[6])}`}
         </h2>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div className="agenda-period-actions">
           <button
             onClick={() => {
               if (viewMode === "month") {
@@ -149,29 +147,13 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
                 setCurrentDate(previousWeek);
               }
             }}
-            style={{
-              padding: "6px 10px",
-              background: "#f3f4f6",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "14px"
-            }}
+            className="agenda-period-button"
           >
             Anterior
           </button>
           <button
             onClick={() => setCurrentDate(new Date())}
-            style={{
-              padding: "6px 10px",
-              background: theme.primary,
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "12px",
-              fontWeight: "600"
-            }}
+            className="agenda-period-button agenda-period-button-primary"
           >
             Hoje
           </button>
@@ -185,38 +167,22 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
                 setCurrentDate(nextWeek);
               }
             }}
-            style={{
-              padding: "6px 10px",
-              background: "#f3f4f6",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "14px"
-            }}
+            className="agenda-period-button"
           >
             Próximo
           </button>
         </div>
-      </div>
+      </section>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "16px" }}>
+      <div className="agenda-view-switch">
         {[
-          { key: "month", label: "Mes" },
+          { key: "month", label: "Mês" },
           { key: "week", label: "Semana" }
         ].map(option => (
           <button
             key={option.key}
             onClick={() => setViewMode(option.key)}
-            style={{
-              padding: "9px",
-              background: viewMode === option.key ? theme.primary : "white",
-              color: viewMode === option.key ? "white" : theme.primary,
-              border: `1px solid ${theme.medium}`,
-              borderRadius: "6px",
-              fontSize: "12px",
-              fontWeight: "800",
-              cursor: "pointer"
-            }}
+            className={`agenda-view-button ${viewMode === option.key ? "agenda-view-button-active" : ""}`}
           >
             {option.label}
           </button>
@@ -224,16 +190,16 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
       </div>
 
       {viewMode === "week" && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "16px" }}>
+        <div className="agenda-week-summary">
           {[
             { label: "Aulas", value: weekSummary.total, color: theme.primary },
             { label: "Pendentes", value: weekSummary.pending, color: "#6b7280" },
             { label: "Presentes", value: weekSummary.present, color: "#059669" },
             { label: "Faltas", value: weekSummary.absent, color: "#dc2626" }
           ].map(item => (
-            <div key={item.label} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px" }}>
-              <p style={{ fontSize: "10px", color: "#9ca3af", margin: "0 0 4px", fontWeight: "700" }}>{item.label}</p>
-              <p style={{ fontSize: "20px", color: item.color, margin: 0, fontWeight: "800" }}>{item.value}</p>
+            <div key={item.label} className="agenda-week-summary-card">
+              <p>{item.label}</p>
+              <strong style={{ color: item.color }}>{item.value}</strong>
             </div>
           ))}
         </div>
@@ -321,20 +287,9 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
 
 function MonthCalendar({ days, currentDate, getClassesForDay, setSelectedDayModal, theme }) {
   return (
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(7, 1fr)",
-      gap: "8px",
-      marginBottom: "20px"
-    }}>
+    <div className="agenda-month-grid">
       {DAY_ABBR.map(day => (
-        <div key={day} style={{
-          textAlign: "center",
-          fontSize: "12px",
-          fontWeight: "600",
-          color: theme.primary,
-          padding: "8px"
-        }}>
+        <div key={day} className="agenda-weekday-label">
           {day}
         </div>
       ))}
@@ -348,18 +303,7 @@ function MonthCalendar({ days, currentDate, getClassesForDay, setSelectedDayModa
           <div
             key={idx}
             onClick={() => dayNum && setSelectedDayModal(dayNum)}
-            style={{
-              background: dayNum === null ? "transparent" : (isToday ? "#f3f4f6" : "white"),
-              border: dayNum === null ? "none" : "1px solid #e5e7eb",
-              borderRadius: "6px",
-              padding: "8px",
-              minHeight: "60px",
-              display: "flex",
-              flexDirection: "column",
-              cursor: dayNum ? "pointer" : "default",
-              transition: dayNum ? "all 0.2s" : "none",
-              position: "relative"
-            }}
+            className={`agenda-day-cell ${dayNum ? "agenda-day-cell-filled" : "agenda-day-cell-empty"} ${isToday ? "agenda-day-cell-today" : ""}`}
             onMouseEnter={(e) => {
               if (dayNum) {
                 e.currentTarget.style.boxShadow = `0 2px 8px ${theme.light}`;
@@ -375,12 +319,12 @@ function MonthCalendar({ days, currentDate, getClassesForDay, setSelectedDayModa
           >
             {dayNum && (
               <>
-                <p style={{ fontSize: "12px", fontWeight: "600", color: "#1f2937", margin: "0 0 6px 0" }}>{dayNum}</p>
-                <div style={{ fontSize: "10px", color: "#6b7280", flex: 1 }}>
+                <p className="agenda-day-number">{dayNum}</p>
+                <div className="agenda-day-count">
                   {classesForDay.length > 0 ? (
                     <>
-                      <span>{classesForDay.length} aula(s)</span>
-                      <div style={{ marginTop: "4px", display: "flex", gap: "3px", flexWrap: "wrap" }}>
+                      <span>{formatClassCount(classesForDay.length)}</span>
+                      <div className="agenda-day-dots">
                         {classesForDay.map((cls, i) => {
                           const color = cls.attendance === "present" ? "#059669" : cls.attendance === "absent" ? "#dc2626" : theme.primary;
                           return (
@@ -412,7 +356,7 @@ function MonthCalendar({ days, currentDate, getClassesForDay, setSelectedDayModa
 
 function WeekCalendar({ weekDays, getClassesForDateObject, setCurrentDate, setSelectedDayModal, theme }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
+    <div className="agenda-week-list">
       {weekDays.map(date => {
         const classes = getClassesForDateObject(date);
         const isToday = getDateText(date) === getDateText(new Date());
@@ -423,29 +367,22 @@ function WeekCalendar({ weekDays, getClassesForDateObject, setCurrentDate, setSe
               setCurrentDate(date);
               setSelectedDayModal(date.getDate());
             }}
-            style={{
-              background: isToday ? "#f3f4f6" : "white",
-              border: `1px solid ${isToday ? theme.medium : "#e5e7eb"}`,
-              borderRadius: "8px",
-              padding: "12px",
-              cursor: "pointer",
-              textAlign: "left"
-            }}
+            className={`agenda-week-day ${isToday ? "agenda-week-day-today" : ""}`}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", marginBottom: classes.length > 0 ? "8px" : "0" }}>
+            <div className="agenda-week-day-header" style={{ marginBottom: classes.length > 0 ? "8px" : "0" }}>
               <div>
-                <p style={{ fontSize: "13px", fontWeight: "800", color: "#1f2937", margin: "0 0 2px" }}>{DAYS[jsDayToIndex(date.getDay())]}</p>
-                <p style={{ fontSize: "11px", color: "#6b7280", margin: 0 }}>{getDateText(date)}</p>
+                <p>{DAYS[jsDayToIndex(date.getDay())]}</p>
+                <small>{getDateText(date)}</small>
               </div>
-              <span style={{ fontSize: "12px", fontWeight: "800", color: theme.primary }}>{classes.length} aula(s)</span>
+              <span>{formatClassCount(classes.length)}</span>
             </div>
             {classes.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div className="agenda-week-classes">
                 {classes.map(cls => {
                   const statusStyle = getAttendanceStatusStyle(cls.attendance, theme);
                   return (
-                    <div key={cls.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", background: "#f9fafb", borderRadius: "6px", padding: "7px" }}>
-                      <span style={{ fontSize: "12px", color: "#1f2937", fontWeight: "700" }}>{cls.time} - {cls.studentName}</span>
+                    <div key={cls.key} className="agenda-week-class-row">
+                      <span>{cls.time} - {cls.studentName}</span>
                       <span style={{ fontSize: "10px", color: statusStyle.color, background: statusStyle.background, borderRadius: "4px", padding: "3px 6px", fontWeight: "800" }}>{statusStyle.label}</span>
                     </div>
                   );
@@ -490,7 +427,7 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
       await updateAttendanceRecord({ user, classKey: cls.key, status: nextStatus, setRecords });
     } catch (error) {
       console.error("Error updating attendance:", error);
-      alert("Erro ao atualizar presenca");
+      alert("Erro ao atualizar presença");
     } finally {
       setSavingAttendanceKey(null);
     }
@@ -765,13 +702,13 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
               Falta
             </button>
             <button
-              onClick={() => openWhatsAppMessage(cls.studentPhone, `Ola, ${cls.studentName}! Confirmando sua aula do dia ${dateLabel} as ${cls.time}. Pode confirmar?`)}
+              onClick={() => openWhatsAppMessage(cls.studentPhone, `Olá, ${cls.studentName}! Confirmando sua aula do dia ${dateLabel} às ${cls.time}. Pode confirmar?`)}
               style={{ flex: 1, padding: "7px", background: "#dcfce7", border: "none", color: "#166534", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
             >
               Confirmar
             </button>
             <button
-              onClick={() => openWhatsAppMessage(cls.studentPhone, `Ola, ${cls.studentName}! Se precisar trocar o horario da aula do dia ${dateLabel}, me avise por aqui para combinarmos a remarcacao.`)}
+              onClick={() => openWhatsAppMessage(cls.studentPhone, `Olá, ${cls.studentName}! Se precisar trocar o horário da aula do dia ${dateLabel}, me avise por aqui para combinarmos a remarcação.`)}
               style={{ flex: 1, padding: "7px", background: "#eff6ff", border: "none", color: "#1d4ed8", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
             >
               WhatsApp

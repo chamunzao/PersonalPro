@@ -5,7 +5,7 @@ import { calculateAdvanceCreditStatus, calculateBillingStatus } from '../billing
 function openWhatsAppMessage(phone, message) {
   const digits = String(phone || '').replace(/\D/g, '');
   if (!digits) {
-    alert('Cadastre o WhatsApp do aluno para usar esta acao.');
+    alert('Cadastre o WhatsApp do aluno para usar esta ação.');
     return;
   }
   const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
@@ -14,7 +14,7 @@ function openWhatsAppMessage(phone, message) {
 
 function getWeeklyScheduleText(student) {
   const schedule = student.schedule || [];
-  if (schedule.length === 0) return 'Voce ainda nao tem horarios fixos cadastrados nesta semana.';
+  if (schedule.length === 0) return 'Você ainda não tem horários fixos cadastrados nesta semana.';
 
   return DAYS.map((day, dayIndex) => {
     const times = schedule
@@ -39,17 +39,17 @@ function buildMessages({ student, records, payments }) {
   const weeklySchedule = getWeeklyScheduleText(student);
 
   return {
-    weeklyConfirmation: `Ola, ${firstName}! Passando para confirmar sua agenda da semana:\n\n${weeklySchedule}\n\nPode me confirmar se esta tudo certo?`,
+    weeklyConfirmation: `Olá, ${firstName}! Passando para confirmar sua agenda da semana:\n\n${weeklySchedule}\n\nPode me confirmar se está tudo certo?`,
     paymentReminder: payment
-      ? `Ola, ${firstName}! Seu pagamento deste mes consta como recebido. Obrigado!`
-      : `Ola, ${firstName}! Passando para lembrar do pagamento deste mes. Valor previsto: ${formatCurrency(billingStatus.planValue || student.pricePerClass || 0)}. Qualquer duvida me chama por aqui.`,
+      ? `Olá, ${firstName}! Seu pagamento deste mês consta como recebido. Obrigado!`
+      : `Olá, ${firstName}! Passando para lembrar do pagamento deste mês. Valor previsto: ${formatCurrency(billingStatus.planValue || student.pricePerClass || 0)}. Qualquer dúvida me chama por aqui.`,
     packageEnding: creditStatus.remainingClasses !== null
-      ? `Ola, ${firstName}! Seu pacote esta com ${creditStatus.remainingClasses} aula(s) paga(s) restante(s). Vamos alinhar a renovacao para nao interromper sua rotina?`
+      ? `Olá, ${firstName}! Seu pacote está com ${creditStatus.remainingClasses} aula(s) paga(s) restante(s). Vamos alinhar a renovação para não interromper sua rotina?`
       : billingStatus.remainingClasses !== null
-      ? `Ola, ${firstName}! Seu pacote esta com ${billingStatus.remainingClasses} aula(s) restante(s). Vamos alinhar a renovacao para nao interromper sua rotina?`
-      : `Ola, ${firstName}! Passando para alinharmos a continuidade do seu plano de treinos deste mes.`,
-    weeklyCheckIn: `Ola, ${firstName}! Check-in rapido da semana: como voce esta se sentindo com os treinos, dores, energia e rotina? Me responde por aqui para eu ajustar o acompanhamento.`,
-    workoutReminder: `Ola, ${firstName}! Passando para reforcar seu treino atual. Se tiver duvida em algum exercicio, me chama por aqui antes da proxima aula.`
+      ? `Olá, ${firstName}! Seu pacote está com ${billingStatus.remainingClasses} aula(s) restante(s). Vamos alinhar a renovação para não interromper sua rotina?`
+      : `Olá, ${firstName}! Passando para alinharmos a continuidade do seu plano de treinos deste mês.`,
+    weeklyCheckIn: `Olá, ${firstName}! Check-in rápido da semana: como você está se sentindo com os treinos, dores, energia e rotina? Me responde por aqui para eu ajustar o acompanhamento.`,
+    workoutReminder: `Olá, ${firstName}! Passando para reforçar seu treino atual. Se tiver dúvida em algum exercício, me chama por aqui antes da próxima aula.`
   };
 }
 
@@ -83,8 +83,8 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
     <div className="communication-page">
       <section className="app-card communication-hero-panel">
         <p className="dashboard-kicker">CENTRAL DE CONTATO</p>
-        <h2 className="communication-page-title">Comunicacao</h2>
-        <p className="communication-page-kicker">Acoes rapidas com mensagens prontas para WhatsApp.</p>
+        <h2 className="communication-page-title">Comunicação</h2>
+        <p className="communication-page-kicker">Ações rápidas com mensagens prontas para WhatsApp.</p>
         <div className="communication-hero-summary">
           <div>
             <p>Alunos na lista</p>

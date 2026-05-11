@@ -20,7 +20,15 @@ import {
   getBillingStatusColors,
   getBillingStatusLabel
 } from '../billing/billingCalculations';
+import { getPaymentsEmptyState } from '../emptyStates/setupEmptyStates';
 import { getClassesForDate } from '../schedule/scheduleCalculations';
+import {
+  filterPaymentItems,
+  getPaymentDetailsLabel,
+  getPaymentFilterCounts,
+  getPaymentReferenceDate,
+  isPaymentDetailsExpanded
+} from './paymentFilters';
 
 function parseMoney(value) {
   const parsed = parseFloat(String(value || '').replace(',', '.'));
@@ -103,6 +111,8 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
   const [savingKey, setSavingKey] = useState(null);
   const [editingKey, setEditingKey] = useState(null);
   const [paymentForms, setPaymentForms] = useState({});
+  const [activePaymentFilter, setActivePaymentFilter] = useState('all');
+  const [expandedPaymentKeys, setExpandedPaymentKeys] = useState(new Set());
   const [packageForm, setPackageForm] = useState({
     packageType: 'month',
     studentId: '',
@@ -165,6 +175,18 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
     setEditingKey(null);
   }
 
+  function togglePaymentDetails(paymentKey) {
+    setExpandedPaymentKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(paymentKey)) {
+        next.delete(paymentKey);
+      } else {
+        next.add(paymentKey);
+      }
+      return next;
+    });
+  }
+
   function updatePackageForm(patch) {
     setPackageForm(prev => ({
       ...prev,
@@ -184,8 +206,8 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
       classUnitPrice: String(unitPrice),
       amountPaid: amountPaid ? String(amountPaid) : '',
       note: unpaidClasses
-        ? `Pagamento de ${unpaidClasses} aula${unpaidClasses === 1 ? '' : 's'} feita${unpaidClasses === 1 ? '' : 's'} e ainda nao paga${unpaidClasses === 1 ? '' : 's'}.`
-        : 'Nao ha aulas presenciais pendentes neste mes.'
+        ? `Pagamento de ${unpaidClasses} aula${unpaidClasses === 1 ? '' : 's'} feita${unpaidClasses === 1 ? '' : 's'} e ainda não paga${unpaidClasses === 1 ? '' : 's'}.`
+        : 'Não há aulas presenciais pendentes neste mês.'
     });
   }
 
@@ -344,16 +366,38 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
   const monthReceived = monthPayments.reduce((sum, payment) => sum + (Number(payment.amountPaid) || 0), 0);
   const paidStudentCount = new Set(monthPayments.map(getPaymentStudentId)).size;
   const pendingStudentCount = Math.max(students.length - paidStudentCount, 0);
+  const paymentReferenceDate = getPaymentReferenceDate(selectedYear, selectedMonth);
+  const paymentItems = students.map(student => {
+    const paymentKey = `${monthKey}_${student.id}`;
+    const payment = payments.find(p => p.key === paymentKey);
+    const studentMonthPayments = payments.filter(p => getPaymentStudentId(p) === student.id && p.month === monthKey && p.paid);
+    const monthPackagePayment = studentMonthPayments.find(p => p.type === 'package' && p.packageType === 'month');
+    const displayPayment = payment || monthPackagePayment || studentMonthPayments[0];
+    const billingStatus = calculateBillingStatus(student, records, paymentReferenceDate);
+    const paymentState = displayPayment?.paid
+      ? 'paid'
+      : billingStatus.status === 'overdue' || billingStatus.status === 'depleted'
+      ? 'overdue'
+      : 'pending';
+
+    return {
+      student,
+      paymentState
+    };
+  });
+  const paymentFilterCounts = getPaymentFilterCounts(paymentItems);
+  const filteredPaymentItems = filterPaymentItems(paymentItems, activePaymentFilter);
+  const paymentsEmptyState = getPaymentsEmptyState(students.length > 0);
 
   return (
     <div className="payments-page">
       <section className="app-card payments-hero-panel">
         <p className="dashboard-kicker">CONTROLE FINANCEIRO</p>
         <h2 className="payments-page-title">Pagamentos</h2>
-        <p className="payments-page-kicker">Veja recebidos, pendencias e registre pacotes sem sair do fluxo do mes.</p>
+        <p className="payments-page-kicker">Veja recebidos, pendências e registre pacotes sem sair do fluxo do mês.</p>
         <div className="payments-hero-summary">
           <div>
-            <p>Recebido no mes</p>
+            <p>Recebido no mês</p>
             <strong>{formatCurrency(monthReceived)}</strong>
           </div>
           <span>{paidStudentCount}/{students.length} alunos</span>
@@ -397,7 +441,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
         <>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
           {[
-            { id: 'month', label: 'Pacote do mes' },
+            { id: 'month', label: 'Pacote do mês' },
             { id: 'custom', label: 'Pacote personalizado' }
           ].map(item => (
             <button
@@ -490,13 +534,13 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
         </div>
         {packageForm.packageType === 'month' && (
           <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 10px 0' }}>
-            Usa {MONTHS[selectedMonth]} de {selectedYear}: conta as aulas previstas do aluno no mes e sugere o valor pelo plano cadastrado ou pelo preco por aula.
+            Usa {MONTHS[selectedMonth]} de {selectedYear}: conta as aulas previstas do aluno no mês e sugere o valor pelo plano cadastrado ou pelo preço por aula.
           </p>
         )}
         <textarea
           value={packageForm.note}
           onChange={(e) => updatePackageForm({ note: e.target.value })}
-          placeholder="Observacao do pacote, combinados, comprovante, parcelamento..."
+          placeholder="Observação do pacote, combinados, comprovante, parcelamento..."
           style={{
             width: '100%',
             minHeight: '54px',
@@ -525,7 +569,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
             cursor: savingKey === 'advance-package' ? 'not-allowed' : 'pointer'
           }}
         >
-          {savingKey === 'advance-package' ? 'Registrando...' : packageForm.packageType === 'month' ? 'Registrar pacote do mes' : 'Registrar pacote e criar creditos'}
+          {savingKey === 'advance-package' ? 'Registrando...' : packageForm.packageType === 'month' ? 'Registrar pacote do mês' : 'Registrar pacote e criar créditos'}
         </button>
         </>
         )}
@@ -533,7 +577,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
 
       <div className="payments-filter-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
         <div>
-          <label style={{ fontSize: '13px', fontWeight: '600', color: '#4b5563', display: 'block', marginBottom: '6px' }}>Mes</label>
+          <label style={{ fontSize: '13px', fontWeight: '600', color: '#4b5563', display: 'block', marginBottom: '6px' }}>Mês</label>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(parseInt(e.target.value, 10))}
@@ -570,22 +614,43 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
         </div>
       </div>
 
+      <div className="payments-status-filter" aria-label="Filtro de pagamentos">
+        {[
+          { id: 'all', label: 'Todos' },
+          { id: 'pending', label: 'Pendentes' },
+          { id: 'overdue', label: 'Vencidos' },
+          { id: 'paid', label: 'Pagos' }
+        ].map(item => (
+          <button
+            key={item.id}
+            type="button"
+            className={`payments-status-filter-button ${activePaymentFilter === item.id ? 'payments-status-filter-button-active' : ''}`}
+            onClick={() => setActivePaymentFilter(item.id)}
+          >
+            <span>{item.label}</span>
+            <strong>{paymentFilterCounts[item.id]}</strong>
+          </button>
+        ))}
+      </div>
+
       {loadingData && <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center' }}>Carregando...</p>}
 
       {students.length === 0 ? (
-        <div className="app-card payments-empty" style={{
-          textAlign: 'center',
-          padding: '40px 20px',
-          background: '#f9fafb',
-          borderRadius: '8px',
-          color: '#9ca3af'
-        }}>
-          <p style={{ fontSize: '14px', margin: '0' }}>Nenhum aluno cadastrado</p>
+        <div className="app-card setup-empty-card payments-empty">
+          <p>{paymentsEmptyState.title}</p>
+          <small>{paymentsEmptyState.description}</small>
         </div>
       ) : (
         <div className="payments-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {students.map(student => {
+          {filteredPaymentItems.length === 0 && (
+            <div className="app-card setup-empty-card payments-empty">
+              <p>{paymentsEmptyState.title}</p>
+              <small>{paymentsEmptyState.description}</small>
+            </div>
+          )}
+          {filteredPaymentItems.map(({ student }) => {
             const paymentKey = `${monthKey}_${student.id}`;
+            const detailsExpanded = isPaymentDetailsExpanded(expandedPaymentKeys, paymentKey);
             const payment = payments.find(p => p.key === paymentKey);
             const monthPayments = payments.filter(p => getPaymentStudentId(p) === student.id && p.month === monthKey && p.paid);
             const monthPackagePayment = monthPayments.find(p => p.type === 'package' && p.packageType === 'month');
@@ -593,7 +658,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
             const isPaid = !!displayPayment?.paid;
             const isEditing = editingKey === paymentKey;
             const isSaving = savingKey === paymentKey;
-            const billingStatus = calculateBillingStatus(student, records, new Date(selectedYear, selectedMonth, 1));
+            const billingStatus = calculateBillingStatus(student, records, paymentReferenceDate);
             const billingColors = getBillingStatusColors(billingStatus);
             const creditStatus = calculateAdvanceCreditStatus(student, records, payments);
             const creditColors = getAdvanceCreditStatusColors(creditStatus);
@@ -781,45 +846,57 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                   </div>
                 </div>
 
-                {isMonthlyPackageStudent && (
-                  <div className="payment-month-package" style={{
-                    marginTop: '10px',
-                    padding: '10px',
-                    background: isPaid ? '#ecfdf5' : '#fff7ed',
-                    border: `1px solid ${isPaid ? '#a7f3d0' : '#fed7aa'}`,
-                    borderRadius: '8px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: '10px',
-                    alignItems: 'center'
-                  }}>
-                    <div>
-                      <p style={{ fontSize: '12px', fontWeight: '800', color: isPaid ? '#047857' : '#c2410c', margin: '0 0 3px 0' }}>
-                        Pacote mensal de {MONTHS[selectedMonth]}
-                      </p>
-                      <p style={{ fontSize: '11px', color: '#4b5563', margin: '0' }}>
-                        {monthlyClasses} aula{monthlyClasses === 1 ? '' : 's'} previstas - {formatCurrency(monthlyPackageAmount)}
-                      </p>
-                    </div>
-                    {!isPaid && (
-                      <button
-                        onClick={() => useMonthlyPackageSuggestion(student)}
-                        style={{
-                          padding: '8px 10px',
-                          background: theme.primary,
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          fontSize: '11px',
-                          fontWeight: '800',
-                          cursor: 'pointer',
-                          flexShrink: 0
-                        }}
-                      >
-                        Usar pacote
-                      </button>
+                <button
+                  type="button"
+                  className="payment-details-toggle"
+                  onClick={() => togglePaymentDetails(paymentKey)}
+                >
+                  {getPaymentDetailsLabel(detailsExpanded)}
+                </button>
+
+                {detailsExpanded && (
+                  <>
+                    {isMonthlyPackageStudent && (
+                      <div className="payment-month-package" style={{
+                        marginTop: '10px',
+                        padding: '10px',
+                        background: isPaid ? '#ecfdf5' : '#fff7ed',
+                        border: `1px solid ${isPaid ? '#a7f3d0' : '#fed7aa'}`,
+                        borderRadius: '8px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: '10px',
+                        alignItems: 'center'
+                      }}>
+                        <div>
+                          <p style={{ fontSize: '12px', fontWeight: '800', color: isPaid ? '#047857' : '#c2410c', margin: '0 0 3px 0' }}>
+                            Pacote mensal de {MONTHS[selectedMonth]}
+                          </p>
+                          <p style={{ fontSize: '11px', color: '#4b5563', margin: '0' }}>
+                            {monthlyClasses} aula{monthlyClasses === 1 ? '' : 's'} previstas - {formatCurrency(monthlyPackageAmount)}
+                          </p>
+                        </div>
+                        {!isPaid && (
+                          <button
+                            onClick={() => useMonthlyPackageSuggestion(student)}
+                            style={{
+                              padding: '8px 10px',
+                              background: theme.primary,
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              flexShrink: 0
+                            }}
+                          >
+                            Usar pacote
+                          </button>
+                        )}
+                      </div>
                     )}
-                  </div>
+                  </>
                 )}
 
                 {isEditing && (
@@ -832,7 +909,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                   }}>
                     <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                       <p style={{ fontSize: '12px', color: '#4b5563', margin: 0 }}>
-                        {presentClassesInMonth} aula{presentClassesInMonth === 1 ? '' : 's'} feita{presentClassesInMonth === 1 ? '' : 's'} no mes. {unpaidClassesInMonth} ainda sem pagamento registrado.
+                        {presentClassesInMonth} aula{presentClassesInMonth === 1 ? '' : 's'} feita{presentClassesInMonth === 1 ? '' : 's'} no mês. {unpaidClassesInMonth} ainda sem pagamento registrado.
                       </p>
                       <button
                         onClick={() => fillUnpaidClasses(student, paymentKey)}
@@ -849,7 +926,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                           cursor: 'pointer'
                         }}
                       >
-                        Pagar aulas feitas e nao pagas
+                        Pagar aulas feitas e não pagas
                       </button>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '10px', marginBottom: '10px' }}>
@@ -925,7 +1002,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                         />
                       </div>
                     </div>
-                    <label style={{ fontSize: '11px', fontWeight: '700', color: '#4b5563', display: 'block', marginBottom: '4px' }}>Observacao</label>
+                    <label style={{ fontSize: '11px', fontWeight: '700', color: '#4b5563', display: 'block', marginBottom: '4px' }}>Observação</label>
                     <textarea
                       value={form.note}
                       onChange={(e) => updateForm(paymentKey, { note: e.target.value })}
@@ -980,7 +1057,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                   </div>
                 )}
 
-                {history.length > 0 && (
+                {detailsExpanded && history.length > 0 && (
                   <div className="payment-history-row" style={{ marginTop: '10px', borderTop: '1px solid #f3f4f6', paddingTop: '8px' }}>
                     <p style={{ fontSize: '11px', fontWeight: '700', color: '#9ca3af', margin: '0 0 6px 0' }}>Historico recente</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>

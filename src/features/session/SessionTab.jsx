@@ -22,6 +22,7 @@ import { getClassesForDate } from '../schedule/scheduleCalculations';
 import { updateAttendanceRecord } from '../attendance/attendanceActions';
 import { applySessionNotesUpdate, saveSessionNotes as saveSessionNotesRecord } from '../../services/recordsService';
 import { DEMO_EMAIL, getDemoWorkoutPlans } from '../../services/demoData';
+import { loadSessionWorkoutEntries } from './sessionWorkouts';
 
 function IconCheck() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -118,6 +119,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
   const [drafts, setDrafts] = useState({});
   const [editingWorkoutKey, setEditingWorkoutKey] = useState(null);
   const [workoutEditForms, setWorkoutEditForms] = useState({});
+  const [workoutLoadErrors, setWorkoutLoadErrors] = useState({});
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
   const [savingKey, setSavingKey] = useState(null);
 
@@ -161,28 +163,35 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
 
       setLoadingWorkouts(true);
       try {
-        const entries = await Promise.all(missingStudents.map(async cls => {
-          const snap = await getDocs(collection(db, `users/${user.uid}/students/${cls.studentId}/workoutPlans`));
-          const plans = snap.empty && user.email === DEMO_EMAIL
-            ? getDemoWorkoutPlans(cls.studentId)
-            : snap.docs.map(item => ({ id: item.id, ...item.data() }));
-          return [cls.studentId, plans];
-        }));
+        const { workoutsByStudent: loadedWorkouts, errorsByStudent } = await loadSessionWorkoutEntries({
+          studentsToLoad: missingStudents,
+          isDemoAccount: user.email === DEMO_EMAIL,
+          getDemoWorkoutPlans,
+          fetchWorkoutPlans: async (studentId) => {
+            const snap = await getDocs(collection(db, `users/${user.uid}/students/${studentId}/workoutPlans`));
+            return snap.empty && user.email === DEMO_EMAIL
+              ? getDemoWorkoutPlans(studentId)
+              : snap.docs.map(item => ({ id: item.id, ...item.data() }));
+          }
+        });
 
         setWorkoutsByStudent(prev => ({
           ...prev,
-          ...Object.fromEntries(entries)
+          ...loadedWorkouts
         }));
+        setWorkoutLoadErrors(prev => {
+          const next = { ...prev };
+          missingStudents.forEach(cls => {
+            if (errorsByStudent[cls.studentId]) {
+              next[cls.studentId] = errorsByStudent[cls.studentId];
+            } else {
+              delete next[cls.studentId];
+            }
+          });
+          return next;
+        });
       } catch (error) {
-        console.error("Error loading workouts:", error);
-        if (user.email === DEMO_EMAIL) {
-          setWorkoutsByStudent(prev => ({
-            ...prev,
-            ...Object.fromEntries(missingStudents.map(cls => [cls.studentId, getDemoWorkoutPlans(cls.studentId)]))
-          }));
-        } else {
-          alert("Erro ao carregar treinos");
-        }
+        console.error("Unexpected workout loading error:", error);
       } finally {
         setLoadingWorkouts(false);
       }
@@ -229,7 +238,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
       }));
     } catch (error) {
       console.error("Error saving session notes:", error);
-      alert("Erro ao salvar anotacoes da aula");
+      alert("Erro ao salvar anotações da aula");
     } finally {
       setSavingKey(null);
     }
@@ -242,7 +251,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
       await updateAttendanceRecord({ user, classKey, status: "present", setRecords });
     } catch (error) {
       console.error("Error marking attendance:", error);
-      alert("Erro ao marcar presenca");
+      alert("Erro ao marcar presença");
     } finally {
       setSavingKey(null);
     }
@@ -265,7 +274,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     if (!user || !activeWorkout) return;
     const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {} };
     if (!hasSessionChanges(draft)) {
-      alert("Anote alguma alteracao da aula antes de atualizar o treino.");
+      alert("Anote alguma alteração da aula antes de atualizar o treino.");
       return;
     }
 
@@ -393,12 +402,12 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     <div className="session-page">
       <section className="app-card session-command-panel">
         <div>
-          <p className="dashboard-kicker">AULA DO HORARIO</p>
-          <h2 className="session-page-title">Aula Rapida</h2>
-          <p className="session-page-kicker">Marque presenca, acompanhe treinos e registre series, repeticoes e carga no mesmo fluxo.</p>
+          <p className="dashboard-kicker">AULA DO HORÁRIO</p>
+          <h2 className="session-page-title">Aula Rápida</h2>
+          <p className="session-page-kicker">Marque presença, acompanhe treinos e registre séries, repetições e carga no mesmo fluxo.</p>
           <div className="session-hero-summary">
             <div>
-              <p>Horario aberto</p>
+              <p>Horário aberto</p>
               <strong>{selectedTime || "--:--"}</strong>
             </div>
             <span>{classesAtTime.length} aluno{classesAtTime.length === 1 ? "" : "s"}</span>
@@ -416,7 +425,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
           />
         </div>
         <div>
-          <label className="session-field-label">Horario</label>
+          <label className="session-field-label">Horário</label>
           <select
             value={selectedTime}
             onChange={(event) => setSelectedTime(event.target.value)}
@@ -456,8 +465,8 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
         <p style={{ color: "#9ca3af", fontSize: "14px", textAlign: "center", padding: "24px" }}>Carregando...</p>
       ) : classesAtTime.length === 0 ? (
         <div className="session-empty">
-          <p style={{ fontSize: "14px", fontWeight: "850", margin: "0 0 4px", color: "#334155" }}>Nenhum aluno nesse horario</p>
-          <p style={{ fontSize: "12px", margin: "0" }}>Escolha outro horario ou ajuste a data da aula.</p>
+          <p style={{ fontSize: "14px", fontWeight: "850", margin: "0 0 4px", color: "#334155" }}>Nenhum aluno nesse horário</p>
+          <p style={{ fontSize: "12px", margin: "0" }}>Escolha outro horário ou ajuste a data da aula.</p>
         </div>
       ) : (
         <div className="session-list">
@@ -466,6 +475,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
             const record = records.find(item => item.key === classKey);
             const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {}, exerciseLogs: {} };
             const activeWorkout = getActiveWorkout(workoutsByStudent[cls.studentId]);
+            const workoutLoadError = workoutLoadErrors[cls.studentId];
             const student = students.find(item => item.id === cls.studentId);
             const creditStatus = student
               ? calculateAdvanceCreditStatus(student, records, payments)
@@ -480,7 +490,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
               ? `${getAdvanceCreditStatusLabel(creditStatus)}${creditStatus.remainingClasses !== null ? ` - ${creditStatus.remainingClasses} restantes` : ""}`
               : billingStatus
                 ? `${billingStatus.billingTypeLabel} - ${getBillingStatusLabel(billingStatus)}`
-                : "Sem cobranca";
+                : "Sem cobrança";
             const saving = savingKey === classKey;
             const savingWorkout = savingKey === `workout-${classKey}`;
             const editingWorkout = editingWorkoutKey === classKey;
@@ -530,12 +540,19 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                   </div>
                 </div>
 
-                {activeWorkout ? (
+                {workoutLoadError ? (
+                  <div className="session-card-body">
+                    <div className="session-workout-error">
+                      <p>Não consegui carregar o treino deste aluno.</p>
+                      <small>Isso normalmente acontece quando as regras do Firebase ainda não permitem ler os treinos. O aluno e a presença continuam disponíveis.</small>
+                    </div>
+                  </div>
+                ) : activeWorkout ? (
                   <div className="session-card-body">
                     <div className="session-workout-header">
                       <div>
                         <p className="session-workout-name">{activeWorkout.name}</p>
-                        <p className="session-workout-count">{(activeWorkout.exercises || []).length} exercicios</p>
+                        <p className="session-workout-count">{(activeWorkout.exercises || []).length} exercícios</p>
                       </div>
                       <button
                         onClick={() => editingWorkout ? setEditingWorkoutKey(null) : startEditWorkoutFromClass(classKey, activeWorkout)}
@@ -554,11 +571,11 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                             <div className="session-exercise-copy">
                               <p className="session-exercise-name">{index + 1}. {exercise.name}</p>
                               <p className="session-exercise-prescription">
-                                {exercise.sets || "-"} series x {exercise.reps || "-"} reps
+                                {exercise.sets || "-"} séries x {exercise.reps || "-"} reps
                                 {exercise.weight ? ` · ${exercise.weight}` : ""}
                                 {exercise.rest ? ` · descanso ${exercise.rest}` : ""}
                               </p>
-                              <p className="session-exercise-progress">{countCompletedSets(draft.exerciseLogs?.[index])}/{getSetCount(exercise.sets)} series feitas</p>
+                              <p className="session-exercise-progress">{countCompletedSets(draft.exerciseLogs?.[index])}/{getSetCount(exercise.sets)} séries feitas</p>
                               {(exercise.muscleGroup || exercise.equipment) && (
                                 <p className="session-exercise-equipment">{[exercise.muscleGroup, exercise.equipment].filter(Boolean).join(" / ")}</p>
                               )}
@@ -668,7 +685,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                                 type="text"
                                 value={exercise.sets || ""}
                                 onChange={(event) => updateWorkoutExercise(classKey, index, { sets: event.target.value })}
-                                placeholder="Series"
+                                placeholder="Séries"
                                 style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
                               />
                               <input
@@ -765,7 +782,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                 <textarea
                   value={draft.sessionNote}
                   onChange={(event) => updateDraft(classKey, current => ({ ...current, sessionNote: event.target.value }))}
-                  placeholder="Notas gerais da aula, dores, substituicoes, percepcao de esforco..."
+                  placeholder="Notas gerais da aula, dores, substituições, percepção de esforço..."
                   className="session-note-area"
                 />
                 </div>

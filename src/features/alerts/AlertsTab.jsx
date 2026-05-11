@@ -11,7 +11,7 @@ import { calculateAlerts } from './alertsCalculations';
 function openWhatsAppMessage(phone, message) {
   const digits = String(phone || '').replace(/\D/g, '');
   if (!digits) {
-    alert('Cadastre o WhatsApp do aluno para usar esta acao.');
+    alert('Cadastre o WhatsApp do aluno para usar esta ação.');
     return;
   }
   const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
@@ -27,21 +27,21 @@ function buildMessage(alert, student, billingStatus) {
   const value = billingStatus?.planValue || student?.packagePrice || student?.pricePerClass || 0;
 
   if (alert.type === 'payment_overdue') {
-    return `Ola, ${firstName}! Passando para lembrar que seu pagamento esta em atraso. Valor previsto: ${formatCurrency(value)}. Pode me confirmar por aqui quando fizer o envio?`;
+    return `Olá, ${firstName}! Passando para lembrar que seu pagamento está em atraso. Valor previsto: ${formatCurrency(value)}. Pode me confirmar por aqui quando fizer o envio?`;
   }
   if (alert.type === 'payment_due') {
-    return `Ola, ${firstName}! Seu vencimento esta chegando. Valor previsto: ${formatCurrency(value)}. Qualquer duvida me chama por aqui.`;
+    return `Olá, ${firstName}! Seu vencimento está chegando. Valor previsto: ${formatCurrency(value)}. Qualquer dúvida me chama por aqui.`;
   }
   if (alert.type.includes('credit') || alert.type.includes('package')) {
-    return `Ola, ${firstName}! Seu pacote de aulas esta perto do fim. Vamos alinhar a renovacao para manter sua rotina em dia?`;
+    return `Olá, ${firstName}! Seu pacote de aulas está perto do fim. Vamos alinhar a renovação para manter sua rotina em dia?`;
   }
   if (alert.type === 'inactive_student') {
-    return `Ola, ${firstName}! Senti sua falta nos treinos. Como voce esta? Vamos combinar o melhor dia para retomar?`;
+    return `Olá, ${firstName}! Senti sua falta nos treinos. Como você está? Vamos combinar o melhor dia para retomar?`;
   }
   if (alert.type === 'unmarked_class') {
-    return `Ola, ${firstName}! Confirmando sua aula de hoje as ${alert.time}. Foi tudo certo?`;
+    return `Olá, ${firstName}! Confirmando sua aula de hoje às ${alert.time}. Foi tudo certo?`;
   }
-  return `Ola, ${firstName}! Passando para alinharmos seu acompanhamento.`;
+  return `Olá, ${firstName}! Passando para alinharmos seu acompanhamento.`;
 }
 
 function getPaymentClasses(student, billingStatus) {
@@ -96,7 +96,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
 
   const severityStyles = {
     danger: { background: '#fee2e2', color: '#dc2626', border: '#fecaca', label: 'Critico' },
-    warning: { background: '#fef3c7', color: '#d97706', border: '#fde68a', label: 'Atencao' },
+    warning: { background: '#fef3c7', color: '#d97706', border: '#fde68a', label: 'Atenção' },
     info: { background: '#dbeafe', color: '#2563eb', border: '#bfdbfe', label: 'Hoje' }
   };
 
@@ -116,7 +116,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
       classUnitPrice: Number(student.pricePerClass) || 0,
       discount: 0,
       surcharge: 0,
-      note: `Registrado pela Central de Acoes: ${alert.title}`
+      note: `Registrado pela Central de Ações: ${alert.title}`
     };
 
     setSavingKey(`${alert.id}-payment`);
@@ -157,8 +157,8 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
     <div className="alerts-page">
       <div className="app-card alerts-hero-panel" style={{ padding: '16px', marginBottom: '16px' }}>
         <p style={{ margin: '0 0 5px', color: theme.primary, fontSize: '12px', fontWeight: '900' }}>CENTRAL DE ACOES</p>
-        <h2 className="app-page-title">Alertas</h2>
-        <p className="app-page-kicker">Resolva cobrancas, pacotes e registros do dia sem sair da tela.</p>
+        <h2 className="app-page-title">Ações</h2>
+        <p className="app-page-kicker">Resolva cobranças, pacotes e registros do dia sem sair da tela.</p>
       </div>
 
       {loadingData && <p style={{ color: '#9ca3af', fontSize: '14px', textAlign: 'center' }}>Carregando...</p>}
@@ -166,7 +166,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
       <div className="alerts-metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px', marginBottom: '16px' }}>
         {[
           { key: 'danger', label: 'Criticos' },
-          { key: 'warning', label: 'Atencao' },
+          { key: 'warning', label: 'Atenção' },
           { key: 'info', label: 'Hoje' }
         ].map(item => {
           const style = severityStyles[item.key];
@@ -193,7 +193,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
           border: '1px solid #e5e7eb',
           color: '#9ca3af'
         }}>
-          <p style={{ fontSize: '14px', margin: '0', fontWeight: '600' }}>Nenhum alerta pendente</p>
+          <p style={{ fontSize: '14px', margin: '0', fontWeight: '600' }}>Nenhuma ação pendente</p>
           <p style={{ fontSize: '12px', margin: '6px 0 0 0' }}>Pagamentos, pacotes e registros estao em ordem.</p>
         </div>
       ) : (

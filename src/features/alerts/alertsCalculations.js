@@ -102,7 +102,7 @@ function buildAdvanceCreditAlert(student, creditStatus) {
       type: "credit_depleted",
       severity: "danger",
       title: "Credito esgotado",
-      message: `${student.name} nao tem aulas pagas disponiveis.`,
+      message: `${student.name} não tem aulas pagas disponíveis.`,
       studentId: student.id,
       studentName: student.name
     };
@@ -125,7 +125,7 @@ function buildAdvanceCreditAlert(student, creditStatus) {
       id: `credit-low-${student.id}`,
       type: "credit_low",
       severity: "warning",
-      title: "Renovacao proxima",
+      title: "Renovação próxima",
       message: `${student.name} tem ${creditStatus.remainingClasses} aula${creditStatus.remainingClasses === 1 ? "" : "s"} paga${creditStatus.remainingClasses === 1 ? "" : "s"} restante${creditStatus.remainingClasses === 1 ? "" : "s"}.`,
       studentId: student.id,
       studentName: student.name

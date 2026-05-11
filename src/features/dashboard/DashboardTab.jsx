@@ -3,9 +3,11 @@ import { useAuth } from "../../AuthContext";
 import { formatCurrency } from "../../lib/money";
 import { getClassesForDate } from "../schedule/scheduleCalculations";
 import { getAttendanceStatusStyle, updateAttendanceRecord } from "../attendance/attendanceActions";
+import { getOnboardingSteps, shouldShowOnboarding } from "../onboarding/onboardingSteps";
+import { getNextClassAction } from "./dashboardActions";
 import { calculateDashboard } from "./dashboardCalculations";
 
-export function DashboardTab({ students, records, setRecords, payments, scheduleOverrides, loadingData, theme }) {
+export function DashboardTab({ students, records, setRecords, payments, scheduleOverrides, loadingData, theme, onOpenSession, onSelectTab }) {
   const { user } = useAuth();
   const [savingAttendanceKey, setSavingAttendanceKey] = useState(null);
   const dashboard = calculateDashboard({
@@ -15,11 +17,13 @@ export function DashboardTab({ students, records, setRecords, payments, schedule
     getClassesForDate: (dateISO) => getClassesForDate(dateISO, students, scheduleOverrides)
   });
 
-  const nextClass = dashboard.todayClasses.find(cls => !cls.attendance) || dashboard.todayClasses[0];
+  const nextClassAction = getNextClassAction(dashboard.todayClasses);
+  const showOnboarding = !loadingData && shouldShowOnboarding(students);
+  const onboardingSteps = getOnboardingSteps();
   const metricCards = [
     { label: "Aulas hoje", value: dashboard.todayClasses.length, detail: `${dashboard.pendingTodayClasses.length} sem registro`, tone: theme.primary },
-    { label: "Liquido no mes", value: formatCurrency(dashboard.report.netRevenue), detail: `${formatCurrency(dashboard.report.grossRevenue)} bruto`, tone: theme.primary },
-    { label: "Alertas criticos", value: dashboard.criticalAlerts.length, detail: `${dashboard.warningAlerts.length} em atencao`, tone: "#dc2626" },
+    { label: "Líquido no mês", value: formatCurrency(dashboard.report.netRevenue), detail: `${formatCurrency(dashboard.report.grossRevenue)} bruto`, tone: theme.primary },
+    { label: "Alertas críticos", value: dashboard.criticalAlerts.length, detail: `${dashboard.warningAlerts.length} em atenção`, tone: "#dc2626" },
     { label: "Pagamentos", value: `${dashboard.report.paymentRate.toFixed(0)}%`, detail: `${dashboard.pendingPayments} pendente${dashboard.pendingPayments === 1 ? "" : "s"}`, tone: "#059669" }
   ];
 
@@ -31,7 +35,7 @@ export function DashboardTab({ students, records, setRecords, payments, schedule
       await updateAttendanceRecord({ user, classKey: cls.key, status: nextStatus, setRecords });
     } catch (error) {
       console.error("Error updating attendance:", error);
-      alert("Erro ao atualizar presenca");
+      alert("Erro ao atualizar presença");
     } finally {
       setSavingAttendanceKey(null);
     }
@@ -44,9 +48,9 @@ export function DashboardTab({ students, records, setRecords, payments, schedule
           <p style={{ fontSize: "12px", fontWeight: "700", color: "#4A9EFF", margin: "0 0 8px" }}>PAINEL DO DIA</p>
           <h2 style={{ fontSize: "30px", lineHeight: 1.05, fontWeight: "700", margin: 0, color: "#FFFFFF" }}>Sua rotina pronta para executar.</h2>
           <p style={{ maxWidth: "620px", margin: "10px 0 0", fontSize: "14px", lineHeight: 1.45, color: "#9CA3AF" }}>
-            Marque presenca, veja pendencias e acompanhe o caixa do mes sem sair do fluxo das aulas.
+            Marque presença, veja pendências e acompanhe o caixa do mês sem sair do fluxo das aulas.
           </p>
-          {nextClass && (
+          {nextClassAction && (
             <div style={{
               marginTop: "18px",
               background: "rgba(74, 158, 255, 0.15)",
@@ -59,31 +63,73 @@ export function DashboardTab({ students, records, setRecords, payments, schedule
               alignItems: "center"
             }}>
               <div>
-                <p style={{ margin: 0, fontSize: "11px", color: "#9CA3AF", fontWeight: "500" }}>Proxima acao</p>
-                <p style={{ margin: "4px 0 0", fontSize: "16px", color: "#FFFFFF", fontWeight: "700" }}>{nextClass.time} - {nextClass.studentName}</p>
+                <p style={{ margin: 0, fontSize: "11px", color: "#9CA3AF", fontWeight: "500" }}>Próxima ação</p>
+                <p style={{ margin: "4px 0 0", fontSize: "16px", color: "#FFFFFF", fontWeight: "700" }}>{nextClassAction.classItem.time} - {nextClassAction.classItem.studentName}</p>
               </div>
-              <span className="status-pendente" style={{ whiteSpace: "nowrap" }}>
-                {nextClass.attendance ? "Registrada" : "Pendente"}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <span className="status-pendente" style={{ whiteSpace: "nowrap" }}>
+                  {nextClassAction.statusLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={onOpenSession}
+                  className="dashboard-next-action-button"
+                >
+                  {nextClassAction.label}
+                </button>
+              </div>
             </div>
           )}
         </section>
 
         <section className="app-card" style={{ padding: "16px" }}>
           <p style={{ margin: "0 0 12px", color: "#9CA3AF", fontSize: "11px", fontWeight: "500" }}>RESUMO FINANCEIRO</p>
-          <p style={{ margin: 0, color: "#4A9EFF", fontSize: "30px", fontWeight: "700", fontVariantNumeric: "tabular-nums" }}>{formatCurrency(dashboard.report.netRevenue)}</p>
-          <p style={{ margin: "5px 0 0", color: "#6B7280", fontSize: "13px" }}>apos taxas da academia</p>
+          <p style={{ margin: 0, color: "#4A9EFF", fontSize: "30px", fontWeight: "700", fontVariantNumeric: "tabular-nums" }}>{loadingData ? "..." : formatCurrency(dashboard.report.netRevenue)}</p>
+          <p style={{ margin: "5px 0 0", color: "#6B7280", fontSize: "13px" }}>após taxas da academia</p>
           <div style={{ height: "0.5px", background: "#3D4270", margin: "14px 0" }} />
           <div style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>
             <span style={{ color: "#9CA3AF", fontSize: "11px", fontWeight: "500" }}>Recebidos</span>
-            <strong style={{ color: "#FFFFFF", fontSize: "13px", fontWeight: "500" }}>{dashboard.report.studentsWithPayment}/{dashboard.report.totalStudents} alunos</strong>
+            <strong style={{ color: "#FFFFFF", fontSize: "13px", fontWeight: "500" }}>{loadingData ? "Carregando" : `${dashboard.report.studentsWithPayment}/${dashboard.report.totalStudents} alunos`}</strong>
           </div>
         </section>
       </div>
 
-      {loadingData && <p style={{ color: "#9CA3AF", fontSize: "14px", textAlign: "center" }}>Carregando...</p>}
+      {loadingData && (
+        <section className="app-card dashboard-loading-panel">
+          <p>Carregando sua operação...</p>
+          <span className="dashboard-loading-line" />
+          <span className="dashboard-loading-line" style={{ width: "72%" }} />
+        </section>
+      )}
 
-      <div className="dashboard-metrics-grid">
+      {showOnboarding && (
+        <section className="app-card onboarding-panel">
+          <div>
+            <p className="onboarding-kicker">PRIMEIRA CONFIGURAÇÃO</p>
+            <h3 className="onboarding-title">Monte sua operação em poucos passos.</h3>
+            <p className="onboarding-copy">Comece pelo aluno, depois organize agenda, cobrança e execução da primeira aula.</p>
+          </div>
+
+          <div className="onboarding-step-list">
+            {onboardingSteps.map((step, index) => (
+              <button
+                key={step.targetTab}
+                type="button"
+                className="onboarding-step"
+                onClick={() => onSelectTab(step.targetTab)}
+              >
+                <span className="onboarding-step-index">{index + 1}</span>
+                <span className="onboarding-step-text">
+                  <strong>{step.title}</strong>
+                  <small>{step.description}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!loadingData && <div className="dashboard-metrics-grid">
         {metricCards.map(card => (
           <div key={card.label} className="app-card" style={{ padding: "14px" }}>
             <p style={{ fontSize: "11px", color: "#9CA3AF", margin: "0 0 8px", fontWeight: "500" }}>{card.label}</p>
@@ -91,14 +137,14 @@ export function DashboardTab({ students, records, setRecords, payments, schedule
             <p style={{ fontSize: "11px", color: "#6B7280", margin: "6px 0 0" }}>{card.detail}</p>
           </div>
         ))}
-      </div>
+      </div>}
 
-      <div className="dashboard-work-grid">
+      {!loadingData && <div className="dashboard-work-grid">
         <section className="app-card" style={{ padding: "16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
             <div>
               <h3 style={{ fontSize: "16px", fontWeight: "700", margin: 0, color: "#FFFFFF" }}>Aulas de hoje</h3>
-              <p style={{ fontSize: "11px", color: "#9CA3AF", margin: "4px 0 0" }}>Registro rapido para manter a agenda limpa.</p>
+              <p style={{ fontSize: "11px", color: "#9CA3AF", margin: "4px 0 0" }}>Registro rápido para manter a agenda limpa.</p>
             </div>
             <span style={{ color: "#4A9EFF", background: "rgba(74, 158, 255, 0.15)", padding: "5px 9px", borderRadius: "999px", fontSize: "11px", fontWeight: "500" }}>{dashboard.todayClasses.length} aulas</span>
           </div>
@@ -145,9 +191,9 @@ export function DashboardTab({ students, records, setRecords, payments, schedule
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {dashboard.priorityAlerts.map(alert => {
                 const colors = alert.severity === "danger"
-                  ? { background: "rgba(239, 68, 68, 0.15)", color: "#EF4444", label: "Critico" }
+                  ? { background: "rgba(239, 68, 68, 0.15)", color: "#EF4444", label: "Crítico" }
                   : alert.severity === "warning"
-                  ? { background: "rgba(250, 204, 21, 0.15)", color: "#FACC15", label: "Atencao" }
+                  ? { background: "rgba(250, 204, 21, 0.15)", color: "#FACC15", label: "Atenção" }
                   : { background: "rgba(74, 158, 255, 0.15)", color: "#4A9EFF", label: "Hoje" };
                 return (
                   <div key={alert.id} style={{ padding: "12px", background: colors.background, borderRadius: "12px", border: `0.5px solid ${colors.color}44` }}>
@@ -160,7 +206,7 @@ export function DashboardTab({ students, records, setRecords, payments, schedule
             </div>
           )}
         </section>
-      </div>
+      </div>}
     </div>
   );
 }
