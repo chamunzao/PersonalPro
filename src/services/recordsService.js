@@ -4,6 +4,7 @@ import {
   setDoc,
   deleteDoc
 } from '../firebase';
+import { shouldSaveAttendanceRemotely } from './recordsPolicy.js';
 
 export function getRecordDocId(classKey) {
   return encodeURIComponent(classKey);
@@ -94,13 +95,15 @@ export function applySessionNotesUpdate(records, { classKey, sessionNote, exerci
 export async function updateAttendanceRecord({ user, classKey, status, activity, price, setRecords }) {
   if (!user) return;
 
-  await saveAttendanceRecord({
-    userId: user.uid,
-    classKey,
-    status,
-    activity,
-    price
-  });
+  if (shouldSaveAttendanceRemotely(user)) {
+    await saveAttendanceRecord({
+      userId: user.uid,
+      classKey,
+      status,
+      activity,
+      price
+    });
+  }
 
   setRecords(prev => applyAttendanceRecordUpdate(prev, { classKey, status, activity, price }));
 }
