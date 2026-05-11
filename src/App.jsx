@@ -16,14 +16,14 @@ import { getMoreNavigation, getPrimaryNavigation, isMoreSectionActive } from './
 
 // ==================== THEME COLORS ====================
 const THEMES = {
-  purple: { name: "Roxo", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
-  blue: { name: "Azul", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
-  pink: { name: "Rosa", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
-  green: { name: "Verde", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
-  orange: { name: "Laranja", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
-  red: { name: "Vermelho", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
-  teal: { name: "Turquesa", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
-  slate: { name: "Cinza", primary: "#4A9EFF", dark: "#1E2035", light: "rgba(74, 158, 255, 0.15)", medium: "#3D4270", soft: "#A78BFA", gradient: "linear-gradient(135deg, #4A9EFF 0%, #2E3154 100%)" },
+  purple: { name: "Dourado", primary: "#F2CF7C", dark: "#142339", light: "rgba(242, 207, 124, 0.16)", medium: "#4A6388", soft: "#F6E3AA", gradient: "linear-gradient(135deg, #F2CF7C 0%, #243B5C 100%)" },
+  blue: { name: "Dourado", primary: "#F2CF7C", dark: "#142339", light: "rgba(242, 207, 124, 0.16)", medium: "#4A6388", soft: "#F6E3AA", gradient: "linear-gradient(135deg, #F2CF7C 0%, #243B5C 100%)" },
+  pink: { name: "Dourado", primary: "#F2CF7C", dark: "#142339", light: "rgba(242, 207, 124, 0.16)", medium: "#4A6388", soft: "#F6E3AA", gradient: "linear-gradient(135deg, #F2CF7C 0%, #243B5C 100%)" },
+  green: { name: "Dourado", primary: "#F2CF7C", dark: "#142339", light: "rgba(242, 207, 124, 0.16)", medium: "#4A6388", soft: "#F6E3AA", gradient: "linear-gradient(135deg, #F2CF7C 0%, #243B5C 100%)" },
+  orange: { name: "Dourado", primary: "#F2CF7C", dark: "#142339", light: "rgba(242, 207, 124, 0.16)", medium: "#4A6388", soft: "#F6E3AA", gradient: "linear-gradient(135deg, #F2CF7C 0%, #243B5C 100%)" },
+  red: { name: "Dourado", primary: "#F2CF7C", dark: "#142339", light: "rgba(242, 207, 124, 0.16)", medium: "#4A6388", soft: "#F6E3AA", gradient: "linear-gradient(135deg, #F2CF7C 0%, #243B5C 100%)" },
+  teal: { name: "Dourado", primary: "#F2CF7C", dark: "#142339", light: "rgba(242, 207, 124, 0.16)", medium: "#4A6388", soft: "#F6E3AA", gradient: "linear-gradient(135deg, #F2CF7C 0%, #243B5C 100%)" },
+  slate: { name: "Dourado", primary: "#F2CF7C", dark: "#142339", light: "rgba(242, 207, 124, 0.16)", medium: "#4A6388", soft: "#F6E3AA", gradient: "linear-gradient(135deg, #F2CF7C 0%, #243B5C 100%)" },
 };
 
 const ThemeContext = React.createContext(THEMES.purple);

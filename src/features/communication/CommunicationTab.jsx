@@ -128,7 +128,7 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
                   <div>
                     <p style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937', margin: '0 0 3px 0' }}>{student.name}</p>
-                    <p style={{ fontSize: '11px', color: hasPhone ? '#059669' : '#dc2626', margin: '0', fontWeight: '700' }}>
+                    <p style={{ fontSize: '11px', color: hasPhone ? '#F2CF7C' : '#dc2626', margin: '0', fontWeight: '700' }}>
                       {hasPhone ? `WhatsApp: ${student.phone}` : 'Sem WhatsApp cadastrado'}
                     </p>
                   </div>
@@ -136,8 +136,8 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
                     <span className={`communication-payment-pill ${payment ? 'communication-paid' : 'communication-pending'}`} style={{
                       display: 'inline-block',
                       padding: '4px 8px',
-                      background: payment ? '#d1fae5' : '#fee2e2',
-                      color: payment ? '#059669' : '#dc2626',
+                      background: payment ? 'rgba(242, 207, 124, 0.14)' : '#fee2e2',
+                      color: payment ? '#F2CF7C' : '#dc2626',
                       borderRadius: '4px',
                       fontSize: '11px',
                       fontWeight: '800'

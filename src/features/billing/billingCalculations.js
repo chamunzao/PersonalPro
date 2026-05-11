@@ -161,7 +161,7 @@ export function getAdvanceCreditStatusColors(creditStatus) {
     return { background: "#fef3c7", color: "#d97706" };
   }
   if (creditStatus.hasAdvancePackage) {
-    return { background: "#d1fae5", color: "#059669" };
+    return { background: "rgba(242, 207, 124, 0.14)", color: "#F2CF7C" };
   }
   return { background: "#f3f4f6", color: "#6b7280" };
 }
@@ -218,5 +218,5 @@ export function getBillingStatusColors(status) {
   if (status.status === "due_soon" || status.status === "low_classes") {
     return { background: "#fef3c7", color: "#d97706" };
   }
-  return { background: "#d1fae5", color: "#059669" };
+  return { background: "rgba(242, 207, 124, 0.14)", color: "#F2CF7C" };
 }

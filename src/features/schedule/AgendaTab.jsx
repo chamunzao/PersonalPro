@@ -194,7 +194,7 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
           {[
             { label: "Aulas", value: weekSummary.total, color: theme.primary },
             { label: "Pendentes", value: weekSummary.pending, color: "#6b7280" },
-            { label: "Presentes", value: weekSummary.present, color: "#059669" },
+            { label: "Presentes", value: weekSummary.present, color: "#F2CF7C" },
             { label: "Faltas", value: weekSummary.absent, color: "#dc2626" }
           ].map(item => (
             <div key={item.label} className="agenda-week-summary-card">
@@ -326,7 +326,7 @@ function MonthCalendar({ days, currentDate, getClassesForDay, setSelectedDayModa
                       <span>{formatClassCount(classesForDay.length)}</span>
                       <div className="agenda-day-dots">
                         {classesForDay.map((cls, i) => {
-                          const color = cls.attendance === "present" ? "#059669" : cls.attendance === "absent" ? "#dc2626" : theme.primary;
+                          const color = cls.attendance === "present" ? "#F2CF7C" : cls.attendance === "absent" ? "#dc2626" : theme.primary;
                           return (
                             <div
                               key={i}
@@ -690,14 +690,14 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
             <button
               onClick={() => quickUpdateAttendance(cls, "present")}
               disabled={isAttendanceSaving}
-              style={{ flex: 1, padding: "7px", background: cls.attendance === "present" ? "#d1fae5" : "white", border: "1px solid #a7f3d0", color: "#059669", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: isAttendanceSaving ? "not-allowed" : "pointer", opacity: isAttendanceSaving ? 0.6 : 1 }}
+              style={{ flex: 1, padding: "7px", background: cls.attendance === "present" ? "rgba(242, 207, 124, 0.14)" : "#243B5C", border: "1px solid rgba(242, 207, 124, 0.35)", color: "#F2CF7C", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: isAttendanceSaving ? "not-allowed" : "pointer", opacity: isAttendanceSaving ? 0.6 : 1 }}
             >
               Presente
             </button>
             <button
               onClick={() => quickUpdateAttendance(cls, "absent")}
               disabled={isAttendanceSaving}
-              style={{ flex: 1, padding: "7px", background: cls.attendance === "absent" ? "#fee2e2" : "white", border: "1px solid #fecaca", color: "#dc2626", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: isAttendanceSaving ? "not-allowed" : "pointer", opacity: isAttendanceSaving ? 0.6 : 1 }}
+              style={{ flex: 1, padding: "7px", background: cls.attendance === "absent" ? "#fee2e2" : "#243B5C", border: "1px solid #fecaca", color: "#dc2626", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: isAttendanceSaving ? "not-allowed" : "pointer", opacity: isAttendanceSaving ? 0.6 : 1 }}
             >
               Falta
             </button>

@@ -525,7 +525,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                       onClick={() => markPresent(classKey)}
                       disabled={saving}
                       className="session-action-primary"
-                      style={{ opacity: saving ? 0.65 : 1, background: record?.status === "present" ? "#d1fae5" : theme.primary, color: record?.status === "present" ? "#047857" : "white" }}
+                      style={{ opacity: saving ? 0.65 : 1, background: record?.status === "present" ? "rgba(242, 207, 124, 0.14)" : theme.primary, color: record?.status === "present" ? "#F2CF7C" : "#142339" }}
                     >
                       <IconCheck /> {record?.status === "present" ? "Presente" : "Marcar"}
                     </button>

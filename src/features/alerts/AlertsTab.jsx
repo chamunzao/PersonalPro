@@ -52,7 +52,7 @@ function getPaymentClasses(student, billingStatus) {
 function ActionButton({ children, onClick, disabled, tone = 'neutral', theme }) {
   const tones = {
     primary: { background: theme.primary, color: 'white', border: theme.primary },
-    success: { background: '#ecfdf5', color: '#047857', border: '#a7f3d0' },
+    success: { background: 'rgba(242, 207, 124, 0.14)', color: '#F2CF7C', border: 'rgba(242, 207, 124, 0.35)' },
     danger: { background: '#fef2f2', color: '#dc2626', border: '#fecaca' },
     neutral: { background: 'white', color: '#334155', border: '#dbe3ec' }
   };
@@ -97,7 +97,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
   const severityStyles = {
     danger: { background: '#fee2e2', color: '#dc2626', border: '#fecaca', label: 'Crítico' },
     warning: { background: '#fef3c7', color: '#d97706', border: '#fde68a', label: 'Atenção' },
-    info: { background: '#dbeafe', color: '#2563eb', border: '#bfdbfe', label: 'Hoje' }
+    info: { background: 'rgba(242, 207, 124, 0.14)', color: '#F2CF7C', border: 'rgba(242, 207, 124, 0.35)', label: 'Hoje' }
   };
 
   async function savePaymentFromAlert(alert, student, billingStatus) {

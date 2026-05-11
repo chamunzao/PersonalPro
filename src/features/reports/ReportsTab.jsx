@@ -167,8 +167,8 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
                 </div>
                 <span className={`reports-payment-pill ${paid ? "reports-paid" : "reports-pending"}`} style={{
                   padding: "4px 8px",
-                  background: paid ? "#d1fae5" : "#fee2e2",
-                  color: paid ? "#059669" : "#dc2626",
+                  background: paid ? "rgba(242, 207, 124, 0.14)" : "#fee2e2",
+                  color: paid ? "#F2CF7C" : "#dc2626",
                   borderRadius: "4px",
                   fontSize: "11px",
                   fontWeight: "600"

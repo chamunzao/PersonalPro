@@ -1,35 +1,37 @@
 :root {
-  --app-canvas: #252840;
-  --app-surface: #2E3154;
-  --app-surface-soft: #1E2035;
-  --app-border: #3D4270;
-  --app-border-strong: #3D4270;
+  --app-canvas: #1D314E;
+  --app-surface: #243B5C;
+  --app-surface-soft: #142339;
+  --app-border: #4A6388;
+  --app-border-strong: #6F86A8;
   --app-text: #FFFFFF;
-  --app-text-soft: #9CA3AF;
-  --app-text-muted: #6B7280;
-  --app-brand: #4A9EFF;
-  --app-brand-dark: #FFFFFF;
-  --app-brand-soft: rgba(74, 158, 255, 0.15);
+  --app-text-soft: #C2CAD7;
+  --app-text-muted: #91A0B6;
+  --app-brand: #F2CF7C;
+  --app-brand-dark: #142339;
+  --app-brand-soft: rgba(242, 207, 124, 0.16);
   --app-danger: #EF4444;
-  --app-warning: #FACC15;
-  --app-success: #10B981;
+  --app-warning: #F2CF7C;
+  --app-success: #F2CF7C;
+  --app-on-accent: #142339;
   --app-radius-sm: 6px;
   --app-radius-md: 8px;
   --app-radius-lg: 12px;
   --app-shadow-soft: none;
   --app-shadow-tight: none;
-  --bg-primary: #252840;
-  --bg-card:    #2E3154;
-  --bg-deep:    #1E2035;
-  --border:     #3D4270;
-  --accent:     #4A9EFF;
-  --green:      #10B981;
+  --bg-primary: #1D314E;
+  --bg-card:    #243B5C;
+  --bg-deep:    #142339;
+  --border:     #4A6388;
+  --accent:     #F2CF7C;
+  --green:      #F2CF7C;
   --red:        #EF4444;
-  --yellow:     #FACC15;
-  --purple:     #A78BFA;
+  --yellow:     #F2CF7C;
+  --purple:     #F6E3AA;
   --text-primary:   #FFFFFF;
-  --text-secondary: #9CA3AF;
-  --text-muted:     #6B7280;
+  --text-secondary: #C2CAD7;
+  --text-muted:     #91A0B6;
+  --on-accent:      #142339;
 }
 
 * {
@@ -68,7 +70,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(13, 148, 136, 0.16);
+  outline: 3px solid rgba(242, 207, 124, 0.22);
   outline-offset: 2px;
 }
 
@@ -78,7 +80,7 @@ textarea::placeholder {
 }
 
 ::selection {
-  background: rgba(74, 158, 255, 0.24);
+  background: rgba(242, 207, 124, 0.24);
 }
 
 .app-shell {
@@ -92,7 +94,7 @@ textarea::placeholder {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba(30, 32, 53, 0.96);
+  background: rgba(20, 35, 57, 0.96);
   border-bottom: 0.5px solid var(--border);
   backdrop-filter: blur(16px);
 }
@@ -130,7 +132,7 @@ textarea::placeholder {
 .app-brand-copy p {
   max-width: 250px;
   margin: 0;
-  color: #9CA3AF;
+  color: #C2CAD7;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -142,12 +144,12 @@ textarea::placeholder {
   width: 40px;
   height: 40px;
   border-radius: 11px;
-  background: linear-gradient(135deg, rgba(74, 158, 255, 0.34), rgba(74, 158, 255, 0.13));
-  color: #FFFFFF;
+  background: linear-gradient(135deg, rgba(242, 207, 124, 0.34), rgba(242, 207, 124, 0.13));
+  color: var(--on-accent);
   display: grid;
   place-items: center;
   font-weight: 900;
-  border: 0.5px solid rgba(74, 158, 255, 0.26);
+  border: 0.5px solid rgba(242, 207, 124, 0.26);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
   flex: 0 0 auto;
 }
@@ -158,10 +160,10 @@ textarea::placeholder {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 0.5px solid rgba(74, 158, 255, 0.26);
+  border: 0.5px solid rgba(242, 207, 124, 0.26);
   border-radius: 12px;
-  background: rgba(74, 158, 255, 0.12);
-  color: #FFFFFF;
+  background: rgba(242, 207, 124, 0.12);
+  color: var(--accent);
   font-size: 12px;
   font-weight: 850;
   cursor: pointer;
@@ -174,7 +176,7 @@ textarea::placeholder {
 }
 
 .app-logout-button:hover {
-  background: rgba(74, 158, 255, 0.2);
+  background: rgba(242, 207, 124, 0.2);
 }
 
 .app-main {
@@ -213,6 +215,20 @@ textarea::placeholder {
   display: none;
 }
 
+.setup-empty-card button,
+.agenda-period-button-primary,
+.agenda-view-button-active,
+.session-time-chip-active,
+.session-action-primary,
+.attendance-save-button,
+.payment-filter-active,
+.primary-action-button,
+.dashboard-action-button,
+.student-submit-button,
+.settings-save-button {
+  color: var(--on-accent) !important;
+}
+
 .nav-item {
   flex: 1;
   min-width: 62px;
@@ -234,7 +250,7 @@ textarea::placeholder {
 
 .nav-item-active {
   background: var(--bg-deep);
-  color: var(--text-primary);
+  color: var(--accent);
 }
 
 .app-card {
@@ -277,7 +293,7 @@ textarea::placeholder {
   margin-bottom: 14px;
   display: grid;
   gap: 14px;
-  background: #1E2035;
+  background: #142339;
 }
 
 .onboarding-kicker {
@@ -297,7 +313,7 @@ textarea::placeholder {
 
 .onboarding-copy {
   margin: 7px 0 0;
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 13px;
   line-height: 1.45;
 }
@@ -315,9 +331,9 @@ textarea::placeholder {
   align-items: center;
   gap: 10px;
   padding: 10px;
-  border: 0.5px solid #3D4270;
+  border: 0.5px solid #4A6388;
   border-radius: 12px;
-  background: #2E3154;
+  background: #243B5C;
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -329,8 +345,8 @@ textarea::placeholder {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: rgba(74, 158, 255, 0.15);
-  color: #4A9EFF;
+  background: rgba(242, 207, 124, 0.15);
+  color: #F2CF7C;
   font-size: 13px;
   font-weight: 850;
 }
@@ -349,7 +365,7 @@ textarea::placeholder {
 }
 
 .onboarding-step-text small {
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 12px;
   line-height: 1.35;
 }
@@ -360,8 +376,8 @@ textarea::placeholder {
   justify-items: center;
   gap: 8px;
   text-align: center;
-  color: #9CA3AF;
-  background: #1E2035;
+  color: #C2CAD7;
+  background: #142339;
   border-style: dashed;
 }
 
@@ -375,7 +391,7 @@ textarea::placeholder {
 
 .setup-empty-card small {
   max-width: 320px;
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 12px;
   line-height: 1.45;
 }
@@ -389,7 +405,7 @@ textarea::placeholder {
   gap: 6px;
   border: 0;
   border-radius: 999px;
-  background: #4A9EFF;
+  background: #F2CF7C;
   color: #FFFFFF;
   font-size: 12px;
   font-weight: 850;
@@ -403,7 +419,7 @@ textarea::placeholder {
 
 .agenda-hero-panel {
   padding: 16px;
-  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%);
+  background: linear-gradient(135deg, #243B5C 0%, #142339 100%);
 }
 
 .agenda-hero-greeting {
@@ -422,14 +438,14 @@ textarea::placeholder {
 .agenda-hero-metric {
   min-height: 70px;
   padding: 12px;
-  border: 0.5px solid #3D4270;
+  border: 0.5px solid #4A6388;
   border-radius: 12px;
-  background: rgba(74, 158, 255, 0.1);
+  background: rgba(242, 207, 124, 0.1);
 }
 
 .agenda-hero-metric p {
   margin: 0 0 6px;
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 11px;
   font-weight: 700;
 }
@@ -465,9 +481,9 @@ textarea::placeholder {
 .agenda-period-button,
 .agenda-view-button {
   min-height: 38px;
-  border: 0.5px solid #3D4270;
+  border: 0.5px solid #4A6388;
   border-radius: 12px;
-  background: #2E3154;
+  background: #243B5C;
   color: #FFFFFF;
   font-size: 12px;
   font-weight: 800;
@@ -476,8 +492,8 @@ textarea::placeholder {
 
 .agenda-period-button-primary,
 .agenda-view-button-active {
-  border-color: rgba(74, 158, 255, 0.45);
-  background: #4A9EFF;
+  border-color: rgba(242, 207, 124, 0.45);
+  background: #F2CF7C;
   color: #FFFFFF;
 }
 
@@ -496,14 +512,14 @@ textarea::placeholder {
 .agenda-week-summary-card {
   min-height: 62px;
   padding: 10px;
-  border: 0.5px solid #3D4270;
+  border: 0.5px solid #4A6388;
   border-radius: 12px;
-  background: #2E3154;
+  background: #243B5C;
 }
 
 .agenda-week-summary-card p {
   margin: 0 0 4px;
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 10px;
   font-weight: 800;
 }
@@ -523,7 +539,7 @@ textarea::placeholder {
 
 .agenda-weekday-label {
   padding: 6px 2px;
-  color: #4A9EFF;
+  color: #F2CF7C;
   text-align: center;
   font-size: 11px;
   font-weight: 850;
@@ -543,14 +559,14 @@ textarea::placeholder {
 }
 
 .agenda-day-cell-filled {
-  border: 0.5px solid #3D4270;
-  background: #2E3154;
+  border: 0.5px solid #4A6388;
+  background: #243B5C;
   cursor: pointer;
 }
 
 .agenda-day-cell-today {
-  border-color: rgba(74, 158, 255, 0.75);
-  background: rgba(74, 158, 255, 0.14);
+  border-color: rgba(242, 207, 124, 0.75);
+  background: rgba(242, 207, 124, 0.14);
 }
 
 .agenda-day-number {
@@ -562,7 +578,7 @@ textarea::placeholder {
 
 .agenda-day-count {
   flex: 1;
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 10px;
   line-height: 1.2;
 }
@@ -582,16 +598,16 @@ textarea::placeholder {
 .agenda-week-day {
   width: 100%;
   padding: 12px;
-  border: 0.5px solid #3D4270;
+  border: 0.5px solid #4A6388;
   border-radius: 12px;
-  background: #2E3154;
+  background: #243B5C;
   text-align: left;
   cursor: pointer;
 }
 
 .agenda-week-day-today {
-  border-color: rgba(74, 158, 255, 0.75);
-  background: rgba(74, 158, 255, 0.14);
+  border-color: rgba(242, 207, 124, 0.75);
+  background: rgba(242, 207, 124, 0.14);
 }
 
 .agenda-week-day-header {
@@ -608,12 +624,12 @@ textarea::placeholder {
 }
 
 .agenda-week-day-header small {
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 11px;
 }
 
 .agenda-week-day-header span {
-  color: #4A9EFF;
+  color: #F2CF7C;
   font-size: 12px;
   font-weight: 850;
 }
@@ -630,7 +646,7 @@ textarea::placeholder {
   align-items: center;
   gap: 8px;
   border-radius: 8px;
-  background: #1E2035;
+  background: #142339;
 }
 
 .agenda-week-class-row > span:first-child {
@@ -664,8 +680,8 @@ textarea::placeholder {
   margin-bottom: 14px;
   display: grid;
   gap: 8px;
-  background: #1E2035;
-  color: #9CA3AF;
+  background: #142339;
+  color: #C2CAD7;
 }
 
 .dashboard-loading-panel p {
@@ -676,7 +692,7 @@ textarea::placeholder {
 .dashboard-loading-line {
   height: 10px;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(74, 158, 255, 0.12), rgba(255, 255, 255, 0.13), rgba(74, 158, 255, 0.12));
+  background: linear-gradient(90deg, rgba(242, 207, 124, 0.12), rgba(255, 255, 255, 0.13), rgba(242, 207, 124, 0.12));
 }
 
 .app-page {
@@ -979,7 +995,7 @@ textarea::placeholder {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(74, 158, 255, 0.15);
+  background: rgba(242, 207, 124, 0.15);
   color: var(--accent);
   display: grid;
   place-items: center;
@@ -1056,8 +1072,8 @@ textarea::placeholder {
 
 body .students-header-panel {
   padding: 18px;
-  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%);
-  border-color: #3D4270;
+  background: linear-gradient(135deg, #243B5C 0%, #142339 100%);
+  border-color: #4A6388;
 }
 
 body .students-header-panel .app-page-title,
@@ -1066,42 +1082,42 @@ body .students-header-panel .app-page-kicker {
 }
 
 body .students-header-panel .app-page-kicker {
-  color: #9CA3AF;
+  color: #C2CAD7;
 }
 
 body .students-summary-item {
-  background: #1E2035;
-  border: 0.5px solid #3D4270;
+  background: #142339;
+  border: 0.5px solid #4A6388;
   border-radius: 12px;
 }
 
 body .students-search-panel {
-  background: #2E3154;
-  border: 0.5px solid #3D4270;
+  background: #243B5C;
+  border: 0.5px solid #4A6388;
   border-radius: 16px;
   padding: 12px;
 }
 
 body .students-search-input {
-  background: #1E2035 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #142339 !important;
+  border: 0.5px solid #4A6388 !important;
   color: #FFFFFF !important;
 }
 
 body .student-list-card {
   padding: 14px;
-  background: #2E3154 !important;
+  background: #243B5C !important;
   border: 0.5px solid #46507D !important;
   border-radius: 12px !important;
 }
 
 body .dashboard-today-class-card {
-  background: #2E3154 !important;
+  background: #243B5C !important;
   border-color: #46507D !important;
 }
 
 body .student-list-card:hover {
-  border-color: #4A9EFF !important;
+  border-color: #F2CF7C !important;
   transform: translateY(-1px);
 }
 
@@ -1109,31 +1125,31 @@ body .student-open-profile-button {
   width: 100%;
   min-height: 42px;
   margin-top: 12px;
-  background: rgba(74, 158, 255, 0.15);
+  background: rgba(242, 207, 124, 0.15);
   border: 0.5px solid #46507D;
   border-radius: 14px;
-  color: #4A9EFF;
+  color: #F2CF7C;
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
 }
 
 body .student-open-profile-button:hover {
-  background: #4A9EFF;
-  border-color: #4A9EFF;
+  background: #F2CF7C;
+  border-color: #F2CF7C;
   color: #FFFFFF;
 }
 
 body .student-avatar {
   border-radius: 14px;
-  background: rgba(74, 158, 255, 0.15);
-  color: #4A9EFF;
+  background: rgba(242, 207, 124, 0.15);
+  color: #F2CF7C;
 }
 
 body .student-icon-button {
-  background: #2E3154;
-  border: 0.5px solid #3D4270;
-  color: #9CA3AF;
+  background: #243B5C;
+  border: 0.5px solid #4A6388;
+  color: #C2CAD7;
 }
 
 body .student-icon-danger {
@@ -1143,7 +1159,7 @@ body .student-icon-danger {
 }
 
 body .student-form-panel {
-  background: #2E3154 !important;
+  background: #243B5C !important;
   border: 0.5px solid #46507D !important;
   border-radius: 16px !important;
   padding: 18px !important;
@@ -1164,12 +1180,12 @@ body .student-form-panel > div,
 body .student-form-panel textarea,
 body .student-form-panel input,
 body .student-form-panel select {
-  border-color: #3D4270 !important;
+  border-color: #4A6388 !important;
 }
 
 body .student-form-field,
 body .student-form-section {
-  background: #2E3154 !important;
+  background: #243B5C !important;
   border-color: #46507D !important;
   border-radius: 14px !important;
 }
@@ -1181,7 +1197,7 @@ body .student-form-section {
 body .student-form-section > p,
 body .student-form-section > label,
 body .student-form-field > label {
-  color: #4A9EFF !important;
+  color: #F2CF7C !important;
   font-weight: 800 !important;
 }
 
@@ -1189,7 +1205,7 @@ body .student-form-panel input,
 body .student-form-panel select,
 body .student-form-panel textarea {
   min-height: 46px;
-  background: #1E2035 !important;
+  background: #142339 !important;
   border: 0.5px solid #46507D !important;
   border-radius: 14px !important;
   color: #FFFFFF !important;
@@ -1209,7 +1225,7 @@ body .student-schedule-day-card {
 }
 
 body .student-schedule-day-card p:first-child {
-  color: #4A9EFF !important;
+  color: #F2CF7C !important;
 }
 
 body .student-schedule-day-card button {
@@ -1226,16 +1242,16 @@ body .student-profile-back {
   min-height: 40px;
   margin-bottom: 12px !important;
   padding: 8px 12px !important;
-  background: rgba(74, 158, 255, 0.15) !important;
+  background: rgba(242, 207, 124, 0.15) !important;
   border: 0.5px solid #46507D !important;
   border-radius: 14px !important;
-  color: #4A9EFF !important;
+  color: #F2CF7C !important;
 }
 
 body .student-profile-page > h2 {
   margin: 0 !important;
   padding: 18px 18px 4px !important;
-  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%);
+  background: linear-gradient(135deg, #243B5C 0%, #142339 100%);
   border: 0.5px solid #46507D;
   border-bottom: 0;
   border-radius: 16px 16px 0 0;
@@ -1247,17 +1263,17 @@ body .student-profile-page > h2 {
 body .student-profile-page > h2 + div {
   margin-bottom: 14px !important;
   padding: 0 18px 18px !important;
-  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%);
+  background: linear-gradient(135deg, #243B5C 0%, #142339 100%);
   border: 0.5px solid #46507D;
   border-top: 0;
   border-radius: 0 0 16px 16px;
-  color: #9CA3AF !important;
+  color: #C2CAD7 !important;
 }
 
 body .student-profile-hero {
   margin-bottom: 14px;
   padding: 18px;
-  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%);
+  background: linear-gradient(135deg, #243B5C 0%, #142339 100%);
   border: 0.5px solid #46507D;
   border-radius: 16px;
 }
@@ -1281,7 +1297,7 @@ body .student-profile-contact span {
   max-width: 100%;
   padding: 5px 9px;
   border-radius: 999px;
-  background: rgba(74, 158, 255, 0.14);
+  background: rgba(242, 207, 124, 0.14);
   color: #C7D2FE;
   font-size: 11px;
   font-weight: 800;
@@ -1296,7 +1312,7 @@ body .student-profile-tabs {
   gap: 8px !important;
   padding: 10px !important;
   overflow: visible;
-  background: #2E3154;
+  background: #243B5C;
   border: 0.5px solid #46507D !important;
   border-radius: 16px;
 }
@@ -1306,18 +1322,18 @@ body .student-profile-tabs button {
   width: 100%;
   justify-content: center;
   padding: 9px 12px !important;
-  background: #1E2035 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #142339 !important;
+  border: 0.5px solid #4A6388 !important;
   border-radius: 14px !important;
-  color: #9CA3AF !important;
+  color: #C2CAD7 !important;
   margin-bottom: 0 !important;
 }
 
 body .student-profile-tabs .student-profile-tab-active {
-  background: #4A9EFF !important;
-  border-color: #4A9EFF !important;
+  background: #F2CF7C !important;
+  border-color: #F2CF7C !important;
   color: #FFFFFF !important;
-  box-shadow: 0 0 0 4px rgba(74, 158, 255, 0.12);
+  box-shadow: 0 0 0 4px rgba(242, 207, 124, 0.12);
 }
 
 @media (min-width: 720px) {
@@ -1328,7 +1344,7 @@ body .student-profile-tabs .student-profile-tab-active {
 
 body .student-profile-page [style*="background: \"#f9fafb\""],
 body .student-profile-page [style*="background: #f9fafb"] {
-  background: #2E3154 !important;
+  background: #243B5C !important;
   border: 0.5px solid #46507D !important;
   border-radius: 16px !important;
   color: #FFFFFF !important;
@@ -1337,7 +1353,7 @@ body .student-profile-page [style*="background: #f9fafb"] {
 body .student-profile-page [style*="background: \"white\""],
 body .student-profile-page [style*="background: white"],
 body .student-profile-page [style*="background-color: white"] {
-  background: #2E3154 !important;
+  background: #243B5C !important;
   border-color: #46507D !important;
   color: #FFFFFF !important;
 }
@@ -1345,16 +1361,16 @@ body .student-profile-page [style*="background-color: white"] {
 body .student-profile-page [style*="background: \"#f3f4f6\""],
 body .student-profile-page [style*="background: #f3f4f6"],
 body .student-profile-page [style*="background-color: rgb(243, 244, 246)"] {
-  background: #1E2035 !important;
-  border-color: #3D4270 !important;
-  color: #9CA3AF !important;
+  background: #142339 !important;
+  border-color: #4A6388 !important;
+  color: #C2CAD7 !important;
 }
 
 body .student-profile-page input,
 body .student-profile-page select,
 body .student-profile-page textarea {
   min-height: 42px;
-  background: #1E2035 !important;
+  background: #142339 !important;
   border: 0.5px solid #46507D !important;
   border-radius: 12px !important;
   color: #FFFFFF !important;
@@ -1371,8 +1387,8 @@ body .student-profile-page button {
 
 body .student-profile-page h3,
 body .student-profile-page strong,
-body .student-profile-page [style*="color: \"#1f2937\""],
-body .student-profile-page [style*="color: #1f2937"] {
+body .student-profile-page [style*="color: \"#FFFFFF\""],
+body .student-profile-page [style*="color: #FFFFFF"] {
   color: #FFFFFF !important;
 }
 
@@ -1382,7 +1398,7 @@ body .student-profile-page [style*="color: \"#6b7280\""],
 body .student-profile-page [style*="color: #6b7280"],
 body .student-profile-page [style*="color: \"#9ca3af\""],
 body .student-profile-page [style*="color: #9ca3af"] {
-  color: #9CA3AF !important;
+  color: #C2CAD7 !important;
 }
 
 .payments-page {
@@ -1393,7 +1409,7 @@ body .student-profile-page [style*="color: #9ca3af"] {
 
 .payments-hero-panel {
   padding: 18px;
-  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%);
+  background: linear-gradient(135deg, #243B5C 0%, #142339 100%);
   color: #FFFFFF;
   overflow: hidden;
 }
@@ -1408,15 +1424,15 @@ body .student-profile-page [style*="color: #9ca3af"] {
 
 .payments-page-kicker {
   margin: 10px 0 0;
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 14px;
   line-height: 1.45;
 }
 
 .payments-hero-summary {
   margin-top: 18px;
-  background: rgba(74, 158, 255, 0.15);
-  border: 0.5px solid #3D4270;
+  background: rgba(242, 207, 124, 0.15);
+  border: 0.5px solid #4A6388;
   border-radius: 16px;
   padding: 12px;
   display: flex;
@@ -1427,7 +1443,7 @@ body .student-profile-page [style*="color: #9ca3af"] {
 
 .payments-hero-summary p {
   margin: 0;
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 11px;
   font-weight: 500;
 }
@@ -1435,7 +1451,7 @@ body .student-profile-page [style*="color: #9ca3af"] {
 .payments-hero-summary strong {
   display: block;
   margin-top: 4px;
-  color: #4A9EFF;
+  color: #F2CF7C;
   font-size: 24px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -1444,7 +1460,7 @@ body .student-profile-page [style*="color: #9ca3af"] {
 .payments-hero-summary span {
   white-space: nowrap;
   color: #FFFFFF;
-  background: rgba(74, 158, 255, 0.15);
+  background: rgba(242, 207, 124, 0.15);
   padding: 5px 9px;
   border-radius: 999px;
   font-size: 11px;
@@ -1463,14 +1479,14 @@ body .student-profile-page [style*="color: #9ca3af"] {
 
 .payments-metric-card p {
   margin: 0 0 8px;
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 11px;
   font-weight: 500;
 }
 
 .payments-metric-card strong {
   display: block;
-  color: #4A9EFF;
+  color: #F2CF7C;
   font-size: 28px;
   line-height: 1;
   font-weight: 700;
@@ -1480,15 +1496,15 @@ body .student-profile-page [style*="color: #9ca3af"] {
 .payments-metric-card span {
   display: block;
   margin-top: 6px;
-  color: #6B7280;
+  color: #91A0B6;
   font-size: 11px;
 }
 
 body .payments-package-panel,
 body .payment-student-card,
 body .payments-empty {
-  background: #2E3154 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #243B5C !important;
+  border: 0.5px solid #4A6388 !important;
   border-radius: 16px !important;
   color: #FFFFFF;
 }
@@ -1499,14 +1515,14 @@ body .payment-student-card p:first-child {
 }
 
 body .payments-page label {
-  color: #9CA3AF !important;
+  color: #C2CAD7 !important;
 }
 
 body .payments-page input,
 body .payments-page select,
 body .payments-page textarea {
-  background: #1E2035 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #142339 !important;
+  border: 0.5px solid #4A6388 !important;
   color: #FFFFFF !important;
 }
 
@@ -1515,8 +1531,8 @@ body .payments-page button {
 }
 
 body .payments-filter-grid {
-  background: #2E3154;
-  border: 0.5px solid #3D4270;
+  background: #243B5C;
+  border: 0.5px solid #4A6388;
   border-radius: 16px;
   padding: 12px;
   margin-bottom: 0 !important;
@@ -1527,7 +1543,7 @@ body .payments-list {
 }
 
 body .payment-student-card > div:first-child {
-  background: #2E3154;
+  background: #243B5C;
   border: 0.5px solid #46507D;
   border-radius: 12px;
   padding: 12px;
@@ -1612,8 +1628,8 @@ body .payment-student-card > div:first-child {
 }
 
 .status-pago {
-  color: #10B981;
-  background: rgba(16,185,129,0.15);
+  color: #F2CF7C;
+  background: rgba(242,207,124,0.15);
   border-radius: 20px;
   padding: 3px 10px;
   font-size: 11px;
@@ -1630,8 +1646,8 @@ body .payment-student-card > div:first-child {
 }
 
 .status-pendente {
-  color: #FACC15;
-  background: rgba(250,204,21,0.15);
+  color: #F2CF7C;
+  background: rgba(242,207,124,0.15);
   border-radius: 20px;
   padding: 3px 10px;
   font-size: 11px;
@@ -1713,12 +1729,12 @@ body .status-pendente {
 body .app-main-session {
   max-width: 1120px;
   padding-top: 8px;
-  background: #f5f6f8;
+  background: #1D314E;
 }
 
 .app-main-session .session-page {
   gap: 14px;
-  color: #0f172a;
+  color: #FFFFFF;
 }
 
 .app-main-session .session-command-panel {
@@ -1729,7 +1745,7 @@ body .app-main-session {
 
 .session-page-title {
   margin: 0;
-  color: #0f172a;
+  color: #FFFFFF;
   font-size: 18px;
   line-height: 1.2;
   font-weight: 900;
@@ -1737,7 +1753,7 @@ body .app-main-session {
 
 .session-page-kicker {
   margin: 5px 0 0;
-  color: #475569;
+  color: #C2CAD7;
   font-size: 12px;
   line-height: 1.45;
 }
@@ -1748,34 +1764,34 @@ body .app-main-session .session-command-grid {
 }
 
 body .app-main-session .session-field-label {
-  color: #1f2937;
+  color: #FFFFFF;
   font-size: 12px;
   font-weight: 900;
 }
 
 body .app-main-session .session-input {
   min-height: 44px !important;
-  background: #ffffff !important;
-  color: #020617 !important;
-  border: 1px solid #cbd5e1 !important;
+  background: #243B5C !important;
+  color: #FFFFFF !important;
+  border: 1px solid #4A6388 !important;
   border-radius: 6px !important;
 }
 
 body .app-main-session .session-time-chip {
   min-width: 84px;
   padding: 10px 14px;
-  background: #ffffff;
-  color: #111827;
-  border: 1px solid #dbe2ea;
+  background: #243B5C;
+  color: #FFFFFF;
+  border: 1px solid #4A6388;
   border-radius: 7px;
   text-align: center;
 }
 
 body .app-main-session .session-time-chip-active {
-  background: #2563eb;
-  color: #ffffff;
-  border-color: #2563eb;
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
+  background: #F2CF7C;
+  color: #142339;
+  border-color: #F2CF7C;
+  box-shadow: 0 8px 18px rgba(242, 207, 124, 0.24);
 }
 
 body .app-main-session .session-list {
@@ -1785,25 +1801,25 @@ body .app-main-session .session-list {
 }
 
 body .app-main-session .session-student-card {
-  background: #2f354d;
-  border: 1px solid #3d4661;
+  background: #243B5C;
+  border: 1px solid #4A6388;
   border-radius: 7px;
   overflow: hidden;
 }
 
 body .app-main-session .session-student-card-active {
-  border-color: #64748b;
+  border-color: #C2CAD7;
 }
 
 body .app-main-session .session-student-header {
   padding: 14px 12px 12px;
-  background: #2f354d;
-  border-bottom: 1px solid #56607a;
+  background: #243B5C;
+  border-bottom: 1px solid #4A6388;
 }
 
 .session-student-name {
   margin: 0 0 4px;
-  color: #ffffff;
+  color: #FFFFFF;
   font-size: 18px;
   line-height: 1.1;
   font-weight: 900;
@@ -1818,7 +1834,7 @@ body .app-main-session .session-student-header {
 }
 
 .session-student-place {
-  color: #8fa2c2;
+  color: #C2CAD7;
 }
 
 body .app-main-session .session-student-actions {
@@ -1836,9 +1852,9 @@ body .app-main-session .session-action-muted {
 }
 
 body .app-main-session .session-action-muted {
-  background: #12c7b7 !important;
-  border-color: #12c7b7 !important;
-  color: #ffffff !important;
+  background: #F2CF7C !important;
+  border-color: #F2CF7C !important;
+  color: #142339 !important;
 }
 
 body .app-main-session .session-action-danger {
@@ -1849,7 +1865,7 @@ body .app-main-session .session-action-danger {
 
 body .app-main-session .session-card-body {
   padding: 12px;
-  background: #2f354d;
+  background: #243B5C;
 }
 
 body .app-main-session .session-workout-header {
@@ -1858,14 +1874,14 @@ body .app-main-session .session-workout-header {
 
 .session-workout-name {
   margin: 0;
-  color: #ffffff;
+  color: #FFFFFF;
   font-size: 15px;
   font-weight: 900;
 }
 
 .session-workout-count {
   margin: 2px 0 0;
-  color: #8fa2c2;
+  color: #C2CAD7;
   font-size: 12px;
   font-weight: 700;
 }
@@ -1889,8 +1905,8 @@ body .app-main-session .session-exercise-title-row {
   height: 54px;
   display: grid;
   place-items: center;
-  background: #ffffff;
-  color: #64748b;
+  background: #243B5C;
+  color: #C2CAD7;
   border-radius: 7px;
   font-size: 28px;
   font-weight: 600;
@@ -1902,7 +1918,7 @@ body .app-main-session .session-exercise-title-row {
 
 .session-exercise-name {
   margin: 0 0 3px;
-  color: #ffffff;
+  color: #FFFFFF;
   font-size: 14px;
   line-height: 1.15;
   font-weight: 900;
@@ -1920,7 +1936,7 @@ body .app-main-session .session-exercise-title-row {
 }
 
 .session-exercise-progress {
-  color: #ffffff;
+  color: #F2CF7C;
   font-weight: 900;
 }
 
@@ -1940,7 +1956,7 @@ body .app-main-session .session-exercise-title-row {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #ffffff;
+  color: #F2CF7C;
   border: 1px solid #d7deee;
   font-size: 14px;
   font-weight: 900;
@@ -1968,7 +1984,7 @@ body .app-main-session .session-exercise-title-row {
   place-items: center;
   border: 1px solid #69758f;
   border-radius: 999px;
-  color: #ffffff;
+  color: #F2CF7C;
   font-size: 13px;
   font-weight: 900;
 }
@@ -1993,7 +2009,7 @@ body .app-main-session .session-note-area {
   min-height: 38px !important;
   padding: 8px 10px !important;
   background: #22283d !important;
-  color: #ffffff !important;
+  color: #FFFFFF !important;
   border: 1px solid #4a5570 !important;
   border-radius: 6px !important;
   font-size: 14px;
@@ -2003,7 +2019,7 @@ body .app-main-session .session-note-area {
 body .app-main-session .session-note-input {
   margin-top: 10px;
   border-radius: 18px !important;
-  color: #dbeafe !important;
+  color: rgba(242, 207, 124, 0.14) !important;
   font-weight: 700;
 }
 
@@ -2013,7 +2029,7 @@ body .app-main-session .session-note-area {
 }
 
 body .app-main-session .session-save-row {
-  background: #2f354d;
+  background: #243B5C;
 }
 
 @media (max-width: 900px) {
@@ -2045,8 +2061,8 @@ body .app-main-session {
 
 body .app-main-session .session-command-panel {
   padding: 18px;
-  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%);
-  border: 0.5px solid #3D4270;
+  background: linear-gradient(135deg, #243B5C 0%, #142339 100%);
+  border: 0.5px solid #4A6388;
   border-radius: 16px;
 }
 
@@ -2059,14 +2075,14 @@ body .app-main-session .session-page-title {
 
 body .app-main-session .session-page-kicker {
   margin-top: 10px;
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 14px;
 }
 
 .session-hero-summary {
   margin-top: 18px;
-  background: rgba(74, 158, 255, 0.15);
-  border: 0.5px solid #3D4270;
+  background: rgba(242, 207, 124, 0.15);
+  border: 0.5px solid #4A6388;
   border-radius: 16px;
   padding: 12px;
   display: flex;
@@ -2077,7 +2093,7 @@ body .app-main-session .session-page-kicker {
 
 .session-hero-summary p {
   margin: 0;
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 11px;
   font-weight: 500;
 }
@@ -2085,7 +2101,7 @@ body .app-main-session .session-page-kicker {
 .session-hero-summary strong {
   display: block;
   margin-top: 4px;
-  color: #4A9EFF;
+  color: #F2CF7C;
   font-size: 24px;
   line-height: 1;
   font-weight: 700;
@@ -2094,7 +2110,7 @@ body .app-main-session .session-page-kicker {
 .session-hero-summary span {
   white-space: nowrap;
   color: #FFFFFF;
-  background: rgba(74, 158, 255, 0.15);
+  background: rgba(242, 207, 124, 0.15);
   padding: 5px 9px;
   border-radius: 999px;
   font-size: 11px;
@@ -2107,8 +2123,8 @@ body .app-main-session .session-command-grid {
 
 body .app-main-session .session-input,
 body .app-main-session .session-time-chip {
-  background: #1E2035 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #142339 !important;
+  border: 0.5px solid #4A6388 !important;
   color: #FFFFFF !important;
   border-radius: 14px !important;
 }
@@ -2119,8 +2135,8 @@ body .app-main-session .session-time-chip {
 }
 
 body .app-main-session .session-time-chip-active {
-  background: #4A9EFF !important;
-  border-color: #4A9EFF !important;
+  background: #F2CF7C !important;
+  border-color: #F2CF7C !important;
   box-shadow: none;
 }
 
@@ -2129,37 +2145,37 @@ body .app-main-session .session-list {
 }
 
 body .app-main-session .session-student-card {
-  background: #2E3154 !important;
-  border-color: #3D4270 !important;
+  background: #243B5C !important;
+  border-color: #4A6388 !important;
   border-radius: 16px !important;
 }
 
 body .app-main-session .session-student-header,
 body .app-main-session .session-card-body,
 body .app-main-session .session-save-row {
-  background: #2E3154;
+  background: #243B5C;
 }
 
 body .app-main-session .session-student-header {
-  border-bottom: 0.5px solid #3D4270;
+  border-bottom: 0.5px solid #4A6388;
   border-radius: 16px 16px 0 0;
 }
 
 body .app-main-session .session-exercise {
-  background: #1E2035;
-  border-color: #3D4270;
+  background: #142339;
+  border-color: #4A6388;
   border-radius: 12px;
 }
 
 body .app-main-session .session-exercise-letter {
-  background: rgba(74, 158, 255, 0.15);
-  color: #4A9EFF;
+  background: rgba(242, 207, 124, 0.15);
+  color: #F2CF7C;
   border-radius: 14px;
 }
 
 body .app-main-session .session-set-row {
-  background: #2E3154;
-  border: 0.5px solid #3D4270;
+  background: #243B5C;
+  border: 0.5px solid #4A6388;
 }
 
 body .app-main-session .session-action-primary,
@@ -2201,9 +2217,9 @@ body .payments-package-toggle {
   min-width: 76px;
   min-height: 38px;
   padding: 8px 12px !important;
-  background: rgba(74, 158, 255, 0.15) !important;
-  border: 0.5px solid #3D4270 !important;
-  color: #4A9EFF !important;
+  background: rgba(242, 207, 124, 0.15) !important;
+  border: 0.5px solid #4A6388 !important;
+  color: #F2CF7C !important;
   border-radius: 14px !important;
   font-size: 12px;
   font-weight: 800;
@@ -2212,21 +2228,21 @@ body .payments-package-toggle {
 body .payments-tab-button {
   min-height: 42px;
   margin-top: 14px;
-  background: #1E2035 !important;
-  border: 0.5px solid #3D4270 !important;
-  color: #9CA3AF !important;
+  background: #142339 !important;
+  border: 0.5px solid #4A6388 !important;
+  color: #C2CAD7 !important;
   border-radius: 14px !important;
 }
 
 body .payments-tab-button-active {
-  background: rgba(74, 158, 255, 0.18) !important;
+  background: rgba(242, 207, 124, 0.18) !important;
   color: #FFFFFF !important;
-  border-color: #4A9EFF !important;
+  border-color: #F2CF7C !important;
 }
 
 body .payments-package-panel p,
 body .payment-student-card p {
-  color: #9CA3AF !important;
+  color: #C2CAD7 !important;
 }
 
 body .payment-student-card {
@@ -2237,7 +2253,7 @@ body .payment-student-card > div:first-child {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr);
   gap: 12px !important;
-  background: #1E2035;
+  background: #142339;
 }
 
 body .payment-student-card > div:first-child > div:last-child {
@@ -2247,9 +2263,9 @@ body .payment-student-card > div:first-child > div:last-child {
 }
 
 body .payment-student-card span {
-  background: rgba(74, 158, 255, 0.13) !important;
+  background: rgba(242, 207, 124, 0.13) !important;
   color: #DCE7FF !important;
-  border: 0.5px solid rgba(74, 158, 255, 0.22);
+  border: 0.5px solid rgba(242, 207, 124, 0.22);
   border-radius: 999px !important;
   padding: 5px 8px !important;
 }
@@ -2260,9 +2276,9 @@ body .payment-action {
 }
 
 body .payment-action-primary {
-  background: rgba(16, 185, 129, 0.16) !important;
-  color: #10B981 !important;
-  border-color: rgba(16, 185, 129, 0.28) !important;
+  background: rgba(242, 207, 124, 0.16) !important;
+  color: #F2CF7C !important;
+  border-color: rgba(242, 207, 124, 0.28) !important;
 }
 
 body .payment-action-danger {
@@ -2272,8 +2288,8 @@ body .payment-action-danger {
 }
 
 body .payment-month-package {
-  background: rgba(16, 185, 129, 0.12) !important;
-  border: 0.5px solid rgba(16, 185, 129, 0.28) !important;
+  background: rgba(242, 207, 124, 0.12) !important;
+  border: 0.5px solid rgba(242, 207, 124, 0.28) !important;
   border-radius: 12px !important;
 }
 
@@ -2282,19 +2298,19 @@ body .payment-month-package p:first-child {
 }
 
 body .payment-edit-panel {
-  background: #1E2035 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #142339 !important;
+  border: 0.5px solid #4A6388 !important;
   border-radius: 12px !important;
 }
 
 body .payment-secondary-action {
-  background: rgba(74, 158, 255, 0.15) !important;
-  border: 0.5px solid #3D4270 !important;
-  color: #4A9EFF !important;
+  background: rgba(242, 207, 124, 0.15) !important;
+  border: 0.5px solid #4A6388 !important;
+  color: #F2CF7C !important;
 }
 
 body .payment-history-row {
-  border-top-color: #3D4270 !important;
+  border-top-color: #4A6388 !important;
 }
 
 body .payment-history-row span {
@@ -2307,10 +2323,10 @@ body .payment-history-row span {
   width: 100%;
   min-height: 38px;
   margin-top: 10px;
-  border: 0.5px solid #3D4270;
+  border: 0.5px solid #4A6388;
   border-radius: 12px;
-  background: #1E2035;
-  color: #4A9EFF;
+  background: #142339;
+  color: #F2CF7C;
   font-size: 12px;
   font-weight: 850;
   cursor: pointer;
@@ -2330,8 +2346,8 @@ body .payment-history-row span {
 .reports-hero-panel {
   padding: 18px !important;
   margin-bottom: 0 !important;
-  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%) !important;
-  border: 0.5px solid #3D4270 !important;
+  background: linear-gradient(135deg, #243B5C 0%, #142339 100%) !important;
+  border: 0.5px solid #4A6388 !important;
   border-radius: 16px !important;
 }
 
@@ -2347,7 +2363,7 @@ body .payment-history-row span {
 .communication-page-kicker,
 .reports-page-kicker {
   margin: 10px 0 0;
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 14px;
   line-height: 1.45;
 }
@@ -2355,8 +2371,8 @@ body .payment-history-row span {
 .communication-hero-summary,
 .reports-hero-summary {
   margin-top: 18px;
-  background: rgba(74, 158, 255, 0.15);
-  border: 0.5px solid #3D4270;
+  background: rgba(242, 207, 124, 0.15);
+  border: 0.5px solid #4A6388;
   border-radius: 16px;
   padding: 12px;
   display: flex;
@@ -2368,7 +2384,7 @@ body .payment-history-row span {
 .communication-hero-summary p,
 .reports-hero-summary p {
   margin: 0;
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 11px;
   font-weight: 500;
 }
@@ -2377,7 +2393,7 @@ body .payment-history-row span {
 .reports-hero-summary strong {
   display: block;
   margin-top: 4px;
-  color: #4A9EFF;
+  color: #F2CF7C;
   font-size: 24px;
   line-height: 1;
   font-weight: 700;
@@ -2386,7 +2402,7 @@ body .payment-history-row span {
 .communication-hero-summary span,
 .reports-hero-summary span {
   color: #FFFFFF;
-  background: rgba(74, 158, 255, 0.15);
+  background: rgba(242, 207, 124, 0.15);
   border-radius: 999px;
   padding: 5px 9px;
   font-size: 11px;
@@ -2403,7 +2419,7 @@ body .payment-history-row span {
 .attendance-hero-panel,
 .settings-hero-panel {
   padding: 16px;
-  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%);
+  background: linear-gradient(135deg, #243B5C 0%, #142339 100%);
 }
 
 .attendance-date-panel {
@@ -2481,7 +2497,7 @@ body .payment-history-row span {
 }
 
 .attendance-status-present {
-  border-color: rgba(16, 185, 129, 0.46);
+  border-color: rgba(242, 207, 124, 0.46);
 }
 
 .attendance-status-absent {
@@ -2541,8 +2557,8 @@ body .payment-history-row span {
 }
 
 .attendance-present.attendance-action-active {
-  background: rgba(16, 185, 129, 0.14);
-  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(242, 207, 124, 0.14);
+  border-color: rgba(242, 207, 124, 0.35);
   color: var(--green);
 }
 
@@ -2661,7 +2677,7 @@ body .payment-history-row span {
 
 .settings-theme-button-active {
   border-color: var(--accent);
-  background: rgba(74, 158, 255, 0.12);
+  background: rgba(242, 207, 124, 0.12);
   color: var(--text-primary);
 }
 
@@ -2689,8 +2705,8 @@ body .payment-history-row span {
 }
 
 body .alerts-metric-card {
-  background: #2E3154 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #243B5C !important;
+  border: 0.5px solid #4A6388 !important;
   border-radius: 12px !important;
 }
 
@@ -2699,11 +2715,11 @@ body .alerts-metric-danger p {
 }
 
 body .alerts-metric-warning p {
-  color: #FACC15 !important;
+  color: #F2CF7C !important;
 }
 
 body .alerts-metric-info p {
-  color: #4A9EFF !important;
+  color: #F2CF7C !important;
 }
 
 body .alert-card,
@@ -2711,7 +2727,7 @@ body .communication-student-card,
 body .reports-metric-card,
 body .reports-revenue-card,
 body .reports-detail-card {
-  background: #2E3154 !important;
+  background: #243B5C !important;
   border-color: #46507D !important;
   border-radius: 14px !important;
 }
@@ -2727,7 +2743,7 @@ body .communication-student-card p,
 body .reports-student-row p,
 body .reports-metric-card p,
 body .reports-revenue-card p {
-  color: #9CA3AF !important;
+  color: #C2CAD7 !important;
 }
 
 body .reports-metric-card p:nth-child(2),
@@ -2737,8 +2753,8 @@ body .reports-revenue-card p:nth-child(2) {
 
 body .communication-action-button {
   min-height: 58px;
-  background: #1E2035 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #142339 !important;
+  border: 0.5px solid #4A6388 !important;
   border-radius: 12px !important;
 }
 
@@ -2747,24 +2763,24 @@ body .communication-action-button span:first-child {
 }
 
 body .communication-action-button span:last-child {
-  color: #9CA3AF !important;
+  color: #C2CAD7 !important;
 }
 
 body .reports-filter-grid select {
   min-height: 44px;
-  background: #1E2035 !important;
+  background: #142339 !important;
   border: 0.5px solid #46507D !important;
   border-radius: 12px !important;
   color: #FFFFFF !important;
 }
 
 body .reports-filter-grid label {
-  color: #9CA3AF !important;
+  color: #C2CAD7 !important;
 }
 
 body .reports-student-row {
-  background: #1E2035 !important;
-  border-color: #3D4270 !important;
+  background: #142339 !important;
+  border-color: #4A6388 !important;
   border-radius: 12px !important;
 }
 
@@ -2778,17 +2794,17 @@ body .alert-action-button {
 }
 
 body .alert-action-neutral {
-  background: #1E2035 !important;
+  background: #142339 !important;
   color: #FFFFFF !important;
-  border-color: #3D4270 !important;
+  border-color: #4A6388 !important;
 }
 
 body .alert-card,
 body .communication-student-card,
 body .reports-page [style*="background: white"],
 body .reports-page [style*="background: \"white\""] {
-  background: #2E3154 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #243B5C !important;
+  border: 0.5px solid #4A6388 !important;
   border-radius: 16px !important;
   color: #FFFFFF !important;
 }
@@ -2807,7 +2823,7 @@ body .reports-page p:first-child {
 body .alert-card p,
 body .communication-student-card p,
 body .reports-page p {
-  color: #9CA3AF !important;
+  color: #C2CAD7 !important;
 }
 
 body .alert-severity-pill,
@@ -2824,15 +2840,15 @@ body .communication-action-button {
 }
 
 body .alert-action-primary {
-  background: #4A9EFF !important;
-  border-color: #4A9EFF !important;
+  background: #F2CF7C !important;
+  border-color: #F2CF7C !important;
   color: #FFFFFF !important;
 }
 
 body .alert-action-success {
-  background: rgba(16, 185, 129, 0.16) !important;
-  border-color: rgba(16, 185, 129, 0.28) !important;
-  color: #10B981 !important;
+  background: rgba(242, 207, 124, 0.16) !important;
+  border-color: rgba(242, 207, 124, 0.28) !important;
+  color: #F2CF7C !important;
 }
 
 body .alert-action-danger {
@@ -2842,27 +2858,27 @@ body .alert-action-danger {
 }
 
 body .communication-action-button {
-  background: #1E2035 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #142339 !important;
+  border: 0.5px solid #4A6388 !important;
 }
 
 body .communication-action-button span:first-child {
-  color: #4A9EFF !important;
+  color: #F2CF7C !important;
 }
 
 body .communication-action-button span:last-child {
-  color: #9CA3AF !important;
+  color: #C2CAD7 !important;
 }
 
 body .communication-student-card > div:first-child {
-  border-bottom: 0.5px solid #3D4270;
+  border-bottom: 0.5px solid #4A6388;
   padding-bottom: 10px;
 }
 
 .communication-paid,
 .reports-paid {
-  background: rgba(16, 185, 129, 0.16) !important;
-  color: #10B981 !important;
+  background: rgba(242, 207, 124, 0.16) !important;
+  color: #F2CF7C !important;
 }
 
 .communication-pending,
@@ -2872,27 +2888,27 @@ body .communication-student-card > div:first-child {
 }
 
 body .reports-filter-grid {
-  background: #2E3154;
-  border: 0.5px solid #3D4270;
+  background: #243B5C;
+  border: 0.5px solid #4A6388;
   border-radius: 16px;
   padding: 12px;
   margin-bottom: 0 !important;
 }
 
 body .reports-page label {
-  color: #9CA3AF !important;
+  color: #C2CAD7 !important;
 }
 
 body .reports-page select {
-  background: #1E2035 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #142339 !important;
+  border: 0.5px solid #4A6388 !important;
   color: #FFFFFF !important;
   border-radius: 14px !important;
 }
 
 body .reports-metric-card {
-  background: #2E3154 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #243B5C !important;
+  border: 0.5px solid #4A6388 !important;
   border-radius: 16px !important;
   padding: 16px !important;
 }
@@ -2903,7 +2919,7 @@ body .reports-metric-card p:first-child {
 }
 
 body .reports-metric-card p:nth-child(2) {
-  color: #4A9EFF !important;
+  color: #F2CF7C !important;
 }
 
 body .reports-metric-danger p:nth-child(2) {
@@ -2912,8 +2928,8 @@ body .reports-metric-danger p:nth-child(2) {
 
 body .reports-revenue-card,
 body .reports-detail-card {
-  background: #2E3154 !important;
-  border: 0.5px solid #3D4270 !important;
+  background: #243B5C !important;
+  border: 0.5px solid #4A6388 !important;
   border-radius: 16px !important;
   padding: 16px !important;
 }
@@ -2933,15 +2949,15 @@ body .reports-revenue-card p:nth-child(2) {
 }
 
 body .reports-student-row {
-  background: #2E3154 !important;
+  background: #243B5C !important;
   border: 0.5px solid #46507D !important;
-  border-left: 4px solid #4A9EFF !important;
+  border-left: 4px solid #F2CF7C !important;
   border-radius: 12px !important;
   padding: 12px !important;
 }
 
 body .reports-student-paid {
-  border-left-color: #10B981 !important;
+  border-left-color: #F2CF7C !important;
 }
 
 body .reports-student-pending {
@@ -2955,7 +2971,7 @@ body .reports-student-row p:first-child {
 }
 
 body .reports-student-row p {
-  color: #9CA3AF !important;
+  color: #C2CAD7 !important;
 }
 
 body .reports-student-row p:last-child {
@@ -2972,10 +2988,10 @@ body .reports-student-row p:last-child {
 .payments-status-filter-button {
   min-height: 54px;
   padding: 8px;
-  border: 0.5px solid #3D4270;
+  border: 0.5px solid #4A6388;
   border-radius: 14px;
-  background: #2E3154;
-  color: #9CA3AF;
+  background: #243B5C;
+  color: #C2CAD7;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2997,9 +3013,9 @@ body .reports-student-row p:last-child {
 }
 
 .payments-status-filter-button-active {
-  background: #1E2035;
-  border-color: #4A9EFF;
-  color: #4A9EFF;
+  background: #142339;
+  border-color: #F2CF7C;
+  color: #F2CF7C;
 }
 
 .more-page {
@@ -3010,12 +3026,12 @@ body .reports-student-row p:last-child {
 
 .more-hero-panel {
   padding: 18px;
-  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%);
+  background: linear-gradient(135deg, #243B5C 0%, #142339 100%);
 }
 
 .more-page-kicker {
   margin: 0 0 8px;
-  color: #4A9EFF;
+  color: #F2CF7C;
   font-size: 12px;
   font-weight: 900;
 }
@@ -3030,9 +3046,9 @@ body .reports-student-row p:last-child {
   width: 100%;
   min-height: 74px;
   padding: 14px;
-  border: 0.5px solid #3D4270;
+  border: 0.5px solid #4A6388;
   border-radius: 16px;
-  background: #2E3154;
+  background: #243B5C;
   color: #FFFFFF;
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);
@@ -3046,7 +3062,7 @@ body .reports-student-row p:last-child {
   width: 42px;
   height: 42px;
   border-radius: 14px;
-  background: rgba(74, 158, 255, 0.15);
+  background: rgba(242, 207, 124, 0.15);
   display: grid;
   place-items: center;
 }
@@ -3064,7 +3080,7 @@ body .reports-student-row p:last-child {
 
 .more-menu-item small {
   margin-top: 4px;
-  color: #9CA3AF;
+  color: #C2CAD7;
   font-size: 12px;
   line-height: 1.35;
 }
@@ -3074,7 +3090,7 @@ body .reports-student-row p:last-child {
   padding: 8px 12px;
   border: 0;
   border-radius: 999px;
-  background: #4A9EFF;
+  background: #F2CF7C;
   color: #FFFFFF;
   font-size: 12px;
   font-weight: 850;

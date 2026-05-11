@@ -90,7 +90,7 @@ export function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#252840',
+      background: '#1D314E',
       padding: '22px',
       display: 'grid',
       placeItems: 'center'
@@ -109,11 +109,11 @@ export function LoginPage() {
               <div className="app-brand-mark">PP</div>
               <div>
                 <h1 style={{ fontSize: '26px', lineHeight: 1, fontWeight: 900, margin: 0 }}>PersonalPro</h1>
-                <p style={{ fontSize: '13px', color: '#9CA3AF', margin: '5px 0 0' }}>Agenda, treinos e recebimentos no mesmo lugar.</p>
+                <p style={{ fontSize: '13px', color: '#C2CAD7', margin: '5px 0 0' }}>Agenda, treinos e recebimentos no mesmo lugar.</p>
               </div>
             </div>
 
-            <p style={{ color: '#4A9EFF', fontSize: '12px', fontWeight: 900, margin: '0 0 10px' }}>PARA PERSONAL TRAINERS</p>
+            <p style={{ color: '#F2CF7C', fontSize: '12px', fontWeight: 900, margin: '0 0 10px' }}>PARA PERSONAL TRAINERS</p>
             <h2 style={{
               fontSize: 'clamp(34px, 6vw, 58px)',
               lineHeight: 0.98,
@@ -123,7 +123,7 @@ export function LoginPage() {
             }}>
               Controle a aula sem perder o ritmo da aula.
             </h2>
-            <p style={{ maxWidth: '560px', color: '#9CA3AF', fontSize: '16px', lineHeight: 1.55, margin: '20px 0 0' }}>
+            <p style={{ maxWidth: '560px', color: '#C2CAD7', fontSize: '16px', lineHeight: 1.55, margin: '20px 0 0' }}>
               Veja quem treina agora, marque presença, ajuste séries e acompanhe pagamentos antes que virem pendência.
             </p>
           </div>
@@ -140,13 +140,13 @@ export function LoginPage() {
               ['60%', 'pagamentos']
             ].map(([value, label]) => (
               <div key={label} style={{
-                background: '#1E2035',
-                border: '0.5px solid #3D4270',
+                background: '#142339',
+                border: '0.5px solid #4A6388',
                 borderRadius: '16px',
                 padding: '14px'
               }}>
-                <p style={{ margin: 0, color: '#4A9EFF', fontSize: '24px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{value}</p>
-                <p style={{ margin: '4px 0 0', color: '#9CA3AF', fontSize: '12px', fontWeight: 500 }}>{label}</p>
+                <p style={{ margin: 0, color: '#F2CF7C', fontSize: '24px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{value}</p>
+                <p style={{ margin: '4px 0 0', color: '#C2CAD7', fontSize: '12px', fontWeight: 500 }}>{label}</p>
               </div>
             ))}
           </div>
@@ -155,7 +155,7 @@ export function LoginPage() {
         <section className="app-card" style={{ padding: '18px' }}>
           <div style={{ padding: '6px 6px 18px' }}>
             <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 700, color: '#FFFFFF' }}>{isLogin ? 'Entrar no app' : 'Criar conta'}</h2>
-            <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#9CA3AF' }}>
+            <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#C2CAD7' }}>
               {isLogin ? 'Acesse sua rotina de aulas.' : 'Comece com seu proprio espaco de trabalho.'}
             </p>
           </div>
@@ -164,7 +164,7 @@ export function LoginPage() {
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
             gap: '6px',
-            background: '#1E2035',
+            background: '#142339',
             borderRadius: '16px',
             padding: '4px',
             marginBottom: '16px'
@@ -180,8 +180,8 @@ export function LoginPage() {
                   border: 0,
                   borderRadius: '14px',
                   padding: '10px',
-                  background: tab === key ? '#2E3154' : 'transparent',
-                  color: tab === key ? '#FFFFFF' : '#6B7280',
+                  background: tab === key ? '#243B5C' : 'transparent',
+                  color: tab === key ? '#FFFFFF' : '#91A0B6',
                   fontSize: '13px',
                   fontWeight: 500,
                   cursor: 'pointer',
@@ -200,13 +200,13 @@ export function LoginPage() {
           )}
 
           {successMessage && (
-            <div style={{ background: 'rgba(16,185,129,0.15)', color: '#10B981', padding: '12px', borderRadius: '14px', fontSize: '13px', marginBottom: '14px', border: '0.5px solid rgba(16,185,129,0.28)' }}>
+            <div style={{ background: 'rgba(242,207,124,0.15)', color: '#F2CF7C', padding: '12px', borderRadius: '14px', fontSize: '13px', marginBottom: '14px', border: '0.5px solid rgba(242,207,124,0.28)' }}>
               {successMessage}
             </div>
           )}
 
           <form onSubmit={isLogin ? handleLogin : handleRegister}>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 500, color: '#9CA3AF', marginBottom: '6px' }}>E-mail</label>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 500, color: '#C2CAD7', marginBottom: '6px' }}>E-mail</label>
             <input
               type="email"
               autoComplete="username"
@@ -218,9 +218,9 @@ export function LoginPage() {
             />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '14px 0 6px' }}>
-              <label style={{ fontSize: '11px', fontWeight: 500, color: '#9CA3AF' }}>Senha</label>
+              <label style={{ fontSize: '11px', fontWeight: 500, color: '#C2CAD7' }}>Senha</label>
               {isLogin && (
-                <button type="button" onClick={handleResetPassword} disabled={loading} style={{ border: 0, background: 'none', padding: 0, color: '#4A9EFF', fontSize: '12px', fontWeight: 500, cursor: loading ? 'not-allowed' : 'pointer' }}>
+                <button type="button" onClick={handleResetPassword} disabled={loading} style={{ border: 0, background: 'none', padding: 0, color: '#F2CF7C', fontSize: '12px', fontWeight: 500, cursor: loading ? 'not-allowed' : 'pointer' }}>
                   Esqueci
                 </button>
               )}
@@ -243,8 +243,8 @@ export function LoginPage() {
                 marginTop: '18px',
                 padding: '14px',
                 minHeight: '48px',
-                background: loading ? '#3D4270' : '#4A9EFF',
-                color: '#FFFFFF',
+                background: loading ? '#4A6388' : '#F2CF7C',
+                color: '#142339',
                 border: 0,
                 borderRadius: '14px',
                 fontSize: '14px',
@@ -267,9 +267,9 @@ export function LoginPage() {
                 marginTop: '10px',
                 padding: '14px',
                 minHeight: '48px',
-                background: 'rgba(74, 158, 255, 0.15)',
-                color: '#4A9EFF',
-                border: '0.5px solid #3D4270',
+                background: 'rgba(242, 207, 124, 0.15)',
+                color: '#F2CF7C',
+                border: '0.5px solid #4A6388',
                 borderRadius: '14px',
                 fontSize: '13px',
                 fontWeight: 500,
@@ -290,10 +290,10 @@ function inputStyle(disabled) {
     width: '100%',
     minHeight: '44px',
     padding: '10px 14px',
-    border: '0.5px solid #3D4270',
+    border: '0.5px solid #4A6388',
     borderRadius: '12px',
     fontSize: '14px',
-    background: disabled ? '#1E2035' : '#2E3154',
+    background: disabled ? '#142339' : '#243B5C',
     color: '#FFFFFF',
     opacity: disabled ? 0.7 : 1
   };

@@ -457,7 +457,7 @@ function ClassHistoryTabContent({ studentId, records, workoutPlans, theme }) {
           const exerciseEntries = Object.entries(record.exerciseNotes || {}).filter(([, note]) => String(note || "").trim());
           const hasDetails = record.sessionNote || record.activity || exerciseEntries.length > 0;
           const statusColors = record.status === "present"
-            ? { background: "#d1fae5", color: "#047857", label: "Presente" }
+            ? { background: "rgba(242, 207, 124, 0.14)", color: "#F2CF7C", label: "Presente" }
             : record.status === "absent"
             ? { background: "#fee2e2", color: "#dc2626", label: "Falta" }
             : { background: "#f3f4f6", color: "#6b7280", label: "Sem status" };
@@ -1012,8 +1012,8 @@ function MeasurementsTabContent({ studentId, measurements, setMeasurements, show
                     {m.gordura && <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0" }}>Gordura: {m.gordura}%</p>}
                   </div>
                   <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                    {pesoChange && <span style={{ fontSize: "14px", color: pesoChange < 0 ? "#059669" : "#dc2626" }}>{pesoChange < 0 ? "↓" : "↑"}</span>}
-                    {gorduraChange && <span style={{ fontSize: "14px", color: gorduraChange < 0 ? "#059669" : "#dc2626" }}>{gorduraChange < 0 ? "↓" : "↑"}</span>}
+                    {pesoChange && <span style={{ fontSize: "14px", color: pesoChange < 0 ? "#F2CF7C" : "#dc2626" }}>{pesoChange < 0 ? "↓" : "↑"}</span>}
+                    {gorduraChange && <span style={{ fontSize: "14px", color: gorduraChange < 0 ? "#F2CF7C" : "#dc2626" }}>{gorduraChange < 0 ? "↓" : "↑"}</span>}
                   </div>
                 </div>
 
@@ -1868,7 +1868,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
         <section className="app-card students-header-panel">
           <div className="students-header-row">
             <div>
-              <p style={{ margin: "0 0 6px", color: "#4A9EFF", fontSize: "12px", fontWeight: "700" }}>CARTEIRA DE ALUNOS</p>
+              <p style={{ margin: "0 0 6px", color: "#F2CF7C", fontSize: "12px", fontWeight: "700" }}>CARTEIRA DE ALUNOS</p>
               <h2 className="app-page-title">Alunos</h2>
               <p className="app-page-kicker">Organize agenda, cobrança e histórico de treino de cada pessoa.</p>
             </div>
@@ -1877,8 +1877,8 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
           style={{
             minHeight: "44px",
             padding: "10px 14px",
-            background: "#4A9EFF",
-            color: "#FFFFFF",
+            background: "#F2CF7C",
+            color: "#142339",
             border: "none",
             borderRadius: "14px",
             fontSize: "13px",
@@ -1890,24 +1890,24 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
             boxShadow: "none",
             flexShrink: 0
           }}
-          onMouseEnter={(e) => e.target.style.background = "#2f8ef0"}
-          onMouseLeave={(e) => e.target.style.background = "#4A9EFF"}
+          onMouseEnter={(e) => e.target.style.background = "#F6E3AA"}
+          onMouseLeave={(e) => e.target.style.background = "#F2CF7C"}
         >
           <IconPlus /> Novo
         </button>
           </div>
           <div className="students-summary-grid">
             <div className="students-summary-item">
-              <p style={{ margin: 0, color: "#4A9EFF", fontSize: "24px", fontWeight: "700", fontVariantNumeric: "tabular-nums" }}>{students.length}</p>
-              <p style={{ margin: "4px 0 0", color: "#9CA3AF", fontSize: "11px", fontWeight: "500" }}>alunos cadastrados</p>
+              <p style={{ margin: 0, color: "#F2CF7C", fontSize: "24px", fontWeight: "700", fontVariantNumeric: "tabular-nums" }}>{students.length}</p>
+              <p style={{ margin: "4px 0 0", color: "#C2CAD7", fontSize: "11px", fontWeight: "500" }}>alunos cadastrados</p>
             </div>
             <div className="students-summary-item">
-              <p style={{ margin: 0, color: "#10B981", fontSize: "24px", fontWeight: "700", fontVariantNumeric: "tabular-nums" }}>{packageStudents}</p>
-              <p style={{ margin: "4px 0 0", color: "#9CA3AF", fontSize: "11px", fontWeight: "500" }}>com plano/pacote</p>
+              <p style={{ margin: 0, color: "#F2CF7C", fontSize: "24px", fontWeight: "700", fontVariantNumeric: "tabular-nums" }}>{packageStudents}</p>
+              <p style={{ margin: "4px 0 0", color: "#C2CAD7", fontSize: "11px", fontWeight: "500" }}>com plano/pacote</p>
             </div>
             <div className="students-summary-item">
-              <p style={{ margin: 0, color: overdueStudents ? "#EF4444" : "#10B981", fontSize: "24px", fontWeight: "700", fontVariantNumeric: "tabular-nums" }}>{overdueStudents}</p>
-              <p style={{ margin: "4px 0 0", color: "#9CA3AF", fontSize: "11px", fontWeight: "500" }}>vencidos</p>
+              <p style={{ margin: 0, color: overdueStudents ? "#EF4444" : "#F2CF7C", fontSize: "24px", fontWeight: "700", fontVariantNumeric: "tabular-nums" }}>{overdueStudents}</p>
+              <p style={{ margin: "4px 0 0", color: "#C2CAD7", fontSize: "11px", fontWeight: "500" }}>vencidos</p>
             </div>
           </div>
         </section>
@@ -2043,7 +2043,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
               <>
                 {form.billingType === BILLING_TYPES.monthlyPackage && (
                   <div style={{ display: "grid", gap: "10px", marginBottom: "10px" }}>
-                    <div className="student-form-step-card" style={{ padding: "10px", background: "#1E2035", border: "1px solid #3D4270", borderRadius: "10px" }}>
+                    <div className="student-form-step-card" style={{ padding: "10px", background: "#142339", border: "1px solid #4A6388", borderRadius: "10px" }}>
                       <p style={{ fontSize: "12px", fontWeight: "800", color: "#FFFFFF", margin: "0 0 6px 0" }}>1. Dias de aula do pacote</p>
                       <p style={{ fontSize: "11px", color: "#A8B3CF", margin: "0 0 10px 0" }}>
                         Cadastre os horários da semana do aluno. Se ele ainda não tiver dias fixos, marque a opção abaixo para não gerar valor automático.
@@ -2072,7 +2072,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                       )}
                     </div>
 
-                    <div className="student-form-step-card" style={{ padding: "10px", background: "#1E2035", border: "1px solid #3D4270", borderRadius: "10px" }}>
+                    <div className="student-form-step-card" style={{ padding: "10px", background: "#142339", border: "1px solid #4A6388", borderRadius: "10px" }}>
                       <p style={{ fontSize: "12px", fontWeight: "800", color: "#FFFFFF", margin: "0 0 8px 0" }}>2. Período do pacote</p>
                       <p style={{ fontSize: "11px", color: "#A8B3CF", margin: "0 0 10px 0" }}>
                         O padrão é do primeiro ao último dia do mês. Pode alterar se combinar outro período.
@@ -2088,7 +2088,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                             style={{
                               width: "100%",
                               padding: "8px 10px",
-                              border: "1px solid #3D4270",
+                              border: "1px solid #4A6388",
                               borderRadius: "8px",
                               fontSize: "13px",
                               boxSizing: "border-box",
@@ -2108,7 +2108,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                             style={{
                               width: "100%",
                               padding: "8px 10px",
-                              border: "1px solid #3D4270",
+                              border: "1px solid #4A6388",
                               borderRadius: "8px",
                               fontSize: "13px",
                               boxSizing: "border-box",
@@ -2121,7 +2121,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                       </div>
                     </div>
 
-                    <div className="student-form-step-card" style={{ padding: "10px", background: "#1E2035", border: "1px solid #3D4270", borderRadius: "10px" }}>
+                    <div className="student-form-step-card" style={{ padding: "10px", background: "#142339", border: "1px solid #4A6388", borderRadius: "10px" }}>
                       <p style={{ fontSize: "12px", fontWeight: "800", color: "#FFFFFF", margin: "0 0 6px 0" }}>3. Valor sugerido</p>
                       {form.monthlyScheduleUndefined ? (
                         <p style={{ fontSize: "11px", color: "#A8B3CF", margin: 0 }}>
@@ -2479,7 +2479,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                     <div className="student-avatar">{getInitials(student.name)}</div>
                     <div style={{ minWidth: 0, flex: 1 }}>
                 <p style={{ fontSize: "13px", fontWeight: "500", margin: "0 0 4px 0", color: "#FFFFFF" }}>{student.name}</p>
-                <p style={{ fontSize: "11px", color: "#9CA3AF", margin: "0 0 8px 0" }}>
+                <p style={{ fontSize: "11px", color: "#C2CAD7", margin: "0 0 8px 0" }}>
                   {billingStatus.billingTypeLabel} - {formatCurrency(student.pricePerClass)}/aula
                 </p>
                 {billingStatus.billingType !== BILLING_TYPES.perClass && (

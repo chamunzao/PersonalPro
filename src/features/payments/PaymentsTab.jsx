@@ -412,7 +412,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
         </div>
         <div className="app-card payments-metric-card">
           <p>Pendentes</p>
-          <strong style={{ color: pendingStudentCount ? '#EF4444' : '#10B981' }}>{pendingStudentCount}</strong>
+          <strong style={{ color: pendingStudentCount ? '#EF4444' : '#F2CF7C' }}>{pendingStudentCount}</strong>
           <span>para conferir</span>
         </div>
       </div>
@@ -723,8 +723,8 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                       {billingStatus.planValue > 0 && (
                         <span style={{
                           padding: '3px 7px',
-                          background: '#ecfdf5',
-                          color: '#047857',
+                          background: 'rgba(242, 207, 124, 0.14)',
+                          color: '#F2CF7C',
                           borderRadius: '4px',
                           fontSize: '11px',
                           fontWeight: '700'
@@ -793,8 +793,8 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                       {presentClassesInMonth > 0 && (
                         <span style={{
                           padding: '3px 7px',
-                          background: unpaidClassesInMonth > 0 ? '#fff7ed' : '#ecfdf5',
-                          color: unpaidClassesInMonth > 0 ? '#c2410c' : '#047857',
+                          background: unpaidClassesInMonth > 0 ? '#fff7ed' : 'rgba(242, 207, 124, 0.14)',
+                          color: unpaidClassesInMonth > 0 ? '#c2410c' : '#F2CF7C',
                           borderRadius: '4px',
                           fontSize: '11px',
                           fontWeight: '700'
@@ -811,8 +811,8 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                       className="payment-action payment-action-primary"
                       style={{
                         padding: '8px 12px',
-                        background: isPaid ? '#d1fae5' : theme.primary,
-                        color: isPaid ? '#059669' : 'white',
+                        background: isPaid ? 'rgba(242, 207, 124, 0.14)' : theme.primary,
+                        color: isPaid ? '#F2CF7C' : '#142339',
                         border: 'none',
                         borderRadius: '6px',
                         fontSize: '12px',
@@ -860,8 +860,8 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                       <div className="payment-month-package" style={{
                         marginTop: '10px',
                         padding: '10px',
-                        background: isPaid ? '#ecfdf5' : '#fff7ed',
-                        border: `1px solid ${isPaid ? '#a7f3d0' : '#fed7aa'}`,
+                        background: isPaid ? 'rgba(242, 207, 124, 0.14)' : '#fff7ed',
+                        border: `1px solid ${isPaid ? 'rgba(242, 207, 124, 0.35)' : '#fed7aa'}`,
                         borderRadius: '8px',
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -869,7 +869,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
                         alignItems: 'center'
                       }}>
                         <div>
-                          <p style={{ fontSize: '12px', fontWeight: '800', color: isPaid ? '#047857' : '#c2410c', margin: '0 0 3px 0' }}>
+                          <p style={{ fontSize: '12px', fontWeight: '800', color: isPaid ? '#F2CF7C' : '#c2410c', margin: '0 0 3px 0' }}>
                             Pacote mensal de {MONTHS[selectedMonth]}
                           </p>
                           <p style={{ fontSize: '11px', color: '#4b5563', margin: '0' }}>
