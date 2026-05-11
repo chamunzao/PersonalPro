@@ -19,7 +19,7 @@ function getRegisterMessage(error) {
   if (error.code === 'auth/weak-password') return 'Senha muito fraca. Use no minimo 6 caracteres.';
   if (error.code === 'auth/invalid-email') return 'E-mail invalido';
   if (error.code === 'auth/too-many-requests') return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
-  return 'Nao foi possivel registrar com estes dados.';
+  return 'Não foi possível registrar com estes dados.';
 }
 
 function getLoginMessage(error) {

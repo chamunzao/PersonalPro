@@ -472,7 +472,7 @@ function ClassHistoryTabContent({ studentId, records, workoutPlans, theme }) {
                   <div>
                     <p style={{ fontSize: "14px", fontWeight: "800", color: "#1f2937", margin: "0 0 3px 0" }}>{record.date} - {record.time}</p>
                     <p style={{ fontSize: "11px", color: "#6b7280", margin: 0 }}>
-                      {hasDetails ? "Com anotacoes de aula" : "Sem anotacoes"}
+                      {hasDetails ? "Com anotações de aula" : "Sem anotações"}
                     </p>
                   </div>
                   <span style={{ flexShrink: 0, padding: "4px 8px", background: statusColors.background, color: statusColors.color, borderRadius: "4px", fontSize: "11px", fontWeight: "800" }}>
@@ -516,9 +516,9 @@ function AnamnesisTabContent({ studentId, anamnesis, setAnamnesis, theme }) {
   }, [anamnesis]);
 
   const riskItems = [
-    form.injuries?.trim() ? "Lesao registrada" : null,
-    form.restrictions?.trim() ? "Restricao de treino" : null,
-    form.conditions?.trim() ? "Condicao de saude" : null,
+    form.injuries?.trim() ? "Lesão registrada" : null,
+    form.restrictions?.trim() ? "Restrição de treino" : null,
+    form.conditions?.trim() ? "Condição de saúde" : null,
     form.medications?.trim() ? "Uso de medicamento" : null,
     form.availability?.trim() ? "Disponibilidade mapeada" : null
   ].filter(Boolean);
@@ -545,9 +545,9 @@ function AnamnesisTabContent({ studentId, anamnesis, setAnamnesis, theme }) {
     { key: "goal", label: "Objetivo principal", placeholder: "Ex: emagrecimento, hipertrofia, condicionamento..." },
     { key: "trainingHistory", label: "Histórico de treino", placeholder: "Tempo de treino, modalidades, rotina atual..." },
     { key: "injuries", label: "Lesões", placeholder: "Dores, cirurgias, lesões antigas ou atuais..." },
-    { key: "restrictions", label: "Restricoes", placeholder: "Movimentos proibidos, limitacoes, recomendacoes medicas..." },
-    { key: "conditions", label: "Doencas/condicoes", placeholder: "Hipertensao, diabetes, problemas cardiacos..." },
-    { key: "medications", label: "Medicamentos", placeholder: "Medicamentos em uso e frequencia..." },
+    { key: "restrictions", label: "Restrições", placeholder: "Movimentos proibidos, limitações, recomendações médicas..." },
+    { key: "conditions", label: "Doenças/condições", placeholder: "Hipertensão, diabetes, problemas cardíacos..." },
+    { key: "medications", label: "Medicamentos", placeholder: "Medicamentos em uso e frequência..." },
     { key: "sleep", label: "Sono", placeholder: "Horas por noite e qualidade do sono..." },
     { key: "nutrition", label: "Alimentação", placeholder: "Rotina alimentar, acompanhamento nutricional..." },
     { key: "availability", label: "Disponibilidade", placeholder: "Dias, horários e frequência possível..." },
@@ -559,7 +559,7 @@ function AnamnesisTabContent({ studentId, anamnesis, setAnamnesis, theme }) {
       <div style={{ background: "#f9fafb", padding: "12px", borderRadius: "8px", border: "1px solid #e5e7eb" }}>
         <p style={{ fontSize: "12px", fontWeight: "700", color: "#4b5563", margin: "0 0 8px 0" }}>Resumo de risco</p>
         {riskItems.length === 0 ? (
-          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0" }}>Nenhum ponto sensivel registrado.</p>
+          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0" }}>Nenhum ponto sensível registrado.</p>
         ) : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
             {riskItems.map(item => (
@@ -1277,7 +1277,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                   <input type="text" value={ex.equipment || ""} onChange={(e) => updateExercise(idx, { equipment: e.target.value })} placeholder="Equipamento" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "8px", marginBottom: "8px" }}>
-                  <input type="text" value={ex.sets || ""} onChange={(e) => updateExercise(idx, { sets: e.target.value })} placeholder="Series" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
+                  <input type="text" value={ex.sets || ""} onChange={(e) => updateExercise(idx, { sets: e.target.value })} placeholder="Séries" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
                   <input type="text" value={ex.reps || ""} onChange={(e) => updateExercise(idx, { reps: e.target.value })} placeholder="Reps" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
                   <input type="text" value={ex.weight || ""} onChange={(e) => updateExercise(idx, { weight: e.target.value })} placeholder="Carga" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
                   <input type="text" value={ex.rest || ""} onChange={(e) => updateExercise(idx, { rest: e.target.value })} placeholder="Descanso" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />

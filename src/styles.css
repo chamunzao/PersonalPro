@@ -40,6 +40,8 @@ html,
 body,
 #root {
   min-height: 100%;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -187,6 +189,7 @@ textarea::placeholder {
   position: sticky;
   bottom: 0;
   z-index: 25;
+  width: 100%;
   background: var(--bg-deep);
   border-top: 0;
   backdrop-filter: blur(18px);
@@ -203,6 +206,11 @@ textarea::placeholder {
   background: var(--bg-card);
   border: 0.5px solid var(--border);
   border-radius: 28px;
+  scrollbar-width: none;
+}
+
+.bottom-nav-inner::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-item {
@@ -2308,7 +2316,7 @@ body .payment-history-row span {
   cursor: pointer;
 }
 
-/* Alertas, Contato e Relatorio aligned with Inicio */
+/* Alertas, Contato e Relatório alinhados com Início */
 .alerts-page,
 .communication-page,
 .reports-page {
