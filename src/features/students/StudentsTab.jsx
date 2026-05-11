@@ -192,7 +192,7 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
         setAnamnesis({
           ...DEFAULT_ANAMNESIS,
           goal: "Hipertrofia com acompanhamento de carga.",
-          trainingHistory: "Dados ficticios para demonstracao.",
+          trainingHistory: "Dados fictícios para demonstração.",
           notes: "Conta demo criada para testar o aplicativo."
         });
       }
@@ -232,11 +232,14 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
         <IconArrowLeft /> Voltar
       </button>
 
-      <h2 style={{ fontSize: "24px", fontWeight: "700", margin: "0 0 4px 0", color: "#1f2937" }}>{student.name}</h2>
-      <div style={{ fontSize: "13px", color: "#9ca3af", marginBottom: "16px" }}>
-        {student.email && <p style={{ margin: "0" }}>📧 {student.email}</p>}
-        {student.phone && <p style={{ margin: "0" }}>📱 {student.phone}</p>}
-      </div>
+      <section className="student-profile-hero">
+        <p className="dashboard-kicker">PERFIL DO ALUNO</p>
+        <h2>{student.name}</h2>
+        <div className="student-profile-contact">
+          {student.email && <span>E-mail: {student.email}</span>}
+          {student.phone && <span>WhatsApp: {student.phone}</span>}
+        </div>
+      </section>
 
       <div className="student-profile-tabs" style={{ display: "flex", gap: "16px", marginBottom: "16px", borderBottom: `2px solid #e5e7eb` }}>
         {tabItems.map(tab => (
@@ -484,10 +487,10 @@ function ClassHistoryTabContent({ studentId, records, workoutPlans, theme }) {
                   {record.sessionNote && <p style={{ fontSize: "12px", color: "#4b5563", margin: "0 0 8px 0", whiteSpace: "pre-wrap" }}><strong>Nota geral:</strong> {record.sessionNote}</p>}
                   {exerciseEntries.length > 0 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <p style={{ fontSize: "11px", fontWeight: "800", color: theme.primary, margin: 0 }}>Alteracoes por exercicio</p>
+                      <p style={{ fontSize: "11px", fontWeight: "800", color: theme.primary, margin: 0 }}>Alterações por exercício</p>
                       {exerciseEntries.map(([index, note]) => (
                         <div key={index} style={{ padding: "7px 8px", background: "#f9fafb", borderRadius: "6px", fontSize: "12px", color: "#374151" }}>
-                          Exercicio {Number(index) + 1}: {note}
+                          Exercício {Number(index) + 1}: {note}
                         </div>
                       ))}
                     </div>
@@ -1265,11 +1268,11 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
             {formData.exercises.map((ex, idx) => (
               <div key={idx} style={{ background: "white", padding: "10px", borderRadius: "6px", border: "1px solid #e5e7eb" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                  <p style={{ fontSize: "11px", color: "#6b7280", margin: 0, fontWeight: "700" }}>Exercicio {idx + 1}</p>
+                  <p style={{ fontSize: "11px", color: "#6b7280", margin: 0, fontWeight: "700" }}>Exercício {idx + 1}</p>
                   <button onClick={() => removeExercise(idx)} style={{ background: "#fee2e2", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "12px", fontWeight: "700", borderRadius: "4px", padding: "4px 8px" }}>Remover</button>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr)", gap: "8px", marginBottom: "8px" }}>
-                  <input type="text" value={ex.name || ""} onChange={(e) => updateExercise(idx, { name: e.target.value })} placeholder="Exercicio" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
+                  <input type="text" value={ex.name || ""} onChange={(e) => updateExercise(idx, { name: e.target.value })} placeholder="Exercício" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
                   <input type="text" value={ex.muscleGroup || ""} onChange={(e) => updateExercise(idx, { muscleGroup: e.target.value })} placeholder="Grupo muscular" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
                   <input type="text" value={ex.equipment || ""} onChange={(e) => updateExercise(idx, { equipment: e.target.value })} placeholder="Equipamento" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
                 </div>
@@ -1297,7 +1300,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                 fontFamily: "inherit"
               }}
             >
-              <option value="">Biblioteca de exercicios</option>
+              <option value="">Biblioteca de exercícios</option>
               {EXERCISE_LIBRARY.map(exercise => (
                 <option key={exercise.name} value={exercise.name}>{exercise.name}</option>
               ))}
@@ -1418,7 +1421,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
               type="text"
               value={exerciseForm.instructions}
               onChange={(e) => setExerciseForm(f => ({ ...f, instructions: e.target.value }))}
-              placeholder="Instrucao tecnica"
+              placeholder="Instrução técnica"
               style={{
                 gridColumn: "1 / -1",
                 padding: "8px 10px",
@@ -1466,8 +1469,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                 cursor: "pointer"
               }}
             >
-            Salvar
-              {editingWorkoutId ? " alteracoes" : ""}
+              {editingWorkoutId ? "Salvar alterações" : "Salvar treino"}
             </button>
             <button
               onClick={() => {
@@ -1508,7 +1510,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                     {plan.name}
                     {plan.active && <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 6px", background: theme.light, color: theme.dark, borderRadius: "4px" }}>Ativo</span>}
                   </p>
-                  <p style={{ fontSize: "10px", color: "#9ca3af", margin: "4px 0 0 0" }}>{plan.exercises?.length || 0} exercícios</p>
+                  <p style={{ fontSize: "10px", color: "#9ca3af", margin: "4px 0 0 0" }}>{plan.exercises?.length || 0} exercício{(plan.exercises?.length || 0) === 1 ? "" : "s"}</p>
                 </div>
                 <div style={{ display: "flex", gap: "4px" }}>
                   <button
@@ -1540,7 +1542,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                       fontWeight: "600"
                     }}
                   >
-                    {plan.active ? "✓" : "○"}
+                    {plan.active ? "Ativo" : "Ativar"}
                   </button>
                   <button
                     onClick={() => duplicateWorkout(plan)}
@@ -1584,7 +1586,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                         )}
                         {ex.instructions && <p style={{ color: "#6b7280", margin: "2px 0 0 0" }}>{ex.instructions}</p>}
                       </span>
-                      <span style={{ color: "#9ca3af" }}>{ex.sets}s × {ex.reps}r {ex.weight ? `@ ${ex.weight}` : ""}</span>
+                      <span style={{ color: "#9ca3af" }}>{ex.sets}s x {ex.reps}r {ex.weight ? `@ ${ex.weight}` : ""}</span>
                     </div>
                   ))}
                 </div>

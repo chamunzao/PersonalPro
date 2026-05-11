@@ -23,7 +23,7 @@ assert.deepEqual(
 
 assert.equal(
   getPaymentsEmptyState(false).title,
-  "Pagamentos comecam pelos alunos",
+  "Pagamentos começam pelos alunos",
   "payment empty state should explain the dependency on students"
 );
 

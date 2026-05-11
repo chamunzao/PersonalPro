@@ -1059,7 +1059,7 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
 
                 {detailsExpanded && history.length > 0 && (
                   <div className="payment-history-row" style={{ marginTop: '10px', borderTop: '1px solid #f3f4f6', paddingTop: '8px' }}>
-                    <p style={{ fontSize: '11px', fontWeight: '700', color: '#9ca3af', margin: '0 0 6px 0' }}>Historico recente</p>
+                    <p style={{ fontSize: '11px', fontWeight: '700', color: '#9ca3af', margin: '0 0 6px 0' }}>Histórico recente</p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       {history.map(item => (
                         <span key={item.key} style={{

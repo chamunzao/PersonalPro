@@ -124,7 +124,7 @@ export function LoginPage() {
               Controle a aula sem perder o ritmo da aula.
             </h2>
             <p style={{ maxWidth: '560px', color: '#9CA3AF', fontSize: '16px', lineHeight: 1.55, margin: '20px 0 0' }}>
-              Veja quem treina agora, marque presenca, ajuste series e acompanhe pagamentos antes que virem pendencia.
+              Veja quem treina agora, marque presença, ajuste séries e acompanhe pagamentos antes que virem pendência.
             </p>
           </div>
 
@@ -230,7 +230,7 @@ export function LoginPage() {
               autoComplete={isLogin ? 'current-password' : 'new-password'}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="Minimo 6 caracteres"
+              placeholder="Mínimo 6 caracteres"
               disabled={loading}
               style={inputStyle(loading)}
             />

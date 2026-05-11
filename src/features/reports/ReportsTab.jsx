@@ -3,6 +3,10 @@ import { MONTHS } from '../../lib/constants';
 import { formatCurrency } from '../../lib/money';
 import { calculateMonthlyReport } from './reportsCalculations';
 // ==================== REPORTS TAB ====================
+function formatCountLabel(count, singular, plural) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 function ReportsTab({ students, records, payments, loadingData, theme }) {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -13,12 +17,12 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
   return (
     <div className="reports-page">
       <section className="app-card reports-hero-panel">
-        <p className="dashboard-kicker">VISAO DO MES</p>
+        <p className="dashboard-kicker">VISÃO DO MÊS</p>
         <h2 className="reports-page-title">Relatório</h2>
         <p className="reports-page-kicker">Acompanhe aulas, faltas, receita e pagamentos por aluno.</p>
         <div className="reports-hero-summary">
           <div>
-            <p>Receita liquida</p>
+            <p>Receita líquida</p>
             <strong>{formatCurrency(report.netRevenue)}</strong>
           </div>
           <span>{report.paymentRate.toFixed(0)}% pagamento</span>
@@ -73,7 +77,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
           borderRadius: "8px",
           border: "1px solid #e5e7eb"
         }}>
-          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 8px 0", fontWeight: "600" }}>Total de Aulas</p>
+          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 8px 0", fontWeight: "600" }}>Total de aulas</p>
           <p style={{ fontSize: "28px", fontWeight: "700", margin: "0", color: theme.primary }}>{report.totalClasses}</p>
           <p style={{ fontSize: "11px", color: "#d1d5db", margin: "6px 0 0 0" }}>{report.presentClasses} presentes ({report.attendanceRate.toFixed(0)}%)</p>
         </div>
@@ -84,7 +88,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
           borderRadius: "8px",
           border: "1px solid #e5e7eb"
         }}>
-          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 8px 0", fontWeight: "600" }}>Taxa de Falta</p>
+          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 8px 0", fontWeight: "600" }}>Taxa de falta</p>
           <p style={{ fontSize: "28px", fontWeight: "700", margin: "0", color: "#dc2626" }}>{report.absenceRate.toFixed(1)}%</p>
           <p style={{ fontSize: "11px", color: "#d1d5db", margin: "6px 0 0 0" }}>{report.absentClasses} faltas</p>
         </div>
@@ -95,7 +99,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
           borderRadius: "8px",
           border: "1px solid #e5e7eb"
         }}>
-          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 8px 0", fontWeight: "600" }}>Receita Líquida</p>
+          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 8px 0", fontWeight: "600" }}>Receita líquida</p>
           <p style={{ fontSize: "28px", fontWeight: "700", margin: "0", color: theme.primary }}>{formatCurrency(report.netRevenue)}</p>
           <p style={{ fontSize: "11px", color: "#d1d5db", margin: "6px 0 0 0" }}>{report.revenuePercentage.toFixed(0)}% após taxa da academia</p>
         </div>
@@ -106,7 +110,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
           borderRadius: "8px",
           border: "1px solid #e5e7eb"
         }}>
-          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 8px 0", fontWeight: "600" }}>Taxa de Pagamento</p>
+          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 8px 0", fontWeight: "600" }}>Taxa de pagamento</p>
           <p style={{ fontSize: "28px", fontWeight: "700", margin: "0", color: theme.primary }}>{report.paymentRate.toFixed(0)}%</p>
           <p style={{ fontSize: "11px", color: "#d1d5db", margin: "6px 0 0 0" }}>{report.studentsWithPayment}/{report.totalStudents} alunos</p>
         </div>
@@ -123,11 +127,11 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
         gap: "12px"
       }}>
         <div>
-          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 4px 0", fontWeight: "600" }}>Receita Bruta</p>
+          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 4px 0", fontWeight: "600" }}>Receita bruta</p>
           <p style={{ fontSize: "18px", fontWeight: "700", margin: "0", color: "#1f2937" }}>{formatCurrency(report.grossRevenue)}</p>
         </div>
         <div>
-          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 4px 0", fontWeight: "600" }}>Taxa Academia</p>
+          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 4px 0", fontWeight: "600" }}>Taxa da academia</p>
           <p style={{ fontSize: "18px", fontWeight: "700", margin: "0", color: "#dc2626" }}>{formatCurrency(report.gymFees)}</p>
         </div>
       </div>
@@ -138,7 +142,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
         borderRadius: "8px",
         border: "1px solid #e5e7eb"
       }}>
-        <h3 style={{ fontSize: "14px", fontWeight: "600", margin: "0 0 12px 0", color: "#1f2937" }}>Detalhamento por Aluno</h3>
+        <h3 style={{ fontSize: "14px", fontWeight: "600", margin: "0 0 12px 0", color: "#1f2937" }}>Detalhamento por aluno</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {report.studentRows.map(({ student, totalClasses, presentClasses, absentClasses, grossRevenue, gymFees, netRevenue, paid }) => {
             return (
@@ -155,7 +159,7 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
                 <div>
                   <p style={{ fontWeight: "600", margin: "0 0 2px 0", color: "#1f2937" }}>{student.name}</p>
                   <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0" }}>
-                    {totalClasses} aulas ({presentClasses} presentes, {absentClasses} faltas)
+                    {formatCountLabel(totalClasses, "aula", "aulas")} ({formatCountLabel(presentClasses, "presente", "presentes")}, {formatCountLabel(absentClasses, "falta", "faltas")})
                   </p>
                   <p style={{ fontSize: "11px", color: "#6b7280", margin: "3px 0 0 0" }}>
                     {formatCurrency(grossRevenue)} bruto · {formatCurrency(gymFees)} taxa · {formatCurrency(netRevenue)} líquido

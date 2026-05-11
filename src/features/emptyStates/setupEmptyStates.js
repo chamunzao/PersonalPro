@@ -23,7 +23,7 @@ export function getPaymentsEmptyState(hasStudents) {
   }
 
   return {
-    title: "Pagamentos comecam pelos alunos",
+    title: "Pagamentos começam pelos alunos",
     description: "Cadastre um aluno para o app montar a lista de cobranças do mês."
   };
 }

@@ -95,7 +95,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
   }, { danger: 0, warning: 0, info: 0 });
 
   const severityStyles = {
-    danger: { background: '#fee2e2', color: '#dc2626', border: '#fecaca', label: 'Critico' },
+    danger: { background: '#fee2e2', color: '#dc2626', border: '#fecaca', label: 'Crítico' },
     warning: { background: '#fef3c7', color: '#d97706', border: '#fde68a', label: 'Atenção' },
     info: { background: '#dbeafe', color: '#2563eb', border: '#bfdbfe', label: 'Hoje' }
   };
@@ -156,7 +156,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
   return (
     <div className="alerts-page">
       <div className="app-card alerts-hero-panel" style={{ padding: '16px', marginBottom: '16px' }}>
-        <p style={{ margin: '0 0 5px', color: theme.primary, fontSize: '12px', fontWeight: '900' }}>CENTRAL DE ACOES</p>
+        <p style={{ margin: '0 0 5px', color: theme.primary, fontSize: '12px', fontWeight: '900' }}>CENTRAL DE AÇÕES</p>
         <h2 className="app-page-title">Ações</h2>
         <p className="app-page-kicker">Resolva cobranças, pacotes e registros do dia sem sair da tela.</p>
       </div>
@@ -165,7 +165,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
 
       <div className="alerts-metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px', marginBottom: '16px' }}>
         {[
-          { key: 'danger', label: 'Criticos' },
+          { key: 'danger', label: 'Críticos' },
           { key: 'warning', label: 'Atenção' },
           { key: 'info', label: 'Hoje' }
         ].map(item => {
@@ -194,7 +194,7 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
           color: '#9ca3af'
         }}>
           <p style={{ fontSize: '14px', margin: '0', fontWeight: '600' }}>Nenhuma ação pendente</p>
-          <p style={{ fontSize: '12px', margin: '6px 0 0 0' }}>Pagamentos, pacotes e registros estao em ordem.</p>
+          <p style={{ fontSize: '12px', margin: '6px 0 0 0' }}>Pagamentos, pacotes e registros estão em ordem.</p>
         </div>
       ) : (
         <div className="alerts-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

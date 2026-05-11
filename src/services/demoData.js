@@ -30,7 +30,7 @@ export const demoStudents = [
   student("demo-aluno-07", { name: "Giovana Alves", pricePerClass: 95, phone: "11991110007", email: "giovana.demo@example.com", billingType: "package", packageClasses: 8, packagePrice: 720, billingCycleStart: "2026-04-28", billingDueDate: "2026-05-28", schedule: [{ day: 0, time: "20:00" }, { day: 2, time: "20:00" }] }),
   student("demo-aluno-08", { name: "Henrique Nunes", pricePerClass: 110, phone: "11991110008", email: "henrique.demo@example.com", billingType: "monthly_package", packagePrice: 880, billingCycleStart: "2026-05-01", billingDueDate: "2026-05-01", billingAutoRenew: true, notes: "Pagamento atrasado proposital para alerta demo.", schedule: [{ day: 1, time: "06:00" }, { day: 4, time: "06:00" }] }),
   student("demo-aluno-09", { name: "Isabela Torres", pricePerClass: 85, phone: "11991110009", email: "isabela.demo@example.com", billingType: "monthly", packageClasses: 12, packagePrice: 960, billingCycleStart: "2026-05-01", billingDueDate: "2026-05-08", billingAutoRenew: true, schedule: [{ day: 0, time: "11:00" }, { day: 2, time: "11:00" }, { day: 4, time: "11:00" }] }),
-  student("demo-aluno-10", { name: "Joao Pedro", pricePerClass: 65, phone: "11991110010", email: "joao.demo@example.com", billingType: "per_class", notes: "Aluno iniciante.", schedule: [{ day: 3, time: "16:00" }, { day: 6, time: "10:00" }] })
+  student("demo-aluno-10", { name: "João Pedro", pricePerClass: 65, phone: "11991110010", email: "joao.demo@example.com", billingType: "per_class", notes: "Aluno iniciante.", schedule: [{ day: 3, time: "16:00" }, { day: 6, time: "10:00" }] })
 ];
 
 export const demoRecords = [

@@ -82,12 +82,24 @@ function AttendanceTab({ students, records, setRecords, scheduleOverrides, loadi
     await updateAttendance(classKey, currentStatus, customActivity, customPrice);
   }
 
-  return (
-    <div style={{ padding: "16px" }}>
-      <h2 style={{ fontSize: "18px", fontWeight: "600", margin: "0 0 16px 0", color: "#1f2937" }}>Registro de Presenças</h2>
+  const summary = {
+    total: classesForDate.length,
+    present: classesForDate.filter(cls => cls.status === "present").length,
+    absent: classesForDate.filter(cls => cls.status === "absent").length
+  };
+  summary.pending = summary.total - summary.present - summary.absent;
 
-      <div style={{ marginBottom: "20px" }}>
-        <label style={{ fontSize: "13px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "6px" }}>Data</label>
+  return (
+    <div className="attendance-page">
+      <section className="app-card attendance-hero-panel">
+        <div>
+          <p className="dashboard-kicker">REGISTRO DO DIA</p>
+          <h2 className="app-page-title">Registro</h2>
+          <p className="app-page-kicker">Confirme presença, falta e ajustes de valor sem perder o histórico da aula.</p>
+        </div>
+
+        <div className="attendance-date-panel">
+        <label className="session-field-label">Data</label>
         <input
           type="date"
           value={selectedDate.split("/").reverse().join("-")}
@@ -95,129 +107,93 @@ function AttendanceTab({ students, records, setRecords, scheduleOverrides, loadi
             const [year, month, day] = e.target.value.split("-");
             setSelectedDate(`${day}/${month}/${year}`);
           }}
-          style={{
-            width: "100%",
-            padding: "10px",
-            border: "1px solid #d1d5db",
-            borderRadius: "6px",
-            fontSize: "14px",
-            fontFamily: "inherit",
-            boxSizing: "border-box"
-          }}
+          className="session-input"
         />
+        </div>
+      </section>
+
+      <div className="attendance-summary-grid">
+        {[
+          { label: "Aulas", value: summary.total, tone: "info" },
+          { label: "Presentes", value: summary.present, tone: "success" },
+          { label: "Faltas", value: summary.absent, tone: "danger" },
+          { label: "Pendentes", value: summary.pending, tone: "muted" }
+        ].map(item => (
+          <div key={item.label} className={`attendance-summary-card attendance-summary-${item.tone}`}>
+            <p>{item.label}</p>
+            <strong>{item.value}</strong>
+          </div>
+        ))}
       </div>
 
       {loadingData && <p style={{ color: "#9ca3af", fontSize: "14px", textAlign: "center" }}>Carregando...</p>}
 
       {classesForDate.length === 0 ? (
-        <div style={{
-          textAlign: "center",
-          padding: "40px 20px",
-          background: "#f9fafb",
-          borderRadius: "8px",
-          color: "#9ca3af"
-        }}>
-          <p style={{ fontSize: "14px", margin: "0" }}>Nenhuma aula agendada para este dia</p>
+        <div className="app-card attendance-empty">
+          <p>Nenhuma aula agendada para este dia</p>
+          <span>Altere a data ou cadastre horários na agenda do aluno.</span>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="attendance-list">
           {classesForDate.map(cls => {
             const effectivePrice = cls.customPrice || cls.defaultPrice;
             const isEditing = editingKey === cls.key;
             return (
-              <div key={cls.key} style={{
-                background: "white",
-                padding: "12px",
-                borderRadius: "8px",
-                border: cls.activity ? `1px solid ${theme.medium}` : "1px solid #e5e7eb"
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: "14px", fontWeight: "600", margin: "0 0 4px 0", color: "#1f2937" }}>{cls.studentName}</p>
-                    <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0" }}>
+              <div key={cls.key} className={`attendance-class-card ${cls.status ? `attendance-status-${cls.status}` : ""}`}>
+                <div className="attendance-class-header">
+                  <div className="attendance-class-copy">
+                    <p>{cls.studentName}</p>
+                    <span>
                       {cls.time} · {formatCurrency(effectivePrice)}
                       {cls.customPrice ? " (personalizado)" : ""}
-                    </p>
+                    </span>
                     {cls.activity && (
-                      <span style={{
-                        display: "inline-block", marginTop: "4px", padding: "2px 8px",
-                        background: theme.light, color: theme.dark, borderRadius: "4px",
-                        fontSize: "11px", fontWeight: "600"
-                      }}>
-                        {cls.activity}
-                      </span>
+                      <small>{cls.activity}</small>
                     )}
                   </div>
-                  <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                  <div className="attendance-action-row">
                     <button
                       onClick={() => updateAttendance(cls.key, cls.status === "present" ? null : "present", undefined, undefined)}
                       disabled={saving}
-                      style={{
-                        padding: "8px 12px",
-                        background: cls.status === "present" ? "#d1fae5" : "#f3f4f6",
-                        color: cls.status === "present" ? "#059669" : "#6b7280",
-                        border: "none", borderRadius: "6px", fontSize: "12px",
-                        fontWeight: "600", cursor: saving ? "not-allowed" : "pointer",
-                        display: "flex", alignItems: "center", gap: "4px",
-                        opacity: saving ? 0.6 : 1
-                      }}
+                      className={`attendance-action-button attendance-present ${cls.status === "present" ? "attendance-action-active" : ""}`}
+                      style={{ opacity: saving ? 0.6 : 1 }}
                     >
                       <IconCheck /> Presente
                     </button>
                     <button
                       onClick={() => updateAttendance(cls.key, cls.status === "absent" ? null : "absent", undefined, undefined)}
                       disabled={saving}
-                      style={{
-                        padding: "8px 12px",
-                        background: cls.status === "absent" ? "#fee2e2" : "#f3f4f6",
-                        color: cls.status === "absent" ? "#dc2626" : "#6b7280",
-                        border: "none", borderRadius: "6px", fontSize: "12px",
-                        fontWeight: "600", cursor: saving ? "not-allowed" : "pointer",
-                        display: "flex", alignItems: "center", gap: "4px",
-                        opacity: saving ? 0.6 : 1
-                      }}
+                      className={`attendance-action-button attendance-absent ${cls.status === "absent" ? "attendance-action-active" : ""}`}
+                      style={{ opacity: saving ? 0.6 : 1 }}
                     >
-                      <IconX /> Ausente
+                      <IconX /> Falta
                     </button>
                   </div>
                 </div>
 
-                {/* Botão personalizar */}
                 {!isEditing && (
                   <button
                     onClick={() => startEditCustom(cls)}
-                    style={{
-                      marginTop: "8px", padding: "4px 10px",
-                      background: "none", border: `1px dashed ${theme.medium}`,
-                      borderRadius: "6px", color: theme.primary, fontSize: "11px",
-                      fontWeight: "600", cursor: "pointer", width: "100%"
-                    }}
+                    className="attendance-custom-button"
                   >
                     {cls.activity || cls.customPrice ? "Editar atividade/valor" : "+ Atividade ou valor diferente"}
                   </button>
                 )}
 
-                {/* Formulário de personalização */}
                 {isEditing && (
-                  <div style={{
-                    marginTop: "10px", padding: "10px", background: "#f9fafb",
-                    borderRadius: "8px", border: "1px solid #e5e7eb"
-                  }}>
-                    <div style={{ marginBottom: "8px" }}>
-                      <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "3px" }}>Atividade</label>
+                  <div className="attendance-edit-panel">
+                    <div>
+                      <label className="session-field-label">Atividade</label>
                       <input
                         type="text"
                         value={customActivity}
                         onChange={(e) => setCustomActivity(e.target.value)}
-                        placeholder="Ex: Avaliação, Treino especial, Alongamento..."
-                        style={{
-                          width: "100%", padding: "7px 10px", border: "1px solid #d1d5db",
-                          borderRadius: "6px", fontSize: "13px", boxSizing: "border-box", fontFamily: "inherit"
-                        }}
+                        placeholder="Ex: Avaliação, treino especial, alongamento..."
+                        className="session-input"
                       />
                     </div>
-                    <div style={{ marginBottom: "10px" }}>
-                      <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "3px" }}>
+                    <div>
+                      <label className="session-field-label">
                         Valor diferente (deixe vazio para usar o padrão: {formatCurrency(cls.defaultPrice)})
                       </label>
                       <input
@@ -227,39 +203,24 @@ function AttendanceTab({ students, records, setRecords, scheduleOverrides, loadi
                         placeholder={String(cls.defaultPrice)}
                         step="0.01"
                         min="0"
-                        style={{
-                          width: "100%", padding: "7px 10px", border: "1px solid #d1d5db",
-                          borderRadius: "6px", fontSize: "13px", boxSizing: "border-box", fontFamily: "inherit"
-                        }}
+                        className="session-input"
                       />
                     </div>
-                    <div style={{ display: "flex", gap: "6px" }}>
+                    <div className="attendance-edit-actions">
                       <button
                         onClick={() => saveCustomInfo(cls.key)}
                         disabled={saving}
-                        style={{
-                          flex: 1, padding: "8px", background: theme.primary, color: "white",
-                          border: "none", borderRadius: "6px", fontSize: "12px",
-                          fontWeight: "600", cursor: "pointer"
-                        }}
+                        className="attendance-save-button"
                       >Salvar</button>
                       <button
                         onClick={cancelEditCustom}
-                        style={{
-                          padding: "8px 14px", background: "#f3f4f6", color: "#6b7280",
-                          border: "none", borderRadius: "6px", fontSize: "12px",
-                          fontWeight: "600", cursor: "pointer"
-                        }}
+                        className="attendance-secondary-button"
                       >Cancelar</button>
                       {(cls.activity || cls.customPrice) && (
                         <button
                           onClick={() => updateAttendance(cls.key, cls.status || "present", "", "")}
                           disabled={saving}
-                          style={{
-                            padding: "8px 14px", background: "#fee2e2", color: "#dc2626",
-                            border: "none", borderRadius: "6px", fontSize: "12px",
-                            fontWeight: "600", cursor: "pointer"
-                          }}
+                          className="attendance-clear-button"
                         >Limpar</button>
                       )}
                     </div>

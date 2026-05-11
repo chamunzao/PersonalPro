@@ -1246,6 +1246,42 @@ body .student-profile-page > h2 + div {
   color: #9CA3AF !important;
 }
 
+body .student-profile-hero {
+  margin-bottom: 14px;
+  padding: 18px;
+  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%);
+  border: 0.5px solid #46507D;
+  border-radius: 16px;
+}
+
+body .student-profile-hero h2 {
+  margin: 0;
+  color: #FFFFFF;
+  font-size: 30px;
+  line-height: 1.05;
+  font-weight: 800;
+}
+
+body .student-profile-contact {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+body .student-profile-contact span {
+  max-width: 100%;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(74, 158, 255, 0.14);
+  color: #C7D2FE;
+  font-size: 11px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 body .student-profile-tabs {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1288,6 +1324,57 @@ body .student-profile-page [style*="background: #f9fafb"] {
   border: 0.5px solid #46507D !important;
   border-radius: 16px !important;
   color: #FFFFFF !important;
+}
+
+body .student-profile-page [style*="background: \"white\""],
+body .student-profile-page [style*="background: white"],
+body .student-profile-page [style*="background-color: white"] {
+  background: #2E3154 !important;
+  border-color: #46507D !important;
+  color: #FFFFFF !important;
+}
+
+body .student-profile-page [style*="background: \"#f3f4f6\""],
+body .student-profile-page [style*="background: #f3f4f6"],
+body .student-profile-page [style*="background-color: rgb(243, 244, 246)"] {
+  background: #1E2035 !important;
+  border-color: #3D4270 !important;
+  color: #9CA3AF !important;
+}
+
+body .student-profile-page input,
+body .student-profile-page select,
+body .student-profile-page textarea {
+  min-height: 42px;
+  background: #1E2035 !important;
+  border: 0.5px solid #46507D !important;
+  border-radius: 12px !important;
+  color: #FFFFFF !important;
+}
+
+body .student-profile-page input::placeholder,
+body .student-profile-page textarea::placeholder {
+  color: #7E8BAA !important;
+}
+
+body .student-profile-page button {
+  border-radius: 10px !important;
+}
+
+body .student-profile-page h3,
+body .student-profile-page strong,
+body .student-profile-page [style*="color: \"#1f2937\""],
+body .student-profile-page [style*="color: #1f2937"] {
+  color: #FFFFFF !important;
+}
+
+body .student-profile-page [style*="color: \"#4b5563\""],
+body .student-profile-page [style*="color: #4b5563"],
+body .student-profile-page [style*="color: \"#6b7280\""],
+body .student-profile-page [style*="color: #6b7280"],
+body .student-profile-page [style*="color: \"#9ca3af\""],
+body .student-profile-page [style*="color: #9ca3af"] {
+  color: #9CA3AF !important;
 }
 
 .payments-page {
@@ -2298,6 +2385,296 @@ body .payment-history-row span {
   font-weight: 500;
 }
 
+.attendance-page,
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.attendance-hero-panel,
+.settings-hero-panel {
+  padding: 16px;
+  background: linear-gradient(135deg, #2E3154 0%, #1E2035 100%);
+}
+
+.attendance-date-panel {
+  margin-top: 14px;
+}
+
+.attendance-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.attendance-summary-card {
+  min-height: 72px;
+  padding: 10px;
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+}
+
+.attendance-summary-card p {
+  margin: 0 0 7px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.attendance-summary-card strong {
+  color: var(--text-primary);
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.attendance-summary-success strong {
+  color: var(--green);
+}
+
+.attendance-summary-danger strong {
+  color: var(--red);
+}
+
+.attendance-summary-info strong {
+  color: var(--accent);
+}
+
+.attendance-empty {
+  padding: 34px 18px;
+  text-align: center;
+}
+
+.attendance-empty p {
+  margin: 0 0 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.attendance-empty span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.attendance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.attendance-class-card {
+  padding: 14px;
+  border: 0.5px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-card);
+}
+
+.attendance-status-present {
+  border-color: rgba(16, 185, 129, 0.46);
+}
+
+.attendance-status-absent {
+  border-color: rgba(239, 68, 68, 0.46);
+}
+
+.attendance-class-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.attendance-class-copy p {
+  margin: 0 0 4px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.attendance-class-copy span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.attendance-class-copy small {
+  width: fit-content;
+  display: block;
+  margin-top: 7px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--app-brand-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.attendance-action-row,
+.attendance-edit-actions {
+  display: flex;
+  gap: 7px;
+}
+
+.attendance-action-button {
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-deep);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.attendance-present.attendance-action-active {
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: var(--green);
+}
+
+.attendance-absent.attendance-action-active {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: var(--red);
+}
+
+.attendance-custom-button {
+  width: 100%;
+  min-height: 38px;
+  margin-top: 10px;
+  border: 0.5px dashed var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.attendance-edit-panel {
+  margin-top: 10px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-deep);
+}
+
+.attendance-save-button,
+.attendance-secondary-button,
+.attendance-clear-button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.attendance-save-button {
+  flex: 1;
+  background: var(--accent);
+  color: #FFFFFF;
+}
+
+.attendance-secondary-button {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+}
+
+.attendance-clear-button {
+  background: rgba(239, 68, 68, 0.14);
+  color: var(--red);
+}
+
+.settings-section {
+  padding: 16px;
+}
+
+.settings-section-header {
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.settings-section-header p {
+  margin: 0 0 4px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.settings-section-header span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.settings-section-header strong {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--app-brand-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.settings-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-theme-button {
+  min-height: 92px;
+  padding: 12px;
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-deep);
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.settings-theme-button-active {
+  border-color: var(--accent);
+  background: rgba(74, 158, 255, 0.12);
+  color: var(--text-primary);
+}
+
+.settings-theme-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 0.5px solid rgba(255, 255, 255, 0.2);
+}
+
+.settings-theme-button span {
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.settings-theme-button small {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 900;
+}
+
 .alerts-metrics-grid,
 .reports-metrics-grid {
   margin-bottom: 0 !important;
@@ -2319,6 +2696,83 @@ body .alerts-metric-warning p {
 
 body .alerts-metric-info p {
   color: #4A9EFF !important;
+}
+
+body .alert-card,
+body .communication-student-card,
+body .reports-metric-card,
+body .reports-revenue-card,
+body .reports-detail-card {
+  background: #2E3154 !important;
+  border-color: #46507D !important;
+  border-radius: 14px !important;
+}
+
+body .alert-card p:first-child,
+body .communication-student-card p:first-child,
+body .reports-detail-card h3 {
+  color: #FFFFFF !important;
+}
+
+body .alert-card p,
+body .communication-student-card p,
+body .reports-student-row p,
+body .reports-metric-card p,
+body .reports-revenue-card p {
+  color: #9CA3AF !important;
+}
+
+body .reports-metric-card p:nth-child(2),
+body .reports-revenue-card p:nth-child(2) {
+  color: #FFFFFF !important;
+}
+
+body .communication-action-button {
+  min-height: 58px;
+  background: #1E2035 !important;
+  border: 0.5px solid #3D4270 !important;
+  border-radius: 12px !important;
+}
+
+body .communication-action-button span:first-child {
+  color: #FFFFFF !important;
+}
+
+body .communication-action-button span:last-child {
+  color: #9CA3AF !important;
+}
+
+body .reports-filter-grid select {
+  min-height: 44px;
+  background: #1E2035 !important;
+  border: 0.5px solid #46507D !important;
+  border-radius: 12px !important;
+  color: #FFFFFF !important;
+}
+
+body .reports-filter-grid label {
+  color: #9CA3AF !important;
+}
+
+body .reports-student-row {
+  background: #1E2035 !important;
+  border-color: #3D4270 !important;
+  border-radius: 12px !important;
+}
+
+body .reports-student-row p:first-child {
+  color: #FFFFFF !important;
+}
+
+body .alert-action-button {
+  min-height: 36px;
+  border-radius: 10px !important;
+}
+
+body .alert-action-neutral {
+  background: #1E2035 !important;
+  color: #FFFFFF !important;
+  border-color: #3D4270 !important;
 }
 
 body .alert-card,

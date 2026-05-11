@@ -305,7 +305,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
       });
     } catch (error) {
       console.error("Error creating workout version:", error);
-      alert("Erro ao criar nova versao do treino");
+      alert("Erro ao criar nova versão do treino");
     } finally {
       setSavingKey(null);
     }
@@ -369,7 +369,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     }
     const exercises = (form.exercises || []).filter(exercise => exercise.name?.trim());
     if (exercises.length === 0) {
-      alert("Inclua pelo menos um exercicio no treino.");
+      alert("Inclua pelo menos um exercício no treino.");
       return;
     }
 
@@ -392,7 +392,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
       setEditingWorkoutKey(null);
     } catch (error) {
       console.error("Error saving workout edits:", error);
-      alert("Erro ao salvar edicao do treino");
+      alert("Erro ao salvar edição do treino");
     } finally {
       setSavingKey(null);
     }
@@ -559,7 +559,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                         className="session-action-muted"
                         style={{ flexShrink: 0 }}
                       >
-                        {editingWorkout ? "Fechar edicao" : "Editar treino"}
+                        {editingWorkout ? "Fechar edição" : "Editar treino"}
                       </button>
                     </div>
 
@@ -678,7 +678,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                                 type="text"
                                 value={exercise.name || ""}
                                 onChange={(event) => updateWorkoutExercise(classKey, index, { name: event.target.value })}
-                                placeholder="Exercicio"
+                                placeholder="Exercício"
                                 style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
                               />
                               <input
@@ -715,7 +715,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                             <textarea
                               value={exercise.notes || ""}
                               onChange={(event) => updateWorkoutExercise(classKey, index, { notes: event.target.value })}
-                              placeholder="Observacoes do exercicio"
+                              placeholder="Observações do exercício"
                               style={{ width: "100%", minHeight: "44px", padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", resize: "vertical", marginBottom: "6px" }}
                             />
                             <button
@@ -731,7 +731,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                                 cursor: "pointer"
                               }}
                             >
-                              Remover exercicio
+                              Remover exercício
                             </button>
                           </div>
                         ))}
@@ -748,7 +748,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                             cursor: "pointer"
                           }}
                         >
-                          + Adicionar exercicio
+                          + Adicionar exercício
                         </button>
                         <button
                           onClick={() => saveWorkoutEdits(classKey, cls.studentId, activeWorkout)}
@@ -804,7 +804,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                     className="session-action-muted"
                     style={{ width: "100%", background: savingWorkout || !hasSessionChanges(draft) ? "#e5e7eb" : "#111827", color: savingWorkout || !hasSessionChanges(draft) ? "#9ca3af" : "white", cursor: savingWorkout || !hasSessionChanges(draft) ? "not-allowed" : "pointer" }}
                   >
-                    {savingWorkout ? "Atualizando..." : "Nova versao"}
+                    {savingWorkout ? "Atualizando..." : "Nova versão"}
                   </button>
                   )}
                 </div>

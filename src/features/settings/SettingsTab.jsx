@@ -16,36 +16,35 @@ function SettingsTab({ themeKey, setThemeKey, themes }) {
   }
 
   return (
-    <div style={{ padding: "16px" }}>
-      <h2 style={{ fontSize: "18px", fontWeight: "600", margin: "0 0 16px 0", color: "#1f2937" }}>Configurações</h2>
-      <div style={{ marginBottom: "20px" }}>
-        <label style={{ fontSize: "13px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "10px" }}>Cor do tema</label>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px" }}>
+    <div className="settings-page">
+      <section className="app-card settings-hero-panel">
+        <p className="dashboard-kicker">PREFERÊNCIAS</p>
+        <h2 className="app-page-title">Configurações</h2>
+        <p className="app-page-kicker">Ajuste a aparência do app para trabalhar com mais conforto no dia a dia.</p>
+      </section>
+
+      <section className="app-card settings-section">
+        <div className="settings-section-header">
+          <div>
+            <p>Cor do tema</p>
+            <span>Escolha a identidade visual principal do PersonalPro.</span>
+          </div>
+          <strong>{themes[themeKey]?.name}</strong>
+        </div>
+        <div className="settings-theme-grid">
           {Object.entries(themes).map(([key, t]) => (
             <button
               key={key}
               onClick={() => changeTheme(key)}
-              style={{
-                padding: "12px 8px",
-                background: themeKey === key ? t.light : "#f9fafb",
-                border: themeKey === key ? `2px solid ${t.primary}` : "1px solid #e5e7eb",
-                borderRadius: "10px",
-                cursor: "pointer",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "6px"
-              }}
+              className={`settings-theme-button ${themeKey === key ? "settings-theme-button-active" : ""}`}
             >
-              <div style={{
-                width: "32px", height: "32px", borderRadius: "50%",
-                background: t.gradient, boxShadow: themeKey === key ? `0 0 0 3px ${t.light}` : "none"
-              }} />
-              <span style={{ fontSize: "11px", fontWeight: "600", color: themeKey === key ? t.primary : "#6b7280" }}>{t.name}</span>
+              <div className="settings-theme-swatch" style={{ background: t.gradient }} />
+              <span>{t.name}</span>
+              {themeKey === key && <small>Ativo</small>}
             </button>
           ))}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

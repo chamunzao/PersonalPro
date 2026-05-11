@@ -150,14 +150,14 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <CommunicationButton
                     label="Confirmar semana"
-                    description="Envia horarios fixos da semana"
+                    description="Envia horários fixos da semana"
                     disabled={!hasPhone}
                     theme={theme}
                     onClick={() => openWhatsAppMessage(student.phone, messages.weeklyConfirmation)}
                   />
                   <CommunicationButton
                     label="Cobrar pagamento"
-                    description={payment ? 'Mensagem de recebido' : 'Lembrete de pendencia'}
+                    description={payment ? 'Mensagem de recebido' : 'Lembrete de pendência'}
                     disabled={!hasPhone}
                     theme={theme}
                     onClick={() => openWhatsAppMessage(student.phone, messages.paymentReminder)}
@@ -178,7 +178,7 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
                   />
                   <CommunicationButton
                     label="Enviar treino"
-                    description="Reforca acompanhamento do treino atual"
+                    description="Reforça acompanhamento do treino atual"
                     disabled={!hasPhone}
                     theme={theme}
                     onClick={() => openWhatsAppMessage(student.phone, messages.workoutReminder)}
