@@ -3,7 +3,8 @@ import {
   buildTemplateMessageForStudent,
   createCustomMessageTemplate,
   filterStudentsForCommunication,
-  getStandardMessageTemplates
+  getStandardMessageTemplates,
+  updateCustomMessageTemplate
 } from "../src/features/communication/messageTemplates.js";
 
 const students = [
@@ -19,24 +20,38 @@ assert.ok(
   "standard template list exposes named reusable messages"
 );
 
+assert.ok(
+  standardTemplates.some(template => template.id === "weeklyConfirmation" && template.description === "Envia horários fixos da semana"),
+  "standard templates should use correct Portuguese accents"
+);
+
 assert.match(
   buildTemplateMessageForStudent({
-    template: { body: "Ola, {primeiro_nome}! Valor: {valor}. Proxima: {proxima_aula}." },
+    template: { body: "Olá, {primeiro_nome}! Valor: {valor}. Próxima: {proxima_aula}." },
     student: students[0],
-    context: { amount: 120, nextClassText: "15/05/2026 as 08:00" }
+    context: { amount: 120, nextClassText: "15/05/2026 às 08:00" }
   }),
-  /Ola, Ana! Valor: R\$\s?120,00\. Proxima: 15\/05\/2026 as 08:00\./,
+  /Olá, Ana! Valor: R\$\s?120,00\. Próxima: 15\/05\/2026 às 08:00\./,
   "template rendering replaces student and context placeholders"
 );
 
 const custom = createCustomMessageTemplate({
-  title: "Retorno avaliacao",
-  body: "Ola, {primeiro_nome}! Vamos revisar sua avaliacao?"
+  title: "Retorno avaliação",
+  body: "Olá, {primeiro_nome}! Vamos revisar sua avaliação?"
 });
 
 assert.equal(custom.type, "custom", "custom message templates are tagged separately");
-assert.equal(custom.title, "Retorno avaliacao", "custom template keeps personal title");
+assert.equal(custom.title, "Retorno avaliação", "custom template keeps personal title");
 assert.match(custom.id, /^custom-/, "custom template gets a generated id");
+
+const edited = updateCustomMessageTemplate(custom, {
+  title: "Retorno pós-avaliação",
+  body: "Olá, {primeiro_nome}! Sua avaliação foi atualizada."
+});
+
+assert.equal(edited.id, custom.id, "editing a custom template keeps the same id");
+assert.equal(edited.title, "Retorno pós-avaliação", "editing updates the template title");
+assert.equal(edited.body, "Olá, {primeiro_nome}! Sua avaliação foi atualizada.", "editing updates the template body");
 
 assert.deepEqual(
   filterStudentsForCommunication(students, "bru").map(student => student.id),

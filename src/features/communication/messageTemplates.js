@@ -7,31 +7,31 @@ const STANDARD_TEMPLATE_DEFINITIONS = [
   {
     id: "weeklyConfirmation",
     title: "Confirmar semana",
-    description: "Envia horarios fixos da semana"
+    description: "Envia horários fixos da semana"
   },
   {
     id: "nextClassConfirmation",
-    title: "Confirmar proxima aula",
-    description: "Usa o proximo horario fixo do aluno"
+    title: "Confirmar próxima aula",
+    description: "Usa o próximo horário fixo do aluno"
   },
   {
     id: "paymentReminder",
     title: "Cobrar pagamento",
-    description: "Lembrete de pendencia ou recebido"
+    description: "Lembrete de pendência ou recebido"
   },
   {
     id: "packageEnding",
     title: "Pacote acabando",
-    description: "Mensagem para renovacao"
+    description: "Mensagem para renovação"
   },
   {
     id: "absenceReplacement",
-    title: "Falta e reposicao",
+    title: "Falta e reposição",
     description: "Combina nova data"
   },
   {
     id: "postClass",
-    title: "Pos-aula",
+    title: "Pós-aula",
     description: "Fecha a aula pelo WhatsApp"
   },
   {
@@ -42,7 +42,7 @@ const STANDARD_TEMPLATE_DEFINITIONS = [
   {
     id: "workoutReminder",
     title: "Enviar treino",
-    description: "Reforca acompanhamento do treino atual"
+    description: "Reforça acompanhamento do treino atual"
   },
   {
     id: "inactiveStudent",
@@ -58,7 +58,7 @@ function getFirstName(student) {
 
 function getWeeklyScheduleText(student) {
   const schedule = student?.schedule || [];
-  if (schedule.length === 0) return "Voce ainda nao tem horarios fixos cadastrados nesta semana.";
+  if (schedule.length === 0) return "Você ainda não tem horários fixos cadastrados nesta semana.";
 
   return DAYS.map((day, dayIndex) => {
     const times = schedule
@@ -90,10 +90,10 @@ function normalizeText(value) {
 }
 
 function formatClassSchedule(nextClass) {
-  if (!nextClass?.dateText && !nextClass?.time) return "na proxima aula";
-  if (nextClass?.dateText && nextClass?.time) return `em ${nextClass.dateText}, as ${nextClass.time}`;
+  if (!nextClass?.dateText && !nextClass?.time) return "na próxima aula";
+  if (nextClass?.dateText && nextClass?.time) return `em ${nextClass.dateText}, às ${nextClass.time}`;
   if (nextClass?.dateText) return `em ${nextClass.dateText}`;
-  return `as ${nextClass.time}`;
+  return `às ${nextClass.time}`;
 }
 
 function getNextClassFromSchedule(student, asOf = new Date()) {
@@ -126,7 +126,7 @@ function getNextClassFromSchedule(student, asOf = new Date()) {
 export function buildWeeklyConfirmationMessage({ student }) {
   const firstName = getFirstName(student);
   const weeklySchedule = getWeeklyScheduleText(student);
-  return `Ola, ${firstName}! Passando para confirmar sua agenda da semana:\n\n${weeklySchedule}\n\nPode me confirmar se esta tudo certo?`;
+  return `Olá, ${firstName}! Passando para confirmar sua agenda da semana:\n\n${weeklySchedule}\n\nPode me confirmar se está tudo certo?`;
 }
 
 export function buildPaymentReminderMessage({ student, records = [], payments = [], asOf = new Date() }) {
@@ -137,10 +137,10 @@ export function buildPaymentReminderMessage({ student, records = [], payments = 
   const expectedValue = billingStatus.planValue || student?.packagePrice || student?.pricePerClass || 0;
 
   if (payment) {
-    return `Ola, ${firstName}! Seu pagamento deste mes consta como recebido. Obrigado!`;
+    return `Olá, ${firstName}! Seu pagamento deste mês consta como recebido. Obrigado!`;
   }
 
-  return `Ola, ${firstName}! Passando para lembrar do pagamento deste mes antes da proxima aula. Valor previsto: ${formatCurrency(expectedValue)}. Qualquer duvida me chama por aqui.`;
+  return `Olá, ${firstName}! Passando para lembrar do pagamento deste mês antes da próxima aula. Valor previsto: ${formatCurrency(expectedValue)}. Qualquer dúvida, me chama por aqui.`;
 }
 
 export function buildPackageEndingMessage({ student, records = [], payments = [], asOf = new Date() }) {
@@ -150,39 +150,39 @@ export function buildPackageEndingMessage({ student, records = [], payments = []
   const remainingClasses = creditStatus.remainingClasses ?? billingStatus.remainingClasses;
 
   if (remainingClasses !== null) {
-    return `Ola, ${firstName}! Seu pacote esta com ${remainingClasses} aula${remainingClasses === 1 ? "" : "s"} restante${remainingClasses === 1 ? "" : "s"}. Vamos alinhar a renovacao para nao interromper sua rotina?`;
+    return `Olá, ${firstName}! Seu pacote está com ${remainingClasses} aula${remainingClasses === 1 ? "" : "s"} restante${remainingClasses === 1 ? "" : "s"}. Vamos alinhar a renovação para não interromper sua rotina?`;
   }
 
-  return `Ola, ${firstName}! Passando para alinharmos a continuidade do seu plano de treinos deste mes.`;
+  return `Olá, ${firstName}! Passando para alinharmos a continuidade do seu plano de treinos deste mês.`;
 }
 
 export function buildPostClassMessage({ student, classDateText = "", focus = "", notes = "" }) {
   const firstName = getFirstName(student);
   const datePart = classDateText ? ` de ${classDateText}` : "";
   const focusPart = focus ? ` O foco principal foi ${focus}.` : "";
-  const notesPart = notes ? ` Observacao importante: ${notes}.` : "";
+  const notesPart = notes ? ` Observação importante: ${notes}.` : "";
 
-  return `Ola, ${firstName}! Passando para registrar o fechamento da aula${datePart}.${focusPart}${notesPart} Qualquer sinal de dor ou desconforto, me avisa por aqui.`;
+  return `Olá, ${firstName}! Passando para registrar o fechamento da aula${datePart}.${focusPart}${notesPart} Qualquer sinal de dor ou desconforto, me avisa por aqui.`;
 }
 
 export function buildAbsenceReplacementMessage({ student, missedDateText = "", replacementDateText = "", replacementTime = "" }) {
   const firstName = getFirstName(student);
   const missedPart = missedDateText ? ` da aula de ${missedDateText}` : "";
   const replacementPart = replacementDateText || replacementTime
-    ? ` Podemos repor em ${replacementDateText || "uma nova data"}${replacementTime ? ` as ${replacementTime}` : ""}?`
-    : " Vamos combinar um melhor horario para reposicao?";
+    ? ` Podemos repor em ${replacementDateText || "uma nova data"}${replacementTime ? ` às ${replacementTime}` : ""}?`
+    : " Vamos combinar o melhor horário para reposição?";
 
-  return `Ola, ${firstName}! Vi sua falta${missedPart}.${replacementPart}`;
+  return `Olá, ${firstName}! Vi sua falta${missedPart}.${replacementPart}`;
 }
 
 export function buildNextClassConfirmationMessage({ student, nextClass = null }) {
   const firstName = getFirstName(student);
-  return `Ola, ${firstName}! Confirmando sua proxima aula ${formatClassSchedule(nextClass)}. Pode me avisar se precisar ajustar algo?`;
+  return `Olá, ${firstName}! Confirmando sua próxima aula ${formatClassSchedule(nextClass)}. Pode me avisar se precisar ajustar algo?`;
 }
 
 export function buildInactiveStudentMessage({ student }) {
   const firstName = getFirstName(student);
-  return `Ola, ${firstName}! Faz um tempo que nao registramos aula. Quer retomar sua rotina esta semana? Posso te ajudar a escolher o melhor horario.`;
+  return `Olá, ${firstName}! Faz um tempo que não registramos aula. Quer retomar sua rotina esta semana? Posso te ajudar a escolher o melhor horário.`;
 }
 
 export function buildCommunicationMessages({ student, records = [], payments = [], asOf = new Date(), nextClass = null }) {
@@ -196,8 +196,8 @@ export function buildCommunicationMessages({ student, records = [], payments = [
     absenceReplacement: buildAbsenceReplacementMessage({ student }),
     nextClassConfirmation: buildNextClassConfirmationMessage({ student, nextClass: resolvedNextClass }),
     inactiveStudent: buildInactiveStudentMessage({ student }),
-    weeklyCheckIn: `Ola, ${getFirstName(student)}! Check-in rapido da semana: como voce esta se sentindo com os treinos, dores, energia e rotina? Me responde por aqui para eu ajustar o acompanhamento.`,
-    workoutReminder: `Ola, ${getFirstName(student)}! Passando para reforcar seu treino atual. Se tiver duvida em algum exercicio, me chama por aqui antes da proxima aula.`
+    weeklyCheckIn: `Olá, ${getFirstName(student)}! Check-in rápido da semana: como você está se sentindo com os treinos, dores, energia e rotina? Me responde por aqui para eu ajustar o acompanhamento.`,
+    workoutReminder: `Olá, ${getFirstName(student)}! Passando para reforçar seu treino atual. Se tiver dúvida em algum exercício, me chama por aqui antes da próxima aula.`
   };
 }
 
@@ -214,6 +214,14 @@ export function createCustomMessageTemplate({ title, body }) {
     type: "custom",
     title: String(title || "").trim(),
     description: "Mensagem criada pelo personal",
+    body: String(body || "").trim()
+  };
+}
+
+export function updateCustomMessageTemplate(template, { title, body }) {
+  return {
+    ...template,
+    title: String(title || "").trim(),
     body: String(body || "").trim()
   };
 }

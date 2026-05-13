@@ -338,36 +338,36 @@ Como implementar:
 
 - Centralizar templates em `src/features/communication/messageTemplates.js`.
 - Criar mensagens para:
-  - confirmacao da semana;
+  - confirmação da semana;
   - pagamento pendente antes da aula;
   - pacote acabando;
-  - falta e reposicao;
-  - pos-aula;
-  - confirmacao da proxima aula;
+  - falta e reposição;
+  - pós-aula;
+  - confirmação da próxima aula;
   - aluno inativo;
   - check-in semanal;
-  - reforco de treino.
+  - reforço de treino.
 
 Aceite:
 
 - Mensagens usam primeiro nome.
 - Mensagens usam dados reais quando disponiveis.
 - Mensagens nao quebram se dados opcionais estiverem ausentes.
-- A tela de Comunicacao usa os templates centralizados.
+- A tela de Comunicação usa os templates centralizados.
 
 Implementado:
 
 - Criado helper `src/features/communication/messageTemplates.js`.
 - Criado teste `tests/messageTemplates.test.mjs`.
 - `CommunicationTab.jsx` passou a consumir templates centralizados.
-- Foram adicionadas acoes rapidas para confirmar proxima aula, falta/reposicao, pos-aula e aluno inativo.
-- Confirmacao da proxima aula usa a proxima data e horario fixo quando a agenda do aluno esta cadastrada.
-- A tela de Comunicacao foi reorganizada para:
-  - selecionar primeiro a mensagem padrao;
-  - permitir que o personal crie mensagens padrao personalizadas;
+- Foram adicionadas ações rápidas para confirmar próxima aula, falta/reposição, pós-aula e aluno inativo.
+- Confirmação da próxima aula usa a próxima data e horário fixo quando a agenda do aluno está cadastrada.
+- A tela de Comunicação foi reorganizada para:
+  - selecionar primeiro a mensagem padrão;
+  - permitir que o personal crie e edite mensagens padrão personalizadas;
   - pesquisar e selecionar um aluno em lista simples;
-  - mostrar uma previa antes do envio pelo WhatsApp.
-- Mensagens personalizadas suportam variaveis:
+  - mostrar uma prévia antes do envio pelo WhatsApp.
+- Mensagens personalizadas suportam variáveis:
   - `{primeiro_nome}`;
   - `{nome}`;
   - `{valor}`;

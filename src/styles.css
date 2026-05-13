@@ -3553,15 +3553,34 @@ body .communication-student-card > div:first-child {
   line-height: 1.35;
 }
 
+.communication-template-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.communication-template-edit,
 .communication-template-delete {
   padding: 0 10px;
-  border: 0.5px solid rgba(239, 68, 68, 0.35);
+  border: 0.5px solid rgba(242, 207, 124, 0.35);
   border-radius: 12px;
-  background: rgba(239, 68, 68, 0.14);
-  color: #EF4444;
+  background: rgba(242, 207, 124, 0.14);
+  color: #F2CF7C;
   font-size: 11px;
   font-weight: 850;
   cursor: pointer;
+}
+
+.communication-template-delete {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.14);
+  color: #EF4444;
+}
+
+.communication-template-cancel {
+  background: #142339 !important;
+  border: 0.5px solid #4A6388 !important;
+  color: #C2CAD7 !important;
 }
 
 .communication-template-form {

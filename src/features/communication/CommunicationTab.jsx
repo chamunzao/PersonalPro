@@ -7,7 +7,8 @@ import {
   filterStudentsForCommunication,
   getMonthPayment,
   getNextClassFromSchedule,
-  getStandardMessageTemplates
+  getStandardMessageTemplates,
+  updateCustomMessageTemplate
 } from './messageTemplates.js';
 
 const CUSTOM_MESSAGES_STORAGE_KEY = 'personalpro-custom-communication-templates';
@@ -15,7 +16,7 @@ const CUSTOM_MESSAGES_STORAGE_KEY = 'personalpro-custom-communication-templates'
 function openWhatsAppMessage(phone, message) {
   const digits = String(phone || '').replace(/\D/g, '');
   if (!digits) {
-    alert('Cadastre o WhatsApp do aluno para usar esta acao.');
+    alert('Cadastre o WhatsApp do aluno para usar esta ação.');
     return;
   }
   const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
@@ -59,7 +60,7 @@ function getMessageForTemplate({ template, student, records, payments, now }) {
   const creditStatus = calculateAdvanceCreditStatus(student, records, payments, now);
   const nextClass = getNextClassFromSchedule(student, now);
   const nextClassText = nextClass?.dateText && nextClass?.time
-    ? `${nextClass.dateText} as ${nextClass.time}`
+    ? `${nextClass.dateText} às ${nextClass.time}`
     : 'a combinar';
 
   return buildTemplateMessageForStudent({
@@ -83,6 +84,7 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
   const [selectedStudentId, setSelectedStudentId] = useState(students[0]?.id || '');
   const [customTitle, setCustomTitle] = useState('');
   const [customBody, setCustomBody] = useState('');
+  const [editingTemplateId, setEditingTemplateId] = useState('');
 
   const templates = [...standardTemplates, ...customTemplates];
   const selectedTemplate = templates.find(template => template.id === selectedTemplateId) || templates[0];
@@ -102,6 +104,21 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
     event.preventDefault();
     if (!customTitle.trim() || !customBody.trim()) return;
 
+    if (editingTemplateId) {
+      const nextTemplates = customTemplates.map(template => (
+        template.id === editingTemplateId
+          ? updateCustomMessageTemplate(template, { title: customTitle, body: customBody })
+          : template
+      ));
+      setCustomTemplates(nextTemplates);
+      saveCustomTemplates(nextTemplates);
+      setSelectedTemplateId(editingTemplateId);
+      setEditingTemplateId('');
+      setCustomTitle('');
+      setCustomBody('');
+      return;
+    }
+
     const template = createCustomMessageTemplate({ title: customTitle, body: customBody });
     const nextTemplates = [...customTemplates, template];
     setCustomTemplates(nextTemplates);
@@ -116,14 +133,32 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
     setCustomTemplates(nextTemplates);
     saveCustomTemplates(nextTemplates);
     if (selectedTemplateId === templateId) setSelectedTemplateId(standardTemplates[0]?.id || '');
+    if (editingTemplateId === templateId) {
+      setEditingTemplateId('');
+      setCustomTitle('');
+      setCustomBody('');
+    }
+  }
+
+  function startEditCustomTemplate(template) {
+    setEditingTemplateId(template.id);
+    setSelectedTemplateId(template.id);
+    setCustomTitle(template.title);
+    setCustomBody(template.body);
+  }
+
+  function cancelEditCustomTemplate() {
+    setEditingTemplateId('');
+    setCustomTitle('');
+    setCustomBody('');
   }
 
   return (
     <div className="communication-page">
       <section className="app-card communication-hero-panel">
         <p className="dashboard-kicker">CENTRAL DE CONTATO</p>
-        <h2 className="communication-page-title">Comunicacao</h2>
-        <p className="communication-page-kicker">Escolha uma mensagem padrao, selecione o aluno e envie pelo WhatsApp.</p>
+        <h2 className="communication-page-title">Comunicação</h2>
+        <p className="communication-page-kicker">Escolha uma mensagem padrão, selecione o aluno e envie pelo WhatsApp.</p>
         <div className="communication-hero-summary">
           <div>
             <p>Alunos na lista</p>
@@ -138,7 +173,7 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
       <section className="communication-library-card">
         <div className="communication-section-header">
           <div>
-            <p className="dashboard-kicker">MENSAGENS PADRAO</p>
+            <p className="dashboard-kicker">MENSAGENS PADRÃO</p>
             <h3>Biblioteca do personal</h3>
           </div>
           <span>{templates.length} modelos</span>
@@ -153,14 +188,24 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
                 onClick={() => setSelectedTemplateId(template.id)}
               />
               {template.type === 'custom' && (
-                <button
-                  type="button"
-                  className="communication-template-delete"
-                  onClick={() => deleteCustomTemplate(template.id)}
-                  aria-label={`Remover ${template.title}`}
-                >
-                  Remover
-                </button>
+                <div className="communication-template-actions">
+                  <button
+                    type="button"
+                    className="communication-template-edit"
+                    onClick={() => startEditCustomTemplate(template)}
+                    aria-label={`Editar ${template.title}`}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    className="communication-template-delete"
+                    onClick={() => deleteCustomTemplate(template.id)}
+                    aria-label={`Remover ${template.title}`}
+                  >
+                    Remover
+                  </button>
+                </div>
               )}
             </div>
           ))}
@@ -179,8 +224,13 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
             rows={4}
           />
           <button type="submit" disabled={!customTitle.trim() || !customBody.trim()}>
-            Criar mensagem
+            {editingTemplateId ? 'Salvar alterações' : 'Criar mensagem'}
           </button>
+          {editingTemplateId && (
+            <button type="button" className="communication-template-cancel" onClick={cancelEditCustomTemplate}>
+              Cancelar edição
+            </button>
+          )}
         </form>
       </section>
 
@@ -193,7 +243,7 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
           <div className="communication-section-header">
             <div>
               <p className="dashboard-kicker">ALUNO</p>
-              <h3>Selecionar destinatario</h3>
+              <h3>Selecionar destinatário</h3>
             </div>
             {selectedStudent && (
               <span className={`communication-payment-pill ${selectedPayment ? 'communication-paid' : 'communication-pending'}`}>
