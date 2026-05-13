@@ -24,6 +24,7 @@ import {
 import { getStudentsEmptyState } from '../emptyStates/setupEmptyStates';
 import { EXERCISE_LIBRARY, WORKOUT_TEMPLATES } from '../workouts/workoutPresets';
 import { DataTabContent } from './StudentProfileDataTab';
+import { StudentProfileSummaryTab } from './StudentProfileSummaryTab';
 
 function IconPlus() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>;
@@ -140,7 +141,7 @@ function countScheduledClassesBetween(schedule, startISO, endISO) {
 // ==================== STUDENT PROFILE ====================
 function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("dados");
+  const [activeTab, setActiveTab] = useState("resumo");
   const [measurements, setMeasurements] = useState([]);
   const [workoutPlans, setWorkoutPlans] = useState([]);
   const [anamnesis, setAnamnesis] = useState(DEFAULT_ANAMNESIS);
@@ -203,6 +204,7 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
   }
 
   const tabItems = [
+    { id: "resumo", label: "Resumo", icon: <IconHistory /> },
     { id: "dados", label: "Dados", icon: <IconUser /> },
     { id: "anamnese", label: "Anamnese", icon: <IconUser /> },
     { id: "medidas", label: "Medidas", icon: <IconRuler /> },
@@ -270,6 +272,17 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
 
       {loadingProfile && <p style={{ color: "#91A0B6", textAlign: "center" }}>Carregando...</p>}
 
+      {activeTab === "resumo" && (
+        <StudentProfileSummaryTab
+          student={student}
+          records={records}
+          workoutPlans={workoutPlans}
+          anamnesis={anamnesis}
+          theme={theme}
+          onEdit={() => onEdit(student)}
+          onOpenWorkout={() => setActiveTab("treinos")}
+        />
+      )}
       {activeTab === "dados" && <DataTabContent student={student} records={records} onEdit={onEdit} theme={theme} />}
       {activeTab === "anamnese" && <AnamnesisTabContent studentId={studentId} anamnesis={anamnesis} setAnamnesis={setAnamnesis} theme={theme} />}
       {activeTab === "medidas" && <MeasurementsTabContent studentId={studentId} measurements={measurements} setMeasurements={setMeasurements} showNewMeasurement={showNewMeasurement} setShowNewMeasurement={setShowNewMeasurement} expandedMeasurement={expandedMeasurement} setExpandedMeasurement={setExpandedMeasurement} theme={theme} />}

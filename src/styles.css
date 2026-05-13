@@ -2348,6 +2348,204 @@ body .app-main-session .session-action-danger {
   }
 }
 
+.student-summary-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.student-summary-hero,
+.student-summary-panel,
+.student-summary-card {
+  background: #243B5C;
+  border: 0.5px solid #4A6388;
+  border-radius: 14px;
+}
+
+.student-summary-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+}
+
+.student-summary-hero h3 {
+  margin: 0 0 6px;
+  color: #FFFFFF;
+  font-size: 22px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.student-summary-hero span {
+  display: block;
+  color: #C2CAD7;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 750;
+}
+
+.student-summary-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.student-summary-actions button {
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 0;
+  border-radius: 12px;
+  background: #F2CF7C;
+  color: #142339;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.student-summary-actions button:disabled {
+  background: #3B4E6D;
+  color: #8796AC;
+  cursor: not-allowed;
+}
+
+.student-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.student-summary-card {
+  min-width: 0;
+  padding: 13px;
+}
+
+.student-summary-card span,
+.student-summary-card strong,
+.student-summary-card small {
+  display: block;
+}
+
+.student-summary-card span {
+  margin-bottom: 6px;
+  color: #C2CAD7;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.student-summary-card strong {
+  overflow: hidden;
+  color: #FFFFFF;
+  font-size: 17px;
+  line-height: 1.2;
+  font-weight: 900;
+  text-overflow: ellipsis;
+}
+
+.student-summary-card small {
+  margin-top: 6px;
+  color: #DCE7FF;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.student-summary-card-ok {
+  border-color: rgba(242, 207, 124, 0.6);
+}
+
+.student-summary-card-attention {
+  border-color: rgba(239, 68, 68, 0.55);
+}
+
+.student-summary-panel {
+  padding: 14px;
+}
+
+.student-summary-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.student-summary-panel-header p,
+.student-summary-panel-header small {
+  display: block;
+  margin: 0;
+}
+
+.student-summary-panel-header p {
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.student-summary-panel-header small {
+  margin-top: 3px;
+  color: #C2CAD7;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.student-summary-panel-header > span {
+  flex-shrink: 0;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.student-summary-risk-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.student-summary-risk-list span {
+  padding: 5px 8px;
+  background: rgba(239, 68, 68, 0.14);
+  color: #FCA5A5;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.student-summary-empty,
+.student-summary-note {
+  margin: 0;
+  color: #DCE7FF;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (max-width: 960px) {
+  .student-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .student-summary-hero {
+    flex-direction: column;
+  }
+
+  .student-summary-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .student-summary-actions button {
+    flex: 1;
+  }
+
+  .student-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .session-student-summary {
   margin: 12px;
   padding: 12px;

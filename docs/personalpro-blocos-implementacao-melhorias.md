@@ -151,6 +151,8 @@ Objetivo:
 
 - Fazer o perfil responder o que o personal precisa saber antes de atender o aluno.
 
+Status: implementado para validacao.
+
 Como implementar:
 
 - Criar bloco superior com:
@@ -164,6 +166,33 @@ Como implementar:
 Aceite:
 
 - O perfil deixa de ser apenas cadastro e vira pagina de decisao.
+
+Implementado:
+
+- Criado helper `src/features/students/studentProfileSummary.js`.
+- Criado teste `tests/studentProfileSummary.test.mjs`.
+- Criado componente `src/features/students/StudentProfileSummaryTab.jsx`.
+- O perfil do aluno agora abre na aba `Resumo`.
+- A aba `Resumo` mostra:
+  - proxima aula;
+  - financeiro;
+  - frequencia do mes;
+  - treino ativo;
+  - ultima aula;
+  - riscos da anamnese;
+  - observacoes recentes;
+  - acoes para editar dados e abrir treino.
+
+Validacao executada:
+
+- `node tests\studentProfileSummary.test.mjs`
+- `node tests\sessionStudentSummary.test.mjs`
+- `node tests\sessionCheckout.test.mjs`
+- `node tests\sessionNotes.test.mjs`
+- `node tests\sessionClassFlow.test.mjs`
+- `node tests\sessionWorkouts.test.mjs`
+- `node tests\recordsService.test.mjs`
+- `npm run build`
 
 ## Bloco 5 - Falta, reposicao e comunicacao
 
