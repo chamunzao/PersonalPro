@@ -3792,7 +3792,7 @@ body .reports-student-row p:last-child {
 
 .reports-decision-summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 10px;
   margin-bottom: 12px;
 }
@@ -3829,7 +3829,7 @@ body .reports-student-row p:last-child {
 
 .reports-decision-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
@@ -3884,8 +3884,6 @@ body .reports-student-row p:last-child {
 
 @media (max-width: 560px) {
   .reports-insights-grid,
-  .reports-decision-summary,
-  .reports-decision-grid,
   .reports-decision-header {
     grid-template-columns: 1fr;
   }
