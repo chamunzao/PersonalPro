@@ -10,7 +10,7 @@ const moreNavigation = [
   { id: "payments", label: "Pagamentos", description: "Recebidos, pendências e pacotes" },
   { id: "alerts", label: "Pendências", description: "Cobranças, faltas e ações para resolver" },
   { id: "communication", label: "Contato", description: "Mensagens prontas para WhatsApp" },
-  { id: "workoutModels", label: "Modelos", description: "Treinos prontos para aplicar em alunos" },
+  { id: "workoutModels", label: "Biblioteca de Treinos", description: "Treinos prontos para aplicar em alunos" },
   { id: "reports", label: "Relatório", description: "Receita, taxas e presença" },
   { id: "settings", label: "Ajustes", description: "Tema e preferências do app" }
 ];

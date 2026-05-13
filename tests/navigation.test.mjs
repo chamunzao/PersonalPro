@@ -20,6 +20,12 @@ assert.deepEqual(
   "secondary navigation keeps support screens under More without duplicating attendance"
 );
 
+assert.equal(
+  more.find(item => item.id === "workoutModels")?.label,
+  "Biblioteca de Treinos",
+  "workout models navigation should use the approved user-facing label"
+);
+
 assert.equal(isMoreSectionActive("payments"), true, "payments highlights More");
 assert.equal(isMoreSectionActive("alerts"), true, "alerts highlights More");
 assert.equal(isMoreSectionActive("workoutModels"), true, "workout models highlights More");

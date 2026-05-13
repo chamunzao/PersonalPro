@@ -18,6 +18,12 @@ assert.match(
 
 assert.match(
   workoutModelsTab,
+  /Biblioteca de Treinos/,
+  "models screen should use the approved title"
+);
+
+assert.match(
+  workoutModelsTab,
   /getSystemWorkoutModels\(\)/,
   "models screen should list system workout models"
 );
