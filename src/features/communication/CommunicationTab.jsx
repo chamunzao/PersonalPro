@@ -225,7 +225,11 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
           />
           <div className="communication-template-help">
             <p>Use {'{primeiro_nome}'} para trocar automaticamente pelo primeiro nome do aluno selecionado.</p>
-            <p>{'{nome}'} usa o nome completo. Exemplo: "Olá, {'{primeiro_nome}'}! Sua próxima aula é {'{proxima_aula}'}."</p>
+            <p>{'{nome}'} usa o nome completo.</p>
+            <p>{'{valor}'} insere o valor previsto do plano ou aula.</p>
+            <p>{'{proxima_aula}'} mostra a próxima aula quando houver agenda.</p>
+            <p>{'{saldo_pacote}'} mostra o saldo de aulas quando disponível.</p>
+            <p>Exemplo: "Olá, {'{primeiro_nome}'}! Sua próxima aula é {'{proxima_aula}'}."</p>
           </div>
           <button type="submit" disabled={!customTitle.trim() || !customBody.trim()}>
             {editingTemplateId ? 'Salvar alterações' : 'Criar mensagem'}

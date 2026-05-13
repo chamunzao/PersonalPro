@@ -373,7 +373,12 @@ Implementado:
   - `{valor}`;
   - `{proxima_aula}`;
   - `{saldo_pacote}`.
-- O formulário de criação explica que `{primeiro_nome}` troca automaticamente pelo primeiro nome do aluno selecionado e que `{nome}` usa o nome completo.
+- O formulário de criação explica:
+  - `{primeiro_nome}` troca automaticamente pelo primeiro nome do aluno selecionado;
+  - `{nome}` usa o nome completo;
+  - `{valor}` insere o valor previsto do plano ou aula;
+  - `{proxima_aula}` mostra a próxima aula quando houver agenda;
+  - `{saldo_pacote}` mostra o saldo de aulas quando disponível.
 
 Validacao:
 
