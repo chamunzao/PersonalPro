@@ -64,6 +64,8 @@ Objetivo:
 - Transformar a tela de aula em fluxo guiado.
 - Separar visualmente preparacao, execucao e fechamento.
 
+Status: implementado para validacao.
+
 Como implementar:
 
 - Extrair componentes internos ou arquivos dedicados:
@@ -78,6 +80,24 @@ Aceite:
 - O personal entende rapidamente o que revisar antes da aula.
 - A execucao do treino continua no centro da tela.
 - As acoes finais ficam agrupadas e nao competem com o registro de series.
+
+Implementado:
+
+- Criado helper `src/features/session/sessionClassFlow.js` para definir os tres blocos da aula.
+- Criado teste `tests/sessionClassFlow.test.mjs` para garantir ordem e estado dos blocos.
+- A aba `Aula` agora separa o card do aluno em:
+  - `Antes da aula`, com resumo do aluno;
+  - `Durante a aula`, com treino, exercicios, series, repeticoes, carga e edicao;
+  - `Depois da aula`, com notas gerais, salvar notas e nova versao do treino.
+- Adicionados estilos responsivos para os blocos do fluxo presencial.
+
+Validacao executada:
+
+- `node tests\sessionClassFlow.test.mjs`
+- `node tests\sessionStudentSummary.test.mjs`
+- `node tests\sessionWorkouts.test.mjs`
+- `node tests\recordsService.test.mjs`
+- `npm run build`
 
 ## Bloco 3 - Check-out da aula
 

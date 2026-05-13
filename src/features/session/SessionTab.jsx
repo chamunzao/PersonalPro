@@ -25,6 +25,7 @@ import { applySessionNotesUpdate, saveSessionNotes as saveSessionNotesRecord } f
 import { DEMO_EMAIL, getDemoWorkoutPlans } from '../../services/demoData';
 import { loadSessionWorkoutEntries } from './sessionWorkouts';
 import { buildSessionStudentSummary } from './sessionStudentSummary';
+import { getSessionFlowSections } from './sessionClassFlow';
 
 function IconCheck() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -153,6 +154,21 @@ function SessionStudentSummaryPanel({ summary }) {
         </div>
       )}
     </div>
+  );
+}
+
+function SessionFlowSection({ section, children }) {
+  return (
+    <section className={`session-flow-section session-flow-section-${section.id} session-flow-state-${section.state}`}>
+      <div className="session-flow-header">
+        <span>{section.step}</span>
+        <div>
+          <p>{section.title}</p>
+          <small>{section.description}</small>
+        </div>
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -580,6 +596,15 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
             const workoutForm = workoutEditForms[classKey] || { name: activeWorkout?.name || "", active: activeWorkout?.active !== false, exercises: activeWorkout?.exercises || [] };
 
             const hasNotes = record?.sessionNote || Object.keys(record?.exerciseNotes || {}).length > 0 || Object.keys(record?.exerciseLogs || {}).length > 0;
+            const draftHasChanges = hasSessionChanges(draft);
+            const flowSections = getSessionFlowSections({
+              hasWorkout: Boolean(activeWorkout),
+              hasSessionChanges: draftHasChanges,
+              recordStatus: record?.status || ""
+            });
+            const beforeSection = flowSections.find(section => section.id === "before");
+            const duringSection = flowSections.find(section => section.id === "during");
+            const afterSection = flowSections.find(section => section.id === "after");
 
             return (
               <div key={classKey} className={`session-student-card ${hasNotes ? "session-student-card-active" : ""}`}>
@@ -623,8 +648,11 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                   </div>
                 </div>
 
-                <SessionStudentSummaryPanel summary={studentSummary} />
+                <SessionFlowSection section={beforeSection}>
+                  <SessionStudentSummaryPanel summary={studentSummary} />
+                </SessionFlowSection>
 
+                <SessionFlowSection section={duringSection}>
                 {workoutLoadError ? (
                   <div className="session-card-body">
                     <div className="session-workout-error">
@@ -861,8 +889,10 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                     </div>
                   </div>
                 )}
+                </SessionFlowSection>
 
-                <div className="session-card-body" style={{ paddingTop: activeWorkout ? 0 : undefined }}>
+                <SessionFlowSection section={afterSection}>
+                <div className="session-card-body">
                   <label className="session-field-label">Notas gerais da aula</label>
                 <textarea
                   value={draft.sessionNote}
@@ -885,14 +915,15 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                   {activeWorkout && (
                   <button
                     onClick={() => createWorkoutVersionFromClass(classKey, cls.studentId, activeWorkout)}
-                    disabled={savingWorkout || !hasSessionChanges(draft)}
+                    disabled={savingWorkout || !draftHasChanges}
                     className="session-action-muted"
-                    style={{ width: "100%", background: savingWorkout || !hasSessionChanges(draft) ? "#e5e7eb" : "#111827", color: savingWorkout || !hasSessionChanges(draft) ? "#9ca3af" : "white", cursor: savingWorkout || !hasSessionChanges(draft) ? "not-allowed" : "pointer" }}
+                    style={{ width: "100%", background: savingWorkout || !draftHasChanges ? "#e5e7eb" : "#111827", color: savingWorkout || !draftHasChanges ? "#9ca3af" : "white", cursor: savingWorkout || !draftHasChanges ? "not-allowed" : "pointer" }}
                   >
                     {savingWorkout ? "Atualizando..." : "Nova versão"}
                   </button>
                   )}
                 </div>
+                </SessionFlowSection>
               </div>
             );
           })}

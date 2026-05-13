@@ -2217,6 +2217,87 @@ body .app-main-session .session-action-danger {
   background: transparent !important;
 }
 
+.session-flow-section {
+  margin: 12px;
+  background: rgba(20, 35, 57, 0.66);
+  border: 0.5px solid #4A6388;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.session-flow-section + .session-flow-section {
+  margin-top: 0;
+}
+
+.session-flow-header {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 11px 12px;
+  background: rgba(255, 255, 255, 0.035);
+  border-bottom: 0.5px solid rgba(220, 231, 255, 0.12);
+}
+
+.session-flow-header > span {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(242, 207, 124, 0.15);
+  color: #F2CF7C;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.session-flow-header p,
+.session-flow-header small {
+  display: block;
+  margin: 0;
+}
+
+.session-flow-header p {
+  color: #FFFFFF;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.session-flow-header small {
+  margin-top: 3px;
+  color: #C2CAD7;
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.session-flow-state-attention .session-flow-header > span {
+  background: rgba(239, 68, 68, 0.16);
+  color: #FCA5A5;
+}
+
+.session-flow-state-active .session-flow-header > span {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86EFAC;
+}
+
+.session-flow-section .session-student-summary {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.session-flow-section .session-card-body,
+.session-flow-section .session-save-row {
+  margin: 0;
+  border-radius: 0;
+}
+
+.session-flow-section .session-card-body:first-of-type {
+  border-top: 0;
+}
+
 .session-student-summary {
   margin: 12px;
   padding: 12px;
