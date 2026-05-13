@@ -1,11 +1,12 @@
-import { GYM_FEE_PER_CLASS, REVENUE_LIMIT } from "../../lib/constants";
-import { formatDateISO, getDaysInMonth, parseBrazilianDate } from "../../lib/dates";
+import { GYM_FEE_PER_CLASS, REVENUE_LIMIT } from "../../lib/constants.js";
+import { formatDateISO, getDaysInMonth, parseBrazilianDate } from "../../lib/dates.js";
 import {
   applyLocationMonthlyCap,
   calculateLocationFixedFee,
   calculateLocationVariableFee,
   getLocationName
-} from "../locations/locationCalculations";
+} from "../locations/locationCalculations.js";
+import { calculateAdvanceCreditStatus, calculateBillingStatus } from "../billing/billingCalculations.js";
 
 function getRecordParts(recordKey) {
   const [date, studentId, ...timeParts] = recordKey.split("_");
@@ -43,8 +44,168 @@ function sortRecordsByDateAndTime(a, b) {
   return aParts.time.localeCompare(bParts.time);
 }
 
+function getPreviousMonthKey(monthKey) {
+  const [yearText, monthText] = monthKey.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const previous = new Date(year, month - 2, 1);
+  return `${previous.getFullYear()}-${String(previous.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addDays(date, amount) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + amount);
+  return nextDate;
+}
+
+function getPaymentStudentId(payment) {
+  return payment.studentId || payment.key?.split("_").slice(1).join("_");
+}
+
+function hasPaidMonth(payments, studentId, monthKey) {
+  return payments.some(payment => (
+    payment.paid
+    && payment.month === monthKey
+    && getPaymentStudentId(payment) === studentId
+  ));
+}
+
 export function calculateMonthlyReport({ students, records, payments, monthKey }) {
   return calculateMonthlyReportWithLocations({ students, records, payments, monthKey });
+}
+
+export function calculatePreviousMonthComparison({ students, records, payments, monthKey }) {
+  const previousMonthKey = getPreviousMonthKey(monthKey);
+  const current = {
+    monthKey,
+    ...calculateMonthlyReport({ students, records, payments, monthKey })
+  };
+  const previous = {
+    monthKey: previousMonthKey,
+    ...calculateMonthlyReport({ students, records, payments, monthKey: previousMonthKey })
+  };
+
+  const netRevenueDelta = current.netRevenue - previous.netRevenue;
+  const netRevenueDeltaPercentage = previous.netRevenue > 0
+    ? (netRevenueDelta / previous.netRevenue) * 100
+    : current.netRevenue > 0 ? 100 : 0;
+
+  return {
+    current,
+    previous,
+    netRevenueDelta,
+    netRevenueDeltaPercentage
+  };
+}
+
+export function getTopAbsenceStudents(report, limit = 5) {
+  return report.studentRows
+    .filter(row => row.absentClasses > 0)
+    .sort((a, b) => (
+      b.absentClasses - a.absentClasses
+      || (b.absentClasses / Math.max(b.totalClasses, 1)) - (a.absentClasses / Math.max(a.totalClasses, 1))
+      || a.student.name.localeCompare(b.student.name)
+    ))
+    .slice(0, limit);
+}
+
+export function getPendingPaymentStudents(report, limit = 5) {
+  return report.studentRows
+    .filter(row => !row.paid)
+    .sort((a, b) => (
+      b.netRevenue - a.netRevenue
+      || b.totalClasses - a.totalClasses
+      || a.student.name.localeCompare(b.student.name)
+    ))
+    .slice(0, limit);
+}
+
+export function getTopRevenueStudents(report, limit = 5) {
+  return report.studentRows
+    .filter(row => row.netRevenue > 0)
+    .sort((a, b) => (
+      b.netRevenue - a.netRevenue
+      || b.grossRevenue - a.grossRevenue
+      || a.student.name.localeCompare(b.student.name)
+    ))
+    .slice(0, limit);
+}
+
+export function getActiveFrequencyStudents(report, limit = 5) {
+  return report.studentRows
+    .filter(row => row.presentClasses > 0)
+    .sort((a, b) => (
+      b.presentClasses - a.presentClasses
+      || b.totalClasses - a.totalClasses
+      || a.student.name.localeCompare(b.student.name)
+    ))
+    .slice(0, limit);
+}
+
+export function getUpcomingPackageRisks({ students, records, payments, asOf = new Date(), limit = 5 }) {
+  return students
+    .map(student => {
+      const advanceCredit = calculateAdvanceCreditStatus(student, records, payments, asOf);
+      const billingStatus = calculateBillingStatus(student, records, asOf);
+      const remainingClasses = advanceCredit.remainingClasses ?? billingStatus.remainingClasses;
+      const status = advanceCredit.hasAdvancePackage ? advanceCredit.status : billingStatus.status;
+
+      return {
+        student,
+        remainingClasses,
+        status,
+        expiresAt: advanceCredit.expiresAt,
+        daysUntilExpiry: advanceCredit.daysUntilExpiry,
+        planValue: billingStatus.planValue
+      };
+    })
+    .filter(item => item.remainingClasses !== null && item.remainingClasses <= 2)
+    .sort((a, b) => (
+      a.remainingClasses - b.remainingClasses
+      || a.student.name.localeCompare(b.student.name)
+    ))
+    .slice(0, limit);
+}
+
+export function calculateWeeklyRevenueForecast({ students, records, payments, fromDate = new Date(), limit = 5 }) {
+  const startDate = startOfDay(fromDate);
+  const endDate = addDays(startDate, 6);
+
+  return students
+    .map(student => {
+      const billingStatus = calculateBillingStatus(student, records, fromDate);
+      const dueDate = billingStatus.dueDate ? startOfDay(billingStatus.dueDate) : null;
+      const monthKey = dueDate
+        ? `${dueDate.getFullYear()}-${String(dueDate.getMonth() + 1).padStart(2, "0")}`
+        : "";
+      const amount = Number(billingStatus.planValue || student.packagePrice || 0);
+
+      return {
+        student,
+        dueDate,
+        amount,
+        billingTypeLabel: billingStatus.billingTypeLabel,
+        status: billingStatus.status,
+        paid: monthKey ? hasPaidMonth(payments, student.id, monthKey) : false
+      };
+    })
+    .filter(item => (
+      item.dueDate
+      && item.dueDate >= startDate
+      && item.dueDate <= endDate
+      && item.amount > 0
+      && !item.paid
+    ))
+    .sort((a, b) => (
+      a.dueDate - b.dueDate
+      || b.amount - a.amount
+      || a.student.name.localeCompare(b.student.name)
+    ))
+    .slice(0, limit);
 }
 
 export function calculateMonthlyReportWithLocations({ students, records, payments, monthKey, locations = [], getClassesForDate }) {

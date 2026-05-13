@@ -328,6 +328,8 @@ Validacao executada:
 
 ## Bloco 8 - Relatorios de decisao
 
+Status: implementado em `melhoria-aula-resumo-presencial`.
+
 Objetivo:
 
 - Melhorar a visao do personal sobre alunos, receita e rotina.
@@ -344,3 +346,32 @@ Como implementar:
 Aceite:
 
 - Relatorios viram ferramenta de acao e acompanhamento.
+
+Implementado:
+
+- Novos calculos isolados em `src/features/reports/reportsCalculations.js`:
+  - comparativo com mes anterior;
+  - alunos pendentes de pagamento;
+  - ranking de faltas;
+  - ranking de receita;
+  - alunos ativos por frequencia;
+  - pacotes acabando;
+  - previsao de receita da semana.
+- Nova area "Relatorios de decisao" em `src/features/reports/ReportsTab.jsx`, sem substituir os cards atuais.
+- Estilos responsivos em `src/styles.css`.
+- Teste automatizado em `tests/reportsDecision.test.mjs`.
+
+Validacao:
+
+- `node tests\reportsDecision.test.mjs`
+- `node tests\alertActions.test.mjs`
+- `node tests\replacementActions.test.mjs`
+- `node tests\workoutModels.test.mjs`
+- `node tests\recordsService.test.mjs`
+- `node tests\sessionNotes.test.mjs`
+- `node tests\sessionClassFlow.test.mjs`
+- `node tests\sessionStudentSummary.test.mjs`
+- `node tests\studentProfileSummary.test.mjs`
+- `node tests\sessionCheckout.test.mjs`
+- `node tests\sessionWorkouts.test.mjs`
+- `npm run build`

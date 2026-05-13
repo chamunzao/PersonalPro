@@ -1,10 +1,40 @@
 import React, { useState } from 'react';
 import { MONTHS } from '../../lib/constants';
 import { formatCurrency } from '../../lib/money';
-import { calculateMonthlyReport } from './reportsCalculations';
+import {
+  calculateMonthlyReport,
+  calculatePreviousMonthComparison,
+  calculateWeeklyRevenueForecast,
+  getActiveFrequencyStudents,
+  getPendingPaymentStudents,
+  getTopAbsenceStudents,
+  getTopRevenueStudents,
+  getUpcomingPackageRisks
+} from './reportsCalculations.js';
 // ==================== REPORTS TAB ====================
 function formatCountLabel(count, singular, plural) {
   return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatDecisionDate(date) {
+  if (!date) return "";
+  return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatDeltaLabel(value) {
+  if (value === 0) return "Mesmo resultado do mes anterior";
+  return `${value > 0 ? "+" : ""}${formatCurrency(value)} vs mes anterior`;
+}
+
+function DecisionList({ title, items, emptyText, renderItem }) {
+  return (
+    <section className="reports-decision-card">
+      <h3>{title}</h3>
+      <div className="reports-decision-list">
+        {items.length > 0 ? items.map(renderItem) : <p className="reports-decision-empty">{emptyText}</p>}
+      </div>
+    </section>
+  );
 }
 
 function ReportsTab({ students, records, payments, loadingData, theme }) {
@@ -13,6 +43,15 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
 
   const monthKey = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
   const report = calculateMonthlyReport({ students, records, payments, monthKey });
+  const comparison = calculatePreviousMonthComparison({ students, records, payments, monthKey });
+  const selectedMonthReferenceDate = new Date(selectedYear, selectedMonth, 13);
+  const pendingPaymentStudents = getPendingPaymentStudents(report, 5);
+  const topAbsences = getTopAbsenceStudents(report, 5);
+  const topRevenue = getTopRevenueStudents(report, 5);
+  const activeFrequency = getActiveFrequencyStudents(report, 5);
+  const packageRisks = getUpcomingPackageRisks({ students, records, payments, asOf: selectedMonthReferenceDate, limit: 5 });
+  const weeklyForecast = calculateWeeklyRevenueForecast({ students, records, payments, fromDate: selectedMonthReferenceDate, limit: 5 });
+  const forecastTotal = weeklyForecast.reduce((sum, item) => sum + item.amount, 0);
   const pendingStudents = Math.max(report.totalStudents - report.studentsWithPayment, 0);
   const averageNetRevenue = report.studentsWithPayment > 0 ? report.netRevenue / report.studentsWithPayment : 0;
 
@@ -82,6 +121,129 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
           <span>por aluno pago no mês</span>
         </section>
       </div>
+
+      <section className="reports-decision-panel">
+        <div className="reports-decision-header">
+          <div>
+            <p className="dashboard-kicker">DECISOES DO PERSONAL</p>
+            <h3>Relatorios de decisao</h3>
+          </div>
+          <div className="reports-decision-total">
+            <span>Previsao semanal</span>
+            <strong>{formatCurrency(forecastTotal)}</strong>
+          </div>
+        </div>
+
+        <div className="reports-decision-summary">
+          <section>
+            <p>Receita liquida</p>
+            <strong>{formatDeltaLabel(comparison.netRevenueDelta)}</strong>
+            <span>{comparison.netRevenueDeltaPercentage.toFixed(0)}% de variacao</span>
+          </section>
+          <section>
+            <p>Faltas para acompanhar</p>
+            <strong>{topAbsences.length}</strong>
+            <span>{topAbsences.length === 0 ? "Sem risco no mes" : "Alunos pedem acao"}</span>
+          </section>
+          <section>
+            <p>Pacotes acabando</p>
+            <strong>{packageRisks.length}</strong>
+            <span>{packageRisks.length === 0 ? "Sem renovacao urgente" : "Renovar antes da proxima aula"}</span>
+          </section>
+        </div>
+
+        <div className="reports-decision-grid">
+          <DecisionList
+            title="Quem esta devendo"
+            items={pendingPaymentStudents}
+            emptyText="Nenhum aluno pendente neste mes."
+            renderItem={({ student, totalClasses, grossRevenue }) => (
+              <div key={student.id} className="reports-decision-row">
+                <div>
+                  <p>{student.name}</p>
+                  <span>{formatCountLabel(totalClasses, "aula lancada", "aulas lancadas")}</span>
+                </div>
+                <strong>{formatCurrency(grossRevenue || student.packagePrice || student.pricePerClass || 0)}</strong>
+              </div>
+            )}
+          />
+
+          <DecisionList
+            title="Quem teve muitas faltas"
+            items={topAbsences}
+            emptyText="Nenhum aluno com falta registrada neste mes."
+            renderItem={({ student, absentClasses, totalClasses }) => (
+              <div key={student.id} className="reports-decision-row">
+                <div>
+                  <p>{student.name}</p>
+                  <span>{formatCountLabel(absentClasses, "falta", "faltas")} em {formatCountLabel(totalClasses, "aula", "aulas")}</span>
+                </div>
+                <strong>{totalClasses > 0 ? ((absentClasses / totalClasses) * 100).toFixed(0) : 0}%</strong>
+              </div>
+            )}
+          />
+
+          <DecisionList
+            title="Maiores receitas"
+            items={topRevenue}
+            emptyText="Nenhuma receita registrada neste mes."
+            renderItem={({ student, netRevenue, presentClasses }) => (
+              <div key={student.id} className="reports-decision-row">
+                <div>
+                  <p>{student.name}</p>
+                  <span>{formatCountLabel(presentClasses, "presenca", "presencas")}</span>
+                </div>
+                <strong>{formatCurrency(netRevenue)}</strong>
+              </div>
+            )}
+          />
+
+          <DecisionList
+            title="Alunos ativos por frequencia"
+            items={activeFrequency}
+            emptyText="Nenhuma presenca registrada neste mes."
+            renderItem={({ student, presentClasses, totalClasses }) => (
+              <div key={student.id} className="reports-decision-row">
+                <div>
+                  <p>{student.name}</p>
+                  <span>{formatCountLabel(totalClasses, "aula lancada", "aulas lancadas")}</span>
+                </div>
+                <strong>{formatCountLabel(presentClasses, "presenca", "presencas")}</strong>
+              </div>
+            )}
+          />
+
+          <DecisionList
+            title="Pacotes acabando"
+            items={packageRisks}
+            emptyText="Nenhum pacote em zona de risco."
+            renderItem={({ student, remainingClasses }) => (
+              <div key={student.id} className="reports-decision-row">
+                <div>
+                  <p>{student.name}</p>
+                  <span>Renovar antes de zerar o saldo</span>
+                </div>
+                <strong>{formatCountLabel(remainingClasses, "aula", "aulas")}</strong>
+              </div>
+            )}
+          />
+
+          <DecisionList
+            title="Receita da semana"
+            items={weeklyForecast}
+            emptyText="Nenhuma cobranca prevista para os proximos 7 dias."
+            renderItem={({ student, amount, dueDate, billingTypeLabel }) => (
+              <div key={`${student.id}-${dueDate?.toISOString()}`} className="reports-decision-row">
+                <div>
+                  <p>{student.name}</p>
+                  <span>{billingTypeLabel} vence em {formatDecisionDate(dueDate)}</span>
+                </div>
+                <strong>{formatCurrency(amount)}</strong>
+              </div>
+            )}
+          />
+        </div>
+      </section>
 
       {loadingData && <p style={{ color: "#9ca3af", fontSize: "14px", textAlign: "center" }}>Carregando...</p>}
 
