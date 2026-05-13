@@ -379,9 +379,11 @@ Implementado:
   - `{valor}` insere o valor previsto do plano ou aula;
   - `{proxima_aula}` mostra a próxima aula quando houver agenda;
   - `{saldo_pacote}` mostra o saldo de aulas quando disponível.
+- A biblioteca de mensagens padrão começa recolhida, permite pesquisar modelos sem abrir tudo e pode ser expandida pelo personal.
 
 Validacao:
 
+- `node tests\communicationLibraryCollapse.test.mjs`
 - `node tests\communicationTemplateHelp.test.mjs`
 - `node tests\communicationLibrary.test.mjs`
 - `node tests\messageTemplates.test.mjs`

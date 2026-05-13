@@ -3502,6 +3502,37 @@ body .communication-student-card > div:first-child {
   font-weight: 850;
 }
 
+.communication-library-toggle {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0.5px solid rgba(242, 207, 124, 0.38);
+  border-radius: 999px;
+  background: rgba(242, 207, 124, 0.14);
+  color: #F2CF7C;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.communication-library-summary {
+  margin-bottom: 10px;
+  padding: 10px 11px;
+  border: 0.5px solid #4A6388;
+  border-radius: 12px;
+  background: #142339;
+}
+
+.communication-library-summary p {
+  margin: 0;
+  color: #C2CAD7;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.communication-library-summary strong {
+  color: #FFFFFF;
+}
+
 .communication-template-list,
 .communication-student-name-list {
   display: flex;
@@ -3592,6 +3623,7 @@ body .communication-student-card > div:first-child {
 
 .communication-template-form input,
 .communication-template-form textarea,
+.communication-template-search,
 .communication-student-search,
 .communication-preview-card textarea {
   width: 100%;
@@ -3604,9 +3636,14 @@ body .communication-student-card > div:first-child {
 }
 
 .communication-template-form input,
+.communication-template-search,
 .communication-student-search {
   min-height: 42px;
   padding: 0 11px;
+}
+
+.communication-template-search {
+  margin-bottom: 10px;
 }
 
 .communication-template-form textarea,

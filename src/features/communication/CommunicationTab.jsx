@@ -85,8 +85,15 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
   const [customTitle, setCustomTitle] = useState('');
   const [customBody, setCustomBody] = useState('');
   const [editingTemplateId, setEditingTemplateId] = useState('');
+  const [isTemplateLibraryExpanded, setIsTemplateLibraryExpanded] = useState(false);
+  const [templateSearch, setTemplateSearch] = useState('');
 
   const templates = [...standardTemplates, ...customTemplates];
+  const visibleTemplates = templates.filter(template => {
+    const query = templateSearch.trim().toLowerCase();
+    if (!query) return true;
+    return `${template.title} ${template.description}`.toLowerCase().includes(query);
+  });
   const selectedTemplate = templates.find(template => template.id === selectedTemplateId) || templates[0];
   const filteredStudents = filterStudentsForCommunication(students, studentSearch);
   const selectedStudent = students.find(student => student.id === selectedStudentId) || filteredStudents[0] || students[0] || null;
@@ -176,70 +183,91 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
             <p className="dashboard-kicker">MENSAGENS PADRÃO</p>
             <h3>Biblioteca do personal</h3>
           </div>
-          <span>{templates.length} modelos</span>
-        </div>
-
-        <div className="communication-template-list">
-          {templates.map(template => (
-            <div key={template.id} className="communication-template-shell">
-              <TemplateOption
-                template={template}
-                selected={selectedTemplate?.id === template.id}
-                onClick={() => setSelectedTemplateId(template.id)}
-              />
-              {template.type === 'custom' && (
-                <div className="communication-template-actions">
-                  <button
-                    type="button"
-                    className="communication-template-edit"
-                    onClick={() => startEditCustomTemplate(template)}
-                    aria-label={`Editar ${template.title}`}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    className="communication-template-delete"
-                    onClick={() => deleteCustomTemplate(template.id)}
-                    aria-label={`Remover ${template.title}`}
-                  >
-                    Remover
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <form className="communication-template-form" onSubmit={addCustomTemplate}>
-          <input
-            value={customTitle}
-            onChange={(event) => setCustomTitle(event.target.value)}
-            placeholder="Nome da mensagem"
-          />
-          <textarea
-            value={customBody}
-            onChange={(event) => setCustomBody(event.target.value)}
-            placeholder="Texto. Use {primeiro_nome}, {nome}, {valor}, {proxima_aula} ou {saldo_pacote}."
-            rows={4}
-          />
-          <div className="communication-template-help">
-            <p>Use {'{primeiro_nome}'} para trocar automaticamente pelo primeiro nome do aluno selecionado.</p>
-            <p>{'{nome}'} usa o nome completo.</p>
-            <p>{'{valor}'} insere o valor previsto do plano ou aula.</p>
-            <p>{'{proxima_aula}'} mostra a próxima aula quando houver agenda.</p>
-            <p>{'{saldo_pacote}'} mostra o saldo de aulas quando disponível.</p>
-            <p>Exemplo: "Olá, {'{primeiro_nome}'}! Sua próxima aula é {'{proxima_aula}'}."</p>
-          </div>
-          <button type="submit" disabled={!customTitle.trim() || !customBody.trim()}>
-            {editingTemplateId ? 'Salvar alterações' : 'Criar mensagem'}
+          <button
+            type="button"
+            className="communication-library-toggle"
+            onClick={() => setIsTemplateLibraryExpanded(current => !current)}
+          >
+            {isTemplateLibraryExpanded ? 'Recolher' : 'Expandir'}
           </button>
-          {editingTemplateId && (
-            <button type="button" className="communication-template-cancel" onClick={cancelEditCustomTemplate}>
-              Cancelar edição
+        </div>
+
+        <div className="communication-library-summary">
+          <p>{templates.length} modelos disponíveis. Mensagem atual: <strong>{selectedTemplate?.title || 'nenhuma'}</strong>.</p>
+        </div>
+
+        <input
+          className="communication-template-search"
+          value={templateSearch}
+          onChange={(event) => setTemplateSearch(event.target.value)}
+          placeholder="Pesquisar mensagem padrão"
+        />
+
+        {(isTemplateLibraryExpanded || templateSearch.trim()) && (
+          <div className="communication-template-list">
+            {visibleTemplates.map(template => (
+              <div key={template.id} className="communication-template-shell">
+                <TemplateOption
+                  template={template}
+                  selected={selectedTemplate?.id === template.id}
+                  onClick={() => setSelectedTemplateId(template.id)}
+                />
+                {template.type === 'custom' && (
+                  <div className="communication-template-actions">
+                    <button
+                      type="button"
+                      className="communication-template-edit"
+                      onClick={() => startEditCustomTemplate(template)}
+                      aria-label={`Editar ${template.title}`}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="communication-template-delete"
+                      onClick={() => deleteCustomTemplate(template.id)}
+                      aria-label={`Remover ${template.title}`}
+                    >
+                      Remover
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {isTemplateLibraryExpanded && (
+          <form className="communication-template-form" onSubmit={addCustomTemplate}>
+            <input
+              value={customTitle}
+              onChange={(event) => setCustomTitle(event.target.value)}
+              placeholder="Nome da mensagem"
+            />
+            <textarea
+              value={customBody}
+              onChange={(event) => setCustomBody(event.target.value)}
+              placeholder="Texto. Use {primeiro_nome}, {nome}, {valor}, {proxima_aula} ou {saldo_pacote}."
+              rows={4}
+            />
+            <div className="communication-template-help">
+              <p>Use {'{primeiro_nome}'} para trocar automaticamente pelo primeiro nome do aluno selecionado.</p>
+              <p>{'{nome}'} usa o nome completo.</p>
+              <p>{'{valor}'} insere o valor previsto do plano ou aula.</p>
+              <p>{'{proxima_aula}'} mostra a próxima aula quando houver agenda.</p>
+              <p>{'{saldo_pacote}'} mostra o saldo de aulas quando disponível.</p>
+              <p>Exemplo: "Olá, {'{primeiro_nome}'}! Sua próxima aula é {'{proxima_aula}'}."</p>
+            </div>
+            <button type="submit" disabled={!customTitle.trim() || !customBody.trim()}>
+              {editingTemplateId ? 'Salvar alterações' : 'Criar mensagem'}
             </button>
-          )}
-        </form>
+            {editingTemplateId && (
+              <button type="button" className="communication-template-cancel" onClick={cancelEditCustomTemplate}>
+                Cancelar edição
+              </button>
+            )}
+          </form>
+        )}
       </section>
 
       {students.length === 0 ? (
