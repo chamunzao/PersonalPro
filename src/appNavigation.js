@@ -8,11 +8,10 @@ const primaryNavigation = [
 
 const moreNavigation = [
   { id: "payments", label: "Pagamentos", description: "Recebidos, pendências e pacotes" },
-  { id: "alerts", label: "Ações", description: "Cobranças e registros para resolver" },
-  { id: "attendance", label: "Registro", description: "Presenças e faltas do dia" },
+  { id: "alerts", label: "Pendências", description: "Cobranças, faltas e ações para resolver" },
   { id: "communication", label: "Contato", description: "Mensagens prontas para WhatsApp" },
   { id: "reports", label: "Relatório", description: "Receita, taxas e presença" },
-  { id: "settings", label: "Config", description: "Tema e preferências do app" }
+  { id: "settings", label: "Ajustes", description: "Tema e preferências do app" }
 ];
 
 const moreNavigationIds = new Set(moreNavigation.map(item => item.id));

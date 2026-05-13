@@ -1,4 +1,4 @@
-import { parseBrazilianDate } from "../../lib/dates";
+import { parseBrazilianDate } from "../../lib/dates.js";
 
 export const BILLING_TYPES = {
   perClass: "per_class",

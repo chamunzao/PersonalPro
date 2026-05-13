@@ -2217,6 +2217,110 @@ body .app-main-session .session-action-danger {
   background: transparent !important;
 }
 
+.session-student-summary {
+  margin: 12px;
+  padding: 12px;
+  background: #142339;
+  border: 0.5px solid #4A6388;
+  border-radius: 14px;
+}
+
+.session-student-summary-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.session-student-summary-label {
+  margin: 0 0 3px;
+  color: #C2CAD7;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.session-student-summary-top strong {
+  display: block;
+  color: #FFFFFF;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.session-student-summary-alert {
+  max-width: 46%;
+  padding: 5px 8px;
+  background: rgba(242, 207, 124, 0.15);
+  color: #F2CF7C;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 900;
+  text-align: right;
+}
+
+.session-student-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.session-student-summary-grid div {
+  min-width: 0;
+  padding: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 0.5px solid rgba(220, 231, 255, 0.12);
+  border-radius: 10px;
+}
+
+.session-student-summary-grid span,
+.session-student-summary-grid strong {
+  display: block;
+}
+
+.session-student-summary-grid span {
+  margin-bottom: 4px;
+  color: #C2CAD7;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.session-student-summary-grid strong {
+  overflow: hidden;
+  color: #FFFFFF;
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 850;
+  text-overflow: ellipsis;
+}
+
+.session-student-summary-risks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.session-student-summary-risks span {
+  padding: 4px 7px;
+  background: rgba(239, 68, 68, 0.14);
+  color: #FCA5A5;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+@media (max-width: 720px) {
+  .session-student-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .session-student-summary-alert {
+    max-width: 58%;
+  }
+}
+
 @media (min-width: 980px) {
   body .app-main-session {
     max-width: 1120px;
@@ -3127,4 +3231,56 @@ body .reports-student-row p:last-child {
   font-size: 12px;
   font-weight: 850;
   cursor: pointer;
+}
+
+
+.payments-insight-panel,
+.reports-insight-card {
+  padding: 14px !important;
+  background: #243B5C !important;
+  border: 0.5px solid #4A6388 !important;
+  border-radius: 14px !important;
+}
+
+.payments-insight-panel {
+  margin-bottom: 14px;
+}
+
+.payments-insight-panel p,
+.reports-insight-card p {
+  margin: 0 0 5px;
+  color: #C2CAD7;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.payments-insight-panel strong,
+.reports-insight-card strong {
+  display: block;
+  color: #F2CF7C;
+  font-size: 20px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.payments-insight-panel span,
+.reports-insight-card span {
+  display: block;
+  margin-top: 6px;
+  color: #DCE7FF;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.reports-insights-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 560px) {
+  .reports-insights-grid {
+    grid-template-columns: 1fr;
+  }
 }

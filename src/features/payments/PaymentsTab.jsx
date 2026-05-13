@@ -388,6 +388,10 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
   const paymentFilterCounts = getPaymentFilterCounts(paymentItems);
   const filteredPaymentItems = filterPaymentItems(paymentItems, activePaymentFilter);
   const paymentsEmptyState = getPaymentsEmptyState(students.length > 0);
+  const collectionRate = students.length > 0 ? (paidStudentCount / students.length) * 100 : 0;
+  const paymentFocusText = pendingStudentCount > 0
+    ? `Priorize os ${pendingStudentCount} aluno${pendingStudentCount === 1 ? '' : 's'} ainda sem baixa neste mês.`
+    : 'Todos os alunos do filtro mensal estão com pagamento registrado.';
 
   return (
     <div className="payments-page">
@@ -416,6 +420,14 @@ function PaymentsTab({ students, records, payments, setPayments, scheduleOverrid
           <span>para conferir</span>
         </div>
       </div>
+
+      <section className="app-card payments-insight-panel">
+        <div>
+          <p>Foco do mês</p>
+          <strong>{collectionRate.toFixed(0)}% recebido</strong>
+          <span>{paymentFocusText}</span>
+        </div>
+      </section>
 
       <div className="payments-package-panel" style={{
         background: 'white',

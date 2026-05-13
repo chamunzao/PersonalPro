@@ -13,6 +13,8 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
 
   const monthKey = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
   const report = calculateMonthlyReport({ students, records, payments, monthKey });
+  const pendingStudents = Math.max(report.totalStudents - report.studentsWithPayment, 0);
+  const averageNetRevenue = report.studentsWithPayment > 0 ? report.netRevenue / report.studentsWithPayment : 0;
 
   return (
     <div className="reports-page">
@@ -66,6 +68,19 @@ function ReportsTab({ students, records, payments, loadingData, theme }) {
             {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
+      </div>
+
+      <div className="reports-insights-grid">
+        <section className="reports-insight-card">
+          <p>Alunos pendentes</p>
+          <strong>{pendingStudents}</strong>
+          <span>{pendingStudents === 0 ? "Carteira do mês em dia" : "Prioridade para cobrança"}</span>
+        </section>
+        <section className="reports-insight-card">
+          <p>Ticket líquido médio</p>
+          <strong>{formatCurrency(averageNetRevenue)}</strong>
+          <span>por aluno pago no mês</span>
+        </section>
       </div>
 
       {loadingData && <p style={{ color: "#9ca3af", fontSize: "14px", textAlign: "center" }}>Carregando...</p>}

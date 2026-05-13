@@ -3,6 +3,7 @@ import { useAuth } from '../../AuthContext';
 import {
   db,
   doc,
+  getDoc,
   setDoc,
   updateDoc,
   collection,
@@ -23,6 +24,7 @@ import { updateAttendanceRecord } from '../attendance/attendanceActions';
 import { applySessionNotesUpdate, saveSessionNotes as saveSessionNotesRecord } from '../../services/recordsService';
 import { DEMO_EMAIL, getDemoWorkoutPlans } from '../../services/demoData';
 import { loadSessionWorkoutEntries } from './sessionWorkouts';
+import { buildSessionStudentSummary } from './sessionStudentSummary';
 
 function IconCheck() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -111,6 +113,49 @@ function buildWorkoutVersionFromSession(activeWorkout, draft, selectedDateBR) {
   };
 }
 
+function SessionStudentSummaryPanel({ summary }) {
+  const hasRiskTags = summary.riskTags.length > 0;
+
+  return (
+    <div className="session-student-summary">
+      <div className="session-student-summary-top">
+        <div>
+          <p className="session-student-summary-label">Resumo do aluno</p>
+          <strong>{summary.firstName || summary.studentName || "Aluno"}</strong>
+        </div>
+        {summary.primaryAlert && (
+          <span className={`session-student-summary-alert session-student-summary-alert-${summary.primaryAlert.key || summary.financialSeverity}`}>
+            {summary.primaryAlert.label}
+          </span>
+        )}
+      </div>
+
+      <div className="session-student-summary-grid">
+        <div>
+          <span>Financeiro</span>
+          <strong>{summary.financialLabel}</strong>
+        </div>
+        <div>
+          <span>Treino</span>
+          <strong>{summary.activeWorkoutName || "Sem treino ativo"}</strong>
+        </div>
+        <div>
+          <span>Ultima aula</span>
+          <strong>{summary.lastSessionNote || "Sem anotacoes recentes"}</strong>
+        </div>
+      </div>
+
+      {hasRiskTags && (
+        <div className="session-student-summary-risks">
+          {summary.riskTags.map(tag => (
+            <span key={tag.key} title={tag.detail}>{tag.label}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SessionTab({ students, records, setRecords, payments, scheduleOverrides, loadingData, theme }) {
   const { user } = useAuth();
   const [selectedDateISO, setSelectedDateISO] = useState(formatDateISO(new Date()));
@@ -120,6 +165,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
   const [editingWorkoutKey, setEditingWorkoutKey] = useState(null);
   const [workoutEditForms, setWorkoutEditForms] = useState({});
   const [workoutLoadErrors, setWorkoutLoadErrors] = useState({});
+  const [anamnesisByStudent, setAnamnesisByStudent] = useState({});
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
   const [savingKey, setSavingKey] = useState(null);
 
@@ -199,6 +245,35 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
 
     loadWorkouts();
   }, [classesAtTime, user, workoutsByStudent]);
+
+  useEffect(() => {
+    const loadAnamnesis = async () => {
+      if (!user || classesAtTime.length === 0) return;
+      const missingStudents = classesAtTime.filter(cls => (
+        !Object.prototype.hasOwnProperty.call(anamnesisByStudent, cls.studentId)
+      ));
+      if (missingStudents.length === 0) return;
+
+      const loadedEntries = await Promise.all(missingStudents.map(async (cls) => {
+        if (user.email === DEMO_EMAIL) return [cls.studentId, {}];
+
+        try {
+          const snap = await getDoc(doc(db, `users/${user.uid}/students/${cls.studentId}/profile/anamnesis`));
+          return [cls.studentId, snap.exists() ? snap.data() : {}];
+        } catch (error) {
+          console.error("Error loading student anamnesis:", error);
+          return [cls.studentId, {}];
+        }
+      }));
+
+      setAnamnesisByStudent(prev => ({
+        ...prev,
+        ...Object.fromEntries(loadedEntries)
+      }));
+    };
+
+    loadAnamnesis();
+  }, [anamnesisByStudent, classesAtTime, user]);
 
   useEffect(() => {
     setDrafts(prev => {
@@ -477,6 +552,14 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
             const activeWorkout = getActiveWorkout(workoutsByStudent[cls.studentId]);
             const workoutLoadError = workoutLoadErrors[cls.studentId];
             const student = students.find(item => item.id === cls.studentId);
+            const studentSummary = buildSessionStudentSummary({
+              student,
+              records,
+              payments,
+              anamnesis: anamnesisByStudent[cls.studentId],
+              activeWorkout,
+              selectedDate
+            });
             const creditStatus = student
               ? calculateAdvanceCreditStatus(student, records, payments)
               : { hasAdvancePackage: false, status: "none", remainingClasses: null };
@@ -539,6 +622,8 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                     </button>
                   </div>
                 </div>
+
+                <SessionStudentSummaryPanel summary={studentSummary} />
 
                 {workoutLoadError ? (
                   <div className="session-card-body">

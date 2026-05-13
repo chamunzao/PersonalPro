@@ -16,8 +16,8 @@ assert.deepEqual(
 
 assert.deepEqual(
   more.map(item => item.id),
-  ["payments", "alerts", "attendance", "communication", "reports", "settings"],
-  "secondary navigation groups support screens under More"
+  ["payments", "alerts", "communication", "reports", "settings"],
+  "secondary navigation keeps support screens under More without duplicating attendance"
 );
 
 assert.equal(isMoreSectionActive("payments"), true, "payments highlights More");
