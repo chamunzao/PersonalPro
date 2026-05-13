@@ -23,6 +23,12 @@ import {
 } from '../billing/billingCalculations';
 import { getStudentsEmptyState } from '../emptyStates/setupEmptyStates';
 import { EXERCISE_LIBRARY, WORKOUT_TEMPLATES } from '../workouts/workoutPresets';
+import {
+  buildWorkoutModelFromPlan,
+  cloneModelToWorkoutPlan,
+  getSystemWorkoutModels,
+  normalizeWorkoutModel
+} from '../workouts/workoutModelUtils';
 import { DataTabContent } from './StudentProfileDataTab';
 import { StudentProfileSummaryTab } from './StudentProfileSummaryTab';
 
@@ -936,6 +942,26 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
   const [editingWorkoutId, setEditingWorkoutId] = useState(null);
   const [formData, setFormData] = useState({ name: "", active: true, exercises: [] });
   const [exerciseForm, setExerciseForm] = useState({ name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" });
+  const [userWorkoutModels, setUserWorkoutModels] = useState([]);
+
+  useEffect(() => {
+    async function loadWorkoutModels() {
+      if (!user) return;
+      try {
+        const snap = await getDocs(collection(db, `users/${user.uid}/workoutModels`));
+        setUserWorkoutModels(snap.docs.map(item => normalizeWorkoutModel({ id: item.id, ...item.data() })));
+      } catch (error) {
+        console.error("Error loading workout models:", error);
+      }
+    }
+
+    loadWorkoutModels();
+  }, [user]);
+
+  const availableWorkoutModels = [
+    ...getSystemWorkoutModels(),
+    ...userWorkoutModels
+  ];
 
   async function saveWorkout() {
     if (!formData.name.trim() || formData.exercises.length === 0) return;
@@ -999,13 +1025,29 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
   }
 
   function applyTemplate(templateId) {
-    const template = WORKOUT_TEMPLATES.find(item => item.id === templateId);
-    if (!template) return;
-    setFormData({
-      name: template.name,
+    const model = availableWorkoutModels.find(item => item.id === templateId);
+    if (!model) return;
+    const plan = cloneModelToWorkoutPlan(model, {
       active: true,
-      exercises: template.exercises.map(exercise => ({ ...exercise }))
+      createdAt: formatDate(new Date())
     });
+    setFormData(plan);
+  }
+
+  async function saveWorkoutAsModel(plan) {
+    if (!user || !plan?.exercises?.length) return;
+    try {
+      const model = buildWorkoutModelFromPlan(plan, {
+        createdAt: formatDate(new Date()),
+        updatedAt: formatDate(new Date())
+      });
+      const docRef = await addDoc(collection(db, `users/${user.uid}/workoutModels`), model);
+      setUserWorkoutModels(prev => [{ id: docRef.id, ...model }, ...prev]);
+      alert("Modelo salvo.");
+    } catch (error) {
+      console.error("Error saving workout model:", error);
+      alert("Erro ao salvar modelo");
+    }
   }
 
   function applyLibraryExercise(exerciseName) {
@@ -1118,8 +1160,10 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
               }}
             >
               <option value="">Selecionar modelo pronto</option>
-              {WORKOUT_TEMPLATES.map(template => (
-                <option key={template.id} value={template.id}>{template.name}</option>
+              {availableWorkoutModels.map(template => (
+                <option key={template.id} value={template.id}>
+                  {template.name}{template.source === "user" ? " (seu modelo)" : ""}
+                </option>
               ))}
             </select>
           </div>
@@ -1434,6 +1478,21 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                     }}
                   >
                     {plan.active ? "Ativo" : "Ativar"}
+                  </button>
+                  <button
+                    onClick={() => saveWorkoutAsModel(plan)}
+                    style={{
+                      padding: "4px 8px",
+                      background: "rgba(242, 207, 124, 0.14)",
+                      border: "none",
+                      color: theme.primary,
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontSize: "10px",
+                      fontWeight: "700"
+                    }}
+                  >
+                    Modelo
                   </button>
                   <button
                     onClick={() => duplicateWorkout(plan)}

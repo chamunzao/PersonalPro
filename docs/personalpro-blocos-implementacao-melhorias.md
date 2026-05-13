@@ -243,6 +243,8 @@ Objetivo:
 
 - Acelerar criacao e adaptacao de treinos.
 
+Status: implementado para validacao.
+
 Como implementar:
 
 - Criar biblioteca de modelos por objetivo.
@@ -252,6 +254,28 @@ Como implementar:
 Aceite:
 
 - Um treino base pode ser aplicado sem redigitar exercicios.
+
+Implementado:
+
+- Criado helper `src/features/workouts/workoutModelUtils.js`.
+- Criado teste `tests/workoutModels.test.mjs`.
+- Os templates existentes agora sao tratados como modelos de sistema.
+- A aba `Treinos` do perfil carrega modelos do usuario em `users/{userId}/workoutModels`.
+- O seletor de modelo do formulario de treino permite aplicar modelos do sistema e modelos do usuario.
+- Ao aplicar um modelo, o aluno recebe uma copia independente do treino.
+- Cada treino existente ganhou acao `Modelo` para salvar o treino atual como modelo do usuario.
+
+Validacao executada:
+
+- `node tests\workoutModels.test.mjs`
+- `node tests\sessionWorkouts.test.mjs`
+- `node tests\studentProfileSummary.test.mjs`
+- `node tests\replacementActions.test.mjs`
+- `node tests\sessionNotes.test.mjs`
+- `node tests\sessionClassFlow.test.mjs`
+- `node tests\recordsService.test.mjs`
+- `node tests\sessionStudentSummary.test.mjs`
+- `npm run build`
 
 ## Bloco 7 - Pendencias acionaveis
 
