@@ -326,6 +326,50 @@ Validacao executada:
 - `node tests\sessionWorkouts.test.mjs`
 - `npm run build`
 
+## Bloco 9 - Comunicacao contextual
+
+Status: implementado em `melhoria-aula-resumo-presencial`.
+
+Objetivo:
+
+- Melhorar mensagens prontas para WhatsApp com base no contexto real do aluno.
+
+Como implementar:
+
+- Centralizar templates em `src/features/communication/messageTemplates.js`.
+- Criar mensagens para:
+  - confirmacao da semana;
+  - pagamento pendente antes da aula;
+  - pacote acabando;
+  - falta e reposicao;
+  - pos-aula;
+  - confirmacao da proxima aula;
+  - aluno inativo;
+  - check-in semanal;
+  - reforco de treino.
+
+Aceite:
+
+- Mensagens usam primeiro nome.
+- Mensagens usam dados reais quando disponiveis.
+- Mensagens nao quebram se dados opcionais estiverem ausentes.
+- A tela de Comunicacao usa os templates centralizados.
+
+Implementado:
+
+- Criado helper `src/features/communication/messageTemplates.js`.
+- Criado teste `tests/messageTemplates.test.mjs`.
+- `CommunicationTab.jsx` passou a consumir templates centralizados.
+- Foram adicionadas acoes rapidas para confirmar proxima aula, falta/reposicao, pos-aula e aluno inativo.
+- Confirmacao da proxima aula usa a proxima data e horario fixo quando a agenda do aluno esta cadastrada.
+
+Validacao:
+
+- `node tests\messageTemplates.test.mjs`
+- `node tests\reportsDecision.test.mjs`
+- `node tests\reportsLayout.test.mjs`
+- `npm run build`
+
 ## Bloco 8 - Relatorios de decisao
 
 Status: implementado em `melhoria-aula-resumo-presencial`.

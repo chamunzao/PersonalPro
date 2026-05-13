@@ -1,56 +1,14 @@
-import { DAYS } from '../../lib/constants';
-import { formatCurrency } from '../../lib/money';
 import { calculateAdvanceCreditStatus, calculateBillingStatus } from '../billing/billingCalculations';
+import { buildCommunicationMessages, getMonthPayment } from './messageTemplates.js';
 
 function openWhatsAppMessage(phone, message) {
   const digits = String(phone || '').replace(/\D/g, '');
   if (!digits) {
-    alert('Cadastre o WhatsApp do aluno para usar esta ação.');
+    alert('Cadastre o WhatsApp do aluno para usar esta acao.');
     return;
   }
   const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`;
   window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-}
-
-function getWeeklyScheduleText(student) {
-  const schedule = student.schedule || [];
-  if (schedule.length === 0) return 'Você ainda não tem horários fixos cadastrados nesta semana.';
-
-  return DAYS.map((day, dayIndex) => {
-    const times = schedule
-      .filter(item => item.day === dayIndex)
-      .map(item => item.time)
-      .sort();
-    return times.length > 0 ? `${day}: ${times.join(', ')}` : null;
-  }).filter(Boolean).join('\n');
-}
-
-function getMonthPayment(student, payments, monthKey) {
-  return payments.find(payment => payment.key === `${monthKey}_${student.id}` && payment.paid);
-}
-
-function buildMessages({ student, records, payments }) {
-  const now = new Date();
-  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const billingStatus = calculateBillingStatus(student, records, now);
-  const creditStatus = calculateAdvanceCreditStatus(student, records, payments, now);
-  const payment = getMonthPayment(student, payments, monthKey);
-  const firstName = student.name?.split(' ')[0] || student.name;
-  const weeklySchedule = getWeeklyScheduleText(student);
-
-  return {
-    weeklyConfirmation: `Olá, ${firstName}! Passando para confirmar sua agenda da semana:\n\n${weeklySchedule}\n\nPode me confirmar se está tudo certo?`,
-    paymentReminder: payment
-      ? `Olá, ${firstName}! Seu pagamento deste mês consta como recebido. Obrigado!`
-      : `Olá, ${firstName}! Passando para lembrar do pagamento deste mês. Valor previsto: ${formatCurrency(billingStatus.planValue || student.pricePerClass || 0)}. Qualquer dúvida me chama por aqui.`,
-    packageEnding: creditStatus.remainingClasses !== null
-      ? `Olá, ${firstName}! Seu pacote está com ${creditStatus.remainingClasses} aula(s) paga(s) restante(s). Vamos alinhar a renovação para não interromper sua rotina?`
-      : billingStatus.remainingClasses !== null
-      ? `Olá, ${firstName}! Seu pacote está com ${billingStatus.remainingClasses} aula(s) restante(s). Vamos alinhar a renovação para não interromper sua rotina?`
-      : `Olá, ${firstName}! Passando para alinharmos a continuidade do seu plano de treinos deste mês.`,
-    weeklyCheckIn: `Olá, ${firstName}! Check-in rápido da semana: como você está se sentindo com os treinos, dores, energia e rotina? Me responde por aqui para eu ajustar o acompanhamento.`,
-    workoutReminder: `Olá, ${firstName}! Passando para reforçar seu treino atual. Se tiver dúvida em algum exercício, me chama por aqui antes da próxima aula.`
-  };
 }
 
 function CommunicationButton({ label, description, onClick, disabled, theme }) {
@@ -77,14 +35,15 @@ function CommunicationButton({ label, description, onClick, disabled, theme }) {
 }
 
 function CommunicationTab({ students, records, payments, loadingData, theme }) {
-  const monthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   return (
     <div className="communication-page">
       <section className="app-card communication-hero-panel">
         <p className="dashboard-kicker">CENTRAL DE CONTATO</p>
-        <h2 className="communication-page-title">Comunicação</h2>
-        <p className="communication-page-kicker">Ações rápidas com mensagens prontas para WhatsApp.</p>
+        <h2 className="communication-page-title">Comunicacao</h2>
+        <p className="communication-page-kicker">Acoes rapidas com mensagens prontas para WhatsApp.</p>
         <div className="communication-hero-summary">
           <div>
             <p>Alunos na lista</p>
@@ -109,7 +68,7 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
       ) : (
         <div className="communication-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {students.map(student => {
-            const messages = buildMessages({ student, records, payments });
+            const messages = buildCommunicationMessages({ student, records, payments, asOf: now });
             const hasPhone = !!String(student.phone || '').replace(/\D/g, '');
             const payment = getMonthPayment(student, payments, monthKey);
             const billingStatus = calculateBillingStatus(student, records);
@@ -150,14 +109,21 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   <CommunicationButton
                     label="Confirmar semana"
-                    description="Envia horários fixos da semana"
+                    description="Envia horarios fixos da semana"
                     disabled={!hasPhone}
                     theme={theme}
                     onClick={() => openWhatsAppMessage(student.phone, messages.weeklyConfirmation)}
                   />
                   <CommunicationButton
+                    label="Confirmar proxima"
+                    description="Confirma a proxima aula"
+                    disabled={!hasPhone}
+                    theme={theme}
+                    onClick={() => openWhatsAppMessage(student.phone, messages.nextClassConfirmation)}
+                  />
+                  <CommunicationButton
                     label="Cobrar pagamento"
-                    description={payment ? 'Mensagem de recebido' : 'Lembrete de pendência'}
+                    description={payment ? 'Mensagem de recebido' : 'Lembrete de pendencia'}
                     disabled={!hasPhone}
                     theme={theme}
                     onClick={() => openWhatsAppMessage(student.phone, messages.paymentReminder)}
@@ -170,6 +136,20 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
                     onClick={() => openWhatsAppMessage(student.phone, messages.packageEnding)}
                   />
                   <CommunicationButton
+                    label="Falta/reposicao"
+                    description="Combina uma nova data"
+                    disabled={!hasPhone}
+                    theme={theme}
+                    onClick={() => openWhatsAppMessage(student.phone, messages.absenceReplacement)}
+                  />
+                  <CommunicationButton
+                    label="Pos-aula"
+                    description="Fecha a aula pelo WhatsApp"
+                    disabled={!hasPhone}
+                    theme={theme}
+                    onClick={() => openWhatsAppMessage(student.phone, messages.postClass)}
+                  />
+                  <CommunicationButton
                     label="Check-in semanal"
                     description="Pergunta sobre dores, energia e rotina"
                     disabled={!hasPhone}
@@ -178,10 +158,17 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
                   />
                   <CommunicationButton
                     label="Enviar treino"
-                    description="Reforça acompanhamento do treino atual"
+                    description="Reforca acompanhamento do treino atual"
                     disabled={!hasPhone}
                     theme={theme}
                     onClick={() => openWhatsAppMessage(student.phone, messages.workoutReminder)}
+                  />
+                  <CommunicationButton
+                    label="Aluno inativo"
+                    description="Convida para retomar a rotina"
+                    disabled={!hasPhone}
+                    theme={theme}
+                    onClick={() => openWhatsAppMessage(student.phone, messages.inactiveStudent)}
                   />
                 </div>
               </div>
