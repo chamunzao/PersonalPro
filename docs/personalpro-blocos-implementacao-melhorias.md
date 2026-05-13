@@ -264,10 +264,15 @@ Implementado:
 - O seletor de modelo do formulario de treino permite aplicar modelos do sistema e modelos do usuario.
 - Ao aplicar um modelo, o aluno recebe uma copia independente do treino.
 - Cada treino existente ganhou acao `Modelo` para salvar o treino atual como modelo do usuario.
+- Criada a tela `Modelos` em `Mais`, conforme previsto no plano inicial.
+- A tela `Modelos` permite criar, editar, remover e duplicar modelos do usuario.
+- Modelos do sistema aparecem como base e podem ser duplicados para virarem modelos do personal.
 
 Validacao executada:
 
 - `node tests\workoutModels.test.mjs`
+- `node tests\workoutModelsScreen.test.mjs`
+- `node tests\navigation.test.mjs`
 - `node tests\sessionWorkouts.test.mjs`
 - `node tests\studentProfileSummary.test.mjs`
 - `node tests\replacementActions.test.mjs`

@@ -12,6 +12,7 @@ import { AlertsTab } from './features/alerts/AlertsTab';
 import { SettingsTab } from './features/settings/SettingsTab';
 import { CommunicationTab } from './features/communication/CommunicationTab';
 import { SessionTab } from './features/session/SessionTab';
+import { WorkoutModelsTab } from './features/workouts/WorkoutModelsTab';
 import { getMoreNavigation, getPrimaryNavigation, isMoreSectionActive } from './appNavigation';
 
 // ==================== THEME COLORS ====================
@@ -82,6 +83,7 @@ function getTabIcon(id) {
     payments: <IconCreditCard />,
     alerts: <IconBell />,
     communication: <IconMessage />,
+    workoutModels: <IconClipboard />,
     reports: <IconChart />,
     settings: <IconSettings />
   };
@@ -229,6 +231,7 @@ export default function App() {
         {activeTab === "payments" && <PaymentsTab students={students} records={records} payments={payments} setPayments={setPayments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "alerts" && <AlertsTab students={students} records={records} setRecords={setRecords} payments={payments} setPayments={setPayments} scheduleOverrides={scheduleOverrides} loadingData={loadingData} theme={theme} />}
         {activeTab === "communication" && <CommunicationTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
+        {activeTab === "workoutModels" && <WorkoutModelsTab theme={theme} />}
         {activeTab === "reports" && <ReportsTab students={students} records={records} payments={payments} loadingData={loadingData} theme={theme} />}
         {activeTab === "settings" && <SettingsTab themeKey={themeKey} setThemeKey={setThemeKey} themes={THEMES} />}
         {activeTab === "more" && <MoreTab onSelectTab={setActiveTab} theme={theme} />}
