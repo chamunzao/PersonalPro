@@ -86,6 +86,7 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
   const [customBody, setCustomBody] = useState('');
   const [editingTemplateId, setEditingTemplateId] = useState('');
   const [isTemplateLibraryExpanded, setIsTemplateLibraryExpanded] = useState(false);
+  const [isTemplateSearchFocused, setIsTemplateSearchFocused] = useState(false);
   const [templateSearch, setTemplateSearch] = useState('');
 
   const templates = [...standardTemplates, ...customTemplates];
@@ -94,6 +95,7 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
     if (!query) return true;
     return `${template.title} ${template.description}`.toLowerCase().includes(query);
   });
+  const shouldShowTemplateList = isTemplateLibraryExpanded || isTemplateSearchFocused || templateSearch.trim();
   const selectedTemplate = templates.find(template => template.id === selectedTemplateId) || templates[0];
   const filteredStudents = filterStudentsForCommunication(students, studentSearch);
   const selectedStudent = students.find(student => student.id === selectedStudentId) || filteredStudents[0] || students[0] || null;
@@ -200,11 +202,13 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
           className="communication-template-search"
           value={templateSearch}
           onChange={(event) => setTemplateSearch(event.target.value)}
+          onFocus={() => setIsTemplateSearchFocused(true)}
+          onBlur={() => setIsTemplateSearchFocused(false)}
           placeholder="Pesquisar mensagem padrão"
         />
 
-        {(isTemplateLibraryExpanded || templateSearch.trim()) && (
-          <div className="communication-template-list">
+        {shouldShowTemplateList && (
+          <div className="communication-template-list" onMouseDown={(event) => event.preventDefault()}>
             {visibleTemplates.map(template => (
               <div key={template.id} className="communication-template-shell">
                 <TemplateOption

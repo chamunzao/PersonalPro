@@ -17,6 +17,18 @@ assert.match(
 
 assert.match(
   communicationTab,
-  /isTemplateLibraryExpanded \|\| templateSearch\.trim\(\)/,
-  "message list should appear when expanded or when searching"
+  /const \[isTemplateSearchFocused, setIsTemplateSearchFocused\] = useState\(false\)/,
+  "message search focus should be tracked"
+);
+
+assert.match(
+  communicationTab,
+  /isTemplateLibraryExpanded \|\| isTemplateSearchFocused \|\| templateSearch\.trim\(\)/,
+  "message list should appear when expanded, searching, or focused"
+);
+
+assert.match(
+  communicationTab,
+  /onFocus=\{\(\) => setIsTemplateSearchFocused\(true\)\}/,
+  "message search should expand the list on focus"
 );
