@@ -3,7 +3,7 @@ import {
   doc,
   setDoc,
   deleteDoc
-} from '../firebase';
+} from '../firebase.js';
 import { shouldSaveAttendanceRemotely } from './recordsPolicy.js';
 
 export function getRecordDocId(classKey) {

@@ -21,11 +21,12 @@ import {
 } from '../billing/billingCalculations';
 import { getClassesForDate } from '../schedule/scheduleCalculations';
 import { updateAttendanceRecord } from '../attendance/attendanceActions';
-import { applySessionNotesUpdate, saveSessionNotes as saveSessionNotesRecord } from '../../services/recordsService';
+import { saveSessionNotes as saveSessionNotesRecord } from '../../services/recordsService';
 import { DEMO_EMAIL, getDemoWorkoutPlans } from '../../services/demoData';
 import { loadSessionWorkoutEntries } from './sessionWorkouts';
 import { buildSessionStudentSummary } from './sessionStudentSummary';
 import { getSessionFlowSections } from './sessionClassFlow';
+import { persistSessionNotesDraft } from './sessionNotes';
 
 function IconCheck() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -314,19 +315,13 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     setSavingKey(classKey);
     try {
       const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {} };
-      await saveSessionNotesRecord({
+      await persistSessionNotesDraft({
         userId: user.uid,
         classKey,
-        sessionNote: draft.sessionNote,
-        exerciseNotes: draft.exerciseNotes,
-        exerciseLogs: draft.exerciseLogs
+        draft,
+        saveSessionNotesRecord,
+        setRecords
       });
-      setRecords(prev => applySessionNotesUpdate(prev, {
-        classKey,
-        sessionNote: draft.sessionNote,
-        exerciseNotes: draft.exerciseNotes,
-        exerciseLogs: draft.exerciseLogs
-      }));
     } catch (error) {
       console.error("Error saving session notes:", error);
       alert("Erro ao salvar anotações da aula");
@@ -371,7 +366,13 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
 
     setSavingKey(`workout-${classKey}`);
     try {
-      await saveSessionNotes(classKey);
+      await persistSessionNotesDraft({
+        userId: user.uid,
+        classKey,
+        draft,
+        saveSessionNotesRecord,
+        setRecords
+      });
 
       await updateDoc(doc(db, `users/${user.uid}/students/${studentId}/workoutPlans/${activeWorkout.id}`), {
         active: false
