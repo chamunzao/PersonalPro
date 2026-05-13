@@ -1038,20 +1038,23 @@ textarea::placeholder {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 10px;
+  padding: 5px 10px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .student-pill-info {
-  background: #F3F4F6;
-  color: #4338CA;
+  background: rgba(242, 207, 124, 0.13);
+  color: #DCE7FF;
+  border: 0.5px solid rgba(242, 207, 124, 0.22);
 }
 
 .student-pill-muted {
-  background: #F3F4F6;
-  color: #374151;
+  background: rgba(242, 207, 124, 0.10);
+  color: #C2CAD7;
+  border: 0.5px solid rgba(242, 207, 124, 0.18);
 }
 
 .student-contact-row {
@@ -1715,7 +1718,7 @@ body .nav-item-active svg {
 }
 
 body .status-pago {
-  color: var(--green) !important;
+  color: #F2CF7C !important;
 }
 
 body .status-atrasado {
@@ -1724,6 +1727,32 @@ body .status-atrasado {
 
 body .status-pendente {
   color: var(--yellow) !important;
+}
+
+body .student-badge-row .status-pago,
+body .student-badge-row .status-atrasado,
+body .student-badge-row .status-pendente {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 5px 10px !important;
+  border-radius: 999px !important;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+body .student-badge-row .status-pago,
+body .student-badge-row .status-pendente {
+  background: rgba(242, 207, 124, 0.13) !important;
+  border: 0.5px solid rgba(242, 207, 124, 0.22);
+  color: #F2CF7C !important;
+}
+
+body .student-badge-row .status-atrasado {
+  background: rgba(239, 68, 68, 0.14) !important;
+  border: 0.5px solid rgba(239, 68, 68, 0.28);
+  color: #EF4444 !important;
 }
 
 body .app-main-session {
@@ -2228,7 +2257,7 @@ body .payments-package-toggle {
 body .payments-tab-button {
   min-height: 42px;
   margin-top: 14px;
-  background: #142339 !important;
+  background: #243B5C !important;
   border: 0.5px solid #4A6388 !important;
   color: #C2CAD7 !important;
   border-radius: 14px !important;
@@ -2253,7 +2282,10 @@ body .payment-student-card > div:first-child {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr);
   gap: 12px !important;
-  background: #142339;
+  background: #243B5C;
+  border: 0.5px solid #4A6388;
+  border-radius: 12px;
+  padding: 12px;
 }
 
 body .payment-student-card > div:first-child > div:last-child {
@@ -2298,7 +2330,7 @@ body .payment-month-package p:first-child {
 }
 
 body .payment-edit-panel {
-  background: #142339 !important;
+  background: #243B5C !important;
   border: 0.5px solid #4A6388 !important;
   border-radius: 12px !important;
 }
@@ -2325,7 +2357,7 @@ body .payment-history-row span {
   margin-top: 10px;
   border: 0.5px solid #4A6388;
   border-radius: 12px;
-  background: #142339;
+  background: #243B5C;
   color: #F2CF7C;
   font-size: 12px;
   font-weight: 850;

@@ -267,7 +267,7 @@ function StudentProfile({ studentId, student, records, onBack, onEdit, theme }) 
         ))}
       </div>
 
-      {loadingProfile && <p style={{ color: "#9ca3af", textAlign: "center" }}>Carregando...</p>}
+      {loadingProfile && <p style={{ color: "#91A0B6", textAlign: "center" }}>Carregando...</p>}
 
       {activeTab === "dados" && <DataTabContent student={student} records={records} onEdit={onEdit} theme={theme} />}
       {activeTab === "anamnese" && <AnamnesisTabContent studentId={studentId} anamnesis={anamnesis} setAnamnesis={setAnamnesis} theme={theme} />}
@@ -285,45 +285,45 @@ function DataTabContent({ student, records, onEdit, theme }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-      <div style={{ background: "#f9fafb", padding: "16px", borderRadius: "8px" }}>
-        <h3 style={{ fontSize: "13px", fontWeight: "600", color: "#4b5563", margin: "0 0 12px 0" }}>Dados Pessoais</h3>
+      <div style={{ background: "#243B5C", padding: "16px", borderRadius: "12px", border: "1px solid #4A6388" }}>
+        <h3 style={{ fontSize: "13px", fontWeight: "600", color: "#C2CAD7", margin: "0 0 12px 0" }}>Dados Pessoais</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "13px" }}>
           <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Nome</p>
-            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#1f2937" }}>{student.name}</p>
+            <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0 0 4px 0" }}>Nome</p>
+            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#FFFFFF" }}>{student.name}</p>
           </div>
           {student.cpf && <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>CPF</p>
-            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#1f2937" }}>{student.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")}</p>
+            <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0 0 4px 0" }}>CPF</p>
+            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#FFFFFF" }}>{student.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")}</p>
           </div>}
           {student.email && <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>E-mail</p>
-            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#1f2937" }}>{student.email}</p>
+            <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0 0 4px 0" }}>E-mail</p>
+            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#FFFFFF" }}>{student.email}</p>
           </div>}
           {student.phone && <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>WhatsApp</p>
-            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#1f2937" }}>{student.phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}</p>
+            <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0 0 4px 0" }}>WhatsApp</p>
+            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#FFFFFF" }}>{student.phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}</p>
           </div>}
           {student.birthDate && <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Data de Nascimento</p>
-            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#1f2937" }}>{new Date(student.birthDate).toLocaleDateString("pt-BR")}</p>
+            <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0 0 4px 0" }}>Data de Nascimento</p>
+            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#FFFFFF" }}>{new Date(student.birthDate).toLocaleDateString("pt-BR")}</p>
           </div>}
           <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Preço/Aula</p>
+            <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0 0 4px 0" }}>Preço/Aula</p>
             <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: theme.primary }}>{formatCurrency(student.pricePerClass)}</p>
           </div>
         </div>
       </div>
 
-      <div style={{ background: "#f9fafb", padding: "16px", borderRadius: "8px" }}>
-        <h3 style={{ fontSize: "13px", fontWeight: "600", color: "#4b5563", margin: "0 0 12px 0" }}>Cobrança</h3>
+      <div style={{ background: "#243B5C", padding: "16px", borderRadius: "12px", border: "1px solid #4A6388" }}>
+        <h3 style={{ fontSize: "13px", fontWeight: "600", color: "#C2CAD7", margin: "0 0 12px 0" }}>Cobrança</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "13px" }}>
           <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Tipo</p>
-            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#1f2937" }}>{billingStatus.billingTypeLabel}</p>
+            <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0 0 4px 0" }}>Tipo</p>
+            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#FFFFFF" }}>{billingStatus.billingTypeLabel}</p>
           </div>
           <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Status</p>
+            <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0 0 4px 0" }}>Status</p>
             <span style={{
               display: "inline-block",
               padding: "4px 8px",
@@ -337,50 +337,50 @@ function DataTabContent({ student, records, onEdit, theme }) {
             </span>
           </div>
           {billingStatus.planValue > 0 && <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Valor do plano</p>
+            <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0 0 4px 0" }}>Valor do plano</p>
             <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: theme.primary }}>{formatCurrency(billingStatus.planValue)}</p>
           </div>}
           {billingStatus.contractedClasses > 0 && <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Aulas</p>
-            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#1f2937" }}>
+            <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0 0 4px 0" }}>Aulas</p>
+            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#FFFFFF" }}>
               {billingStatus.usedClasses}/{billingStatus.contractedClasses} usadas
             </p>
           </div>}
           {billingStatus.billingType === BILLING_TYPES.monthlyPackage && billingStatus.contractedClasses === 0 && <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Aulas do mês</p>
-            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#1f2937" }}>Calculadas em pagamentos</p>
+            <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0 0 4px 0" }}>Aulas do mês</p>
+            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#FFFFFF" }}>Calculadas em pagamentos</p>
           </div>}
           {billingStatus.remainingClasses !== null && <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Restantes</p>
+            <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0 0 4px 0" }}>Restantes</p>
             <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: billingColors.color }}>{billingStatus.remainingClasses} aulas</p>
           </div>}
           {student.billingDueDate && <div>
-            <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0 0 4px 0" }}>Vencimento</p>
-            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#1f2937" }}>{new Date(student.billingDueDate).toLocaleDateString("pt-BR")}</p>
+            <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0 0 4px 0" }}>Vencimento</p>
+            <p style={{ fontSize: "14px", fontWeight: "600", margin: "0", color: "#FFFFFF" }}>{new Date(student.billingDueDate).toLocaleDateString("pt-BR")}</p>
           </div>}
         </div>
       </div>
 
-      <div style={{ background: "#f9fafb", padding: "16px", borderRadius: "8px" }}>
-        <h3 style={{ fontSize: "13px", fontWeight: "600", color: "#4b5563", margin: "0 0 12px 0" }}>Horários da Semana</h3>
+      <div style={{ background: "#243B5C", padding: "16px", borderRadius: "12px", border: "1px solid #4A6388" }}>
+        <h3 style={{ fontSize: "13px", fontWeight: "600", color: "#C2CAD7", margin: "0 0 12px 0" }}>Horários da Semana</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {student.schedule && student.schedule.length > 0 ? (
             DAYS.map((day, idx) => {
               const times = student.schedule.filter(s => s.day === idx).map(s => s.time).sort();
               return times.length > 0 ? (
                 <div key={idx} style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: "13px", color: "#4b5563", fontWeight: "600" }}>{day}:</span>
-                  <span style={{ fontSize: "13px", color: "#1f2937" }}>{times.join(", ")}</span>
+                  <span style={{ fontSize: "13px", color: "#C2CAD7", fontWeight: "600" }}>{day}:</span>
+                  <span style={{ fontSize: "13px", color: "#FFFFFF" }}>{times.join(", ")}</span>
                 </div>
               ) : null;
             })
-          ) : <p style={{ color: "#9ca3af", fontSize: "13px", margin: "0" }}>Sem horários definidos</p>}
+          ) : <p style={{ color: "#91A0B6", fontSize: "13px", margin: "0" }}>Sem horários definidos</p>}
         </div>
       </div>
 
-      {student.notes && <div style={{ background: "#f9fafb", padding: "16px", borderRadius: "8px" }}>
-        <h3 style={{ fontSize: "13px", fontWeight: "600", color: "#4b5563", margin: "0 0 8px 0" }}>Observações</h3>
-        <p style={{ fontSize: "13px", color: "#1f2937", margin: "0", whiteSpace: "pre-wrap" }}>{student.notes}</p>
+      {student.notes && <div style={{ background: "#243B5C", padding: "16px", borderRadius: "12px", border: "1px solid #4A6388" }}>
+        <h3 style={{ fontSize: "13px", fontWeight: "600", color: "#C2CAD7", margin: "0 0 8px 0" }}>Observações</h3>
+        <p style={{ fontSize: "13px", color: "#FFFFFF", margin: "0", whiteSpace: "pre-wrap" }}>{student.notes}</p>
       </div>}
 
       <button
@@ -388,7 +388,7 @@ function DataTabContent({ student, records, onEdit, theme }) {
         style={{
           padding: "10px 16px",
           background: theme.primary,
-          color: "white",
+          color: "#142339",
           border: "none",
           borderRadius: "6px",
           fontSize: "13px",
@@ -427,7 +427,7 @@ function ClassHistoryTabContent({ studentId, records, workoutPlans, theme }) {
 
   if (studentRecords.length === 0 && workoutVersions.length === 0) {
     return (
-      <div style={{ textAlign: "center", padding: "32px 16px", background: "#f9fafb", borderRadius: "8px", color: "#9ca3af" }}>
+      <div style={{ textAlign: "center", padding: "32px 16px", background: "#243B5C", borderRadius: "8px", color: "#91A0B6" }}>
         <p style={{ fontSize: "14px", margin: 0 }}>Nenhum histórico registrado para este aluno.</p>
       </div>
     );
@@ -436,12 +436,12 @@ function ClassHistoryTabContent({ studentId, records, workoutPlans, theme }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       {workoutVersions.length > 0 && (
-        <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px" }}>
-          <h3 style={{ fontSize: "13px", fontWeight: "800", color: "#1f2937", margin: "0 0 8px 0" }}>Versões de treino recentes</h3>
+        <div style={{ background: "#243B5C", border: "1px solid #4A6388", borderRadius: "8px", padding: "12px" }}>
+          <h3 style={{ fontSize: "13px", fontWeight: "800", color: "#FFFFFF", margin: "0 0 8px 0" }}>Versões de treino recentes</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             {workoutVersions.slice(0, 5).map(plan => (
-              <div key={plan.id} style={{ padding: "8px", background: "#f9fafb", borderRadius: "6px", border: "1px solid #eef2f7" }}>
-                <p style={{ fontSize: "12px", fontWeight: "700", color: "#1f2937", margin: "0 0 3px 0" }}>{plan.name}</p>
+              <div key={plan.id} style={{ padding: "8px", background: "#243B5C", borderRadius: "6px", border: "1px solid #4A6388" }}>
+                <p style={{ fontSize: "12px", fontWeight: "700", color: "#FFFFFF", margin: "0 0 3px 0" }}>{plan.name}</p>
                 <p style={{ fontSize: "11px", color: "#6b7280", margin: 0 }}>
                   {plan.updatedFromSessionAt ? `Criado a partir da aula de ${plan.updatedFromSessionAt}` : plan.updatedAt ? `Editado em ${plan.updatedAt}` : `Criado em ${plan.createdAt || "-"}`}
                 </p>
@@ -463,14 +463,14 @@ function ClassHistoryTabContent({ studentId, records, workoutPlans, theme }) {
             : { background: "#f3f4f6", color: "#6b7280", label: "Sem status" };
 
           return (
-            <div key={record.key} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px" }}>
+            <div key={record.key} style={{ background: "#243B5C", border: "1px solid #4A6388", borderRadius: "8px", padding: "12px" }}>
               <button
                 onClick={() => setExpandedKey(isOpen ? null : record.key)}
                 style={{ width: "100%", textAlign: "left", background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start" }}>
                   <div>
-                    <p style={{ fontSize: "14px", fontWeight: "800", color: "#1f2937", margin: "0 0 3px 0" }}>{record.date} - {record.time}</p>
+                    <p style={{ fontSize: "14px", fontWeight: "800", color: "#FFFFFF", margin: "0 0 3px 0" }}>{record.date} - {record.time}</p>
                     <p style={{ fontSize: "11px", color: "#6b7280", margin: 0 }}>
                       {hasDetails ? "Com anotações de aula" : "Sem anotações"}
                     </p>
@@ -483,19 +483,19 @@ function ClassHistoryTabContent({ studentId, records, workoutPlans, theme }) {
 
               {isOpen && (
                 <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #f3f4f6" }}>
-                  {record.activity && <p style={{ fontSize: "12px", color: "#4b5563", margin: "0 0 6px 0" }}><strong>Atividade:</strong> {record.activity}</p>}
-                  {record.sessionNote && <p style={{ fontSize: "12px", color: "#4b5563", margin: "0 0 8px 0", whiteSpace: "pre-wrap" }}><strong>Nota geral:</strong> {record.sessionNote}</p>}
+                  {record.activity && <p style={{ fontSize: "12px", color: "#C2CAD7", margin: "0 0 6px 0" }}><strong>Atividade:</strong> {record.activity}</p>}
+                  {record.sessionNote && <p style={{ fontSize: "12px", color: "#C2CAD7", margin: "0 0 8px 0", whiteSpace: "pre-wrap" }}><strong>Nota geral:</strong> {record.sessionNote}</p>}
                   {exerciseEntries.length > 0 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                       <p style={{ fontSize: "11px", fontWeight: "800", color: theme.primary, margin: 0 }}>Alterações por exercício</p>
                       {exerciseEntries.map(([index, note]) => (
-                        <div key={index} style={{ padding: "7px 8px", background: "#f9fafb", borderRadius: "6px", fontSize: "12px", color: "#374151" }}>
+                        <div key={index} style={{ padding: "7px 8px", background: "#243B5C", borderRadius: "6px", fontSize: "12px", color: "#DCE7FF" }}>
                           Exercício {Number(index) + 1}: {note}
                         </div>
                       ))}
                     </div>
                   )}
-                  {!hasDetails && <p style={{ fontSize: "12px", color: "#9ca3af", margin: 0 }}>Nenhum detalhe registrado nesta aula.</p>}
+                  {!hasDetails && <p style={{ fontSize: "12px", color: "#91A0B6", margin: 0 }}>Nenhum detalhe registrado nesta aula.</p>}
                 </div>
               )}
             </div>
@@ -556,10 +556,10 @@ function AnamnesisTabContent({ studentId, anamnesis, setAnamnesis, theme }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-      <div style={{ background: "#f9fafb", padding: "12px", borderRadius: "8px", border: "1px solid #e5e7eb" }}>
-        <p style={{ fontSize: "12px", fontWeight: "700", color: "#4b5563", margin: "0 0 8px 0" }}>Resumo de risco</p>
+      <div style={{ background: "#243B5C", padding: "12px", borderRadius: "12px", border: "1px solid #4A6388" }}>
+        <p style={{ fontSize: "12px", fontWeight: "700", color: "#C2CAD7", margin: "0 0 8px 0" }}>Resumo de risco</p>
         {riskItems.length === 0 ? (
-          <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0" }}>Nenhum ponto sensível registrado.</p>
+          <p style={{ fontSize: "12px", color: "#91A0B6", margin: "0" }}>Nenhum ponto sensível registrado.</p>
         ) : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
             {riskItems.map(item => (
@@ -571,7 +571,7 @@ function AnamnesisTabContent({ studentId, anamnesis, setAnamnesis, theme }) {
 
       {fields.map(field => (
         <div key={field.key}>
-          <label style={{ fontSize: "11px", fontWeight: "700", color: "#4b5563", display: "block", marginBottom: "4px" }}>{field.label}</label>
+          <label style={{ fontSize: "11px", fontWeight: "700", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>{field.label}</label>
           <textarea
             value={form[field.key] || ""}
             onChange={(e) => setForm(prev => ({ ...prev, [field.key]: e.target.value }))}
@@ -671,7 +671,7 @@ function ProgressPhotosTabContent({ studentId, photos, setPhotos, showNewPhoto, 
         style={{
           padding: "10px 16px",
           background: theme.primary,
-          color: "white",
+          color: "#142339",
           border: "none",
           borderRadius: "6px",
           fontSize: "13px",
@@ -685,9 +685,9 @@ function ProgressPhotosTabContent({ studentId, photos, setPhotos, showNewPhoto, 
       </button>
 
       {showNewPhoto && (
-        <div style={{ background: "#f9fafb", padding: "16px", borderRadius: "8px", border: `1px solid ${theme.light}` }}>
+        <div style={{ background: "#243B5C", padding: "16px", borderRadius: "8px", border: `1px solid ${theme.light}` }}>
           <div style={{ marginBottom: "10px" }}>
-            <label style={{ fontSize: "11px", fontWeight: "700", color: "#4b5563", display: "block", marginBottom: "4px" }}>Data</label>
+            <label style={{ fontSize: "11px", fontWeight: "700", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Data</label>
             <input
               type="date"
               value={form.date}
@@ -697,7 +697,7 @@ function ProgressPhotosTabContent({ studentId, photos, setPhotos, showNewPhoto, 
           </div>
           {photoFields.map(field => (
             <div key={field.key} style={{ marginBottom: "10px" }}>
-              <label style={{ fontSize: "11px", fontWeight: "700", color: "#4b5563", display: "block", marginBottom: "4px" }}>{field.label}</label>
+              <label style={{ fontSize: "11px", fontWeight: "700", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>{field.label}</label>
               <input
                 type="url"
                 value={form[field.key]}
@@ -732,26 +732,26 @@ function ProgressPhotosTabContent({ studentId, photos, setPhotos, showNewPhoto, 
       )}
 
       {photos.length === 0 ? (
-        <p style={{ color: "#9ca3af", textAlign: "center", padding: "20px" }}>Nenhuma foto de evolucao cadastrada</p>
+        <p style={{ color: "#91A0B6", textAlign: "center", padding: "20px" }}>Nenhuma foto de evolucao cadastrada</p>
       ) : (
         <div className="students-list">
           {photos.map(photo => (
-            <div key={photo.id} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px" }}>
+            <div key={photo.id} style={{ background: "#243B5C", border: "1px solid #4A6388", borderRadius: "8px", padding: "12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", marginBottom: "10px" }}>
                 <div>
-                  <p style={{ fontSize: "13px", fontWeight: "700", color: "#1f2937", margin: "0" }}>{new Date(photo.date).toLocaleDateString("pt-BR")}</p>
+                  <p style={{ fontSize: "13px", fontWeight: "700", color: "#FFFFFF", margin: "0" }}>{new Date(photo.date).toLocaleDateString("pt-BR")}</p>
                   {photo.notes && <p style={{ fontSize: "12px", color: "#6b7280", margin: "4px 0 0 0" }}>{photo.notes}</p>}
                 </div>
                 <button onClick={() => deletePhotoSet(photo.id)} style={{ background: "#fee2e2", color: "#dc2626", border: "none", borderRadius: "4px", padding: "5px 8px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}>Remover</button>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
                 {photoFields.map(field => (
-                  <div key={field.key} style={{ background: "#f9fafb", borderRadius: "6px", overflow: "hidden", border: "1px solid #e5e7eb" }}>
+                  <div key={field.key} style={{ background: "#243B5C", borderRadius: "6px", overflow: "hidden", border: "1px solid #4A6388" }}>
                     <p style={{ fontSize: "10px", fontWeight: "700", color: "#6b7280", margin: "0", padding: "6px" }}>{field.label}</p>
                     {getSafeImageUrl(photo[field.key]) ? (
                       <img src={getSafeImageUrl(photo[field.key])} alt={field.label} referrerPolicy="no-referrer" loading="lazy" style={{ width: "100%", aspectRatio: "3 / 4", objectFit: "cover", display: "block" }} />
                     ) : (
-                      <div style={{ aspectRatio: "3 / 4", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: "11px" }}>Sem foto</div>
+                      <div style={{ aspectRatio: "3 / 4", display: "flex", alignItems: "center", justifyContent: "center", color: "#91A0B6", fontSize: "11px" }}>Sem foto</div>
                     )}
                   </div>
                 ))}
@@ -816,7 +816,7 @@ function MeasurementsTabContent({ studentId, measurements, setMeasurements, show
         style={{
           padding: "10px 16px",
           background: theme.primary,
-          color: "white",
+          color: "#142339",
           border: "none",
           borderRadius: "6px",
           fontSize: "13px",
@@ -831,10 +831,10 @@ function MeasurementsTabContent({ studentId, measurements, setMeasurements, show
       </button>
 
       {showNewMeasurement && (
-        <div style={{ background: "#f9fafb", padding: "16px", borderRadius: "8px", border: `1px solid ${theme.light}` }}>
+        <div style={{ background: "#243B5C", padding: "16px", borderRadius: "8px", border: `1px solid ${theme.light}` }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Data</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Data</label>
               <input
                 type="date"
                 value={formData.date}
@@ -851,7 +851,7 @@ function MeasurementsTabContent({ studentId, measurements, setMeasurements, show
               />
             </div>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Peso (kg)</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Peso (kg)</label>
               <input
                 type="number"
                 value={formData.peso}
@@ -870,7 +870,7 @@ function MeasurementsTabContent({ studentId, measurements, setMeasurements, show
               />
             </div>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Altura (cm)</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Altura (cm)</label>
               <input
                 type="number"
                 value={formData.altura}
@@ -889,7 +889,7 @@ function MeasurementsTabContent({ studentId, measurements, setMeasurements, show
               />
             </div>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>IMC (auto)</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>IMC (auto)</label>
               <input
                 type="text"
                 value={calculateIMC(formData.peso, formData.altura) || ""}
@@ -910,43 +910,43 @@ function MeasurementsTabContent({ studentId, measurements, setMeasurements, show
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Peitoral (cm)</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Peitoral (cm)</label>
               <input type="number" value={formData.peitoral} onChange={(e) => setFormData(f => ({ ...f, peitoral: e.target.value }))} step="0.1" style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit" }} />
             </div>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Cintura (cm)</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Cintura (cm)</label>
               <input type="number" value={formData.cintura} onChange={(e) => setFormData(f => ({ ...f, cintura: e.target.value }))} step="0.1" style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit" }} />
             </div>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Quadril (cm)</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Quadril (cm)</label>
               <input type="number" value={formData.quadril} onChange={(e) => setFormData(f => ({ ...f, quadril: e.target.value }))} step="0.1" style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit" }} />
             </div>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>% Gordura</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>% Gordura</label>
               <input type="number" value={formData.gordura} onChange={(e) => setFormData(f => ({ ...f, gordura: e.target.value }))} step="0.1" style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit" }} />
             </div>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Braço D (cm)</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Braço D (cm)</label>
               <input type="number" value={formData.bracoD} onChange={(e) => setFormData(f => ({ ...f, bracoD: e.target.value }))} step="0.1" style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit" }} />
             </div>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Braço E (cm)</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Braço E (cm)</label>
               <input type="number" value={formData.bracoE} onChange={(e) => setFormData(f => ({ ...f, bracoE: e.target.value }))} step="0.1" style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit" }} />
             </div>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Coxa D (cm)</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Coxa D (cm)</label>
               <input type="number" value={formData.coxaD} onChange={(e) => setFormData(f => ({ ...f, coxaD: e.target.value }))} step="0.1" style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit" }} />
             </div>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Coxa E (cm)</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Coxa E (cm)</label>
               <input type="number" value={formData.coxaE} onChange={(e) => setFormData(f => ({ ...f, coxaE: e.target.value }))} step="0.1" style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit" }} />
             </div>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Panturrilha D (cm)</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Panturrilha D (cm)</label>
               <input type="number" value={formData.panturrilhaD} onChange={(e) => setFormData(f => ({ ...f, panturrilhaD: e.target.value }))} step="0.1" style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit" }} />
             </div>
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Panturrilha E (cm)</label>
+              <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Panturrilha E (cm)</label>
               <input type="number" value={formData.panturrilhaE} onChange={(e) => setFormData(f => ({ ...f, panturrilhaE: e.target.value }))} step="0.1" style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit" }} />
             </div>
           </div>
@@ -989,7 +989,7 @@ function MeasurementsTabContent({ studentId, measurements, setMeasurements, show
       )}
 
       {measurements.length === 0 ? (
-        <p style={{ color: "#9ca3af", textAlign: "center", padding: "20px" }}>Nenhuma medição registrada</p>
+        <p style={{ color: "#91A0B6", textAlign: "center", padding: "20px" }}>Nenhuma medição registrada</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {measurements.map((m, idx) => {
@@ -999,17 +999,17 @@ function MeasurementsTabContent({ studentId, measurements, setMeasurements, show
 
             return (
               <div key={m.id} onClick={() => setExpandedMeasurement(expandedMeasurement === m.id ? null : m.id)} style={{
-                background: "white",
+                background: "#243B5C",
                 padding: "12px",
                 borderRadius: "8px",
-                border: "1px solid #e5e7eb",
+                border: "1px solid #4A6388",
                 cursor: "pointer"
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <p style={{ fontSize: "12px", fontWeight: "600", color: "#1f2937", margin: "0" }}>{m.date}</p>
-                    <p style={{ fontSize: "11px", color: "#9ca3af", margin: "4px 0 0 0" }}>Peso: {m.peso}kg | IMC: {m.imc}</p>
-                    {m.gordura && <p style={{ fontSize: "11px", color: "#9ca3af", margin: "0" }}>Gordura: {m.gordura}%</p>}
+                    <p style={{ fontSize: "12px", fontWeight: "600", color: "#FFFFFF", margin: "0" }}>{m.date}</p>
+                    <p style={{ fontSize: "11px", color: "#91A0B6", margin: "4px 0 0 0" }}>Peso: {m.peso}kg | IMC: {m.imc}</p>
+                    {m.gordura && <p style={{ fontSize: "11px", color: "#91A0B6", margin: "0" }}>Gordura: {m.gordura}%</p>}
                   </div>
                   <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                     {pesoChange && <span style={{ fontSize: "14px", color: pesoChange < 0 ? "#F2CF7C" : "#dc2626" }}>{pesoChange < 0 ? "↓" : "↑"}</span>}
@@ -1194,7 +1194,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
         style={{
           padding: "10px 16px",
           background: theme.primary,
-          color: "white",
+          color: "#142339",
           border: "none",
           borderRadius: "6px",
           fontSize: "13px",
@@ -1209,9 +1209,9 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
       </button>
 
       {showNewWorkout && (
-        <div style={{ background: "#f9fafb", padding: "16px", borderRadius: "8px", border: `1px solid ${theme.light}` }}>
+        <div style={{ background: "#243B5C", padding: "16px", borderRadius: "8px", border: `1px solid ${theme.light}` }}>
           <div className="student-form-field" style={{ marginBottom: "12px" }}>
-            <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Usar template</label>
+            <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Usar template</label>
             <select
               onChange={(e) => applyTemplate(e.target.value)}
               defaultValue=""
@@ -1234,7 +1234,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
           </div>
 
           <div className="student-form-field" style={{ marginBottom: "12px" }}>
-            <label style={{ fontSize: "11px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Nome do Treino</label>
+            <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Nome do Treino</label>
             <input
               type="text"
               value={formData.name}
@@ -1259,14 +1259,14 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
               onChange={(e) => setFormData(f => ({ ...f, active: e.target.checked }))}
               style={{ cursor: "pointer" }}
             />
-            <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563" }}>Treino ativo</label>
+            <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7" }}>Treino ativo</label>
           </div>
 
-          <h4 style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", margin: "12px 0 8px 0" }}>Exercícios</h4>
+          <h4 style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", margin: "12px 0 8px 0" }}>Exercícios</h4>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "12px" }}>
             {formData.exercises.map((ex, idx) => (
-              <div key={idx} style={{ background: "white", padding: "10px", borderRadius: "6px", border: "1px solid #e5e7eb" }}>
+              <div key={idx} style={{ background: "#243B5C", padding: "10px", borderRadius: "6px", border: "1px solid #4A6388" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                   <p style={{ fontSize: "11px", color: "#6b7280", margin: 0, fontWeight: "700" }}>Exercício {idx + 1}</p>
                   <button onClick={() => removeExercise(idx)} style={{ background: "#fee2e2", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "12px", fontWeight: "700", borderRadius: "4px", padding: "4px 8px" }}>Remover</button>
@@ -1494,23 +1494,23 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
       )}
 
       {workoutPlans.length === 0 ? (
-        <p style={{ color: "#9ca3af", textAlign: "center", padding: "20px" }}>Nenhum treino cadastrado</p>
+        <p style={{ color: "#91A0B6", textAlign: "center", padding: "20px" }}>Nenhum treino cadastrado</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {workoutPlans.map(plan => (
             <div key={plan.id} style={{
-              background: "white",
+              background: "#243B5C",
               padding: "12px",
               borderRadius: "8px",
               border: plan.active ? `2px solid ${theme.primary}` : "1px solid #e5e7eb"
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }}>
                 <div onClick={() => setExpandedWorkout(expandedWorkout === plan.id ? null : plan.id)} style={{ flex: 1, cursor: "pointer" }}>
-                  <p style={{ fontSize: "12px", fontWeight: "600", margin: "0", color: "#1f2937" }}>
+                  <p style={{ fontSize: "12px", fontWeight: "600", margin: "0", color: "#FFFFFF" }}>
                     {plan.name}
                     {plan.active && <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 6px", background: theme.light, color: theme.dark, borderRadius: "4px" }}>Ativo</span>}
                   </p>
-                  <p style={{ fontSize: "10px", color: "#9ca3af", margin: "4px 0 0 0" }}>{plan.exercises?.length || 0} exercício{(plan.exercises?.length || 0) === 1 ? "" : "s"}</p>
+                  <p style={{ fontSize: "10px", color: "#91A0B6", margin: "4px 0 0 0" }}>{plan.exercises?.length || 0} exercício{(plan.exercises?.length || 0) === 1 ? "" : "s"}</p>
                 </div>
                 <div style={{ display: "flex", gap: "4px" }}>
                   <button
@@ -1582,11 +1582,11 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                       <span>
                         <strong>{ex.name}</strong>
                         {(ex.muscleGroup || ex.equipment) && (
-                          <span style={{ color: "#9ca3af" }}> - {[ex.muscleGroup, ex.equipment].filter(Boolean).join(" / ")}</span>
+                          <span style={{ color: "#91A0B6" }}> - {[ex.muscleGroup, ex.equipment].filter(Boolean).join(" / ")}</span>
                         )}
                         {ex.instructions && <p style={{ color: "#6b7280", margin: "2px 0 0 0" }}>{ex.instructions}</p>}
                       </span>
-                      <span style={{ color: "#9ca3af" }}>{ex.sets}s x {ex.reps}r {ex.weight ? `@ ${ex.weight}` : ""}</span>
+                      <span style={{ color: "#91A0B6" }}>{ex.sets}s x {ex.reps}r {ex.weight ? `@ ${ex.weight}` : ""}</span>
                     </div>
                   ))}
                 </div>
@@ -1913,7 +1913,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
         </section>
       )}
 
-      {loadingData && <p style={{ color: "#9ca3af", fontSize: "14px", textAlign: "center" }}>Carregando...</p>}
+      {loadingData && <p style={{ color: "#91A0B6", fontSize: "14px", textAlign: "center" }}>Carregando...</p>}
 
       {!selectedStudentId && students.length > 0 && (
         <section className="students-search-panel">
@@ -1934,13 +1934,13 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
 
       {showForm && (
         <div className="student-form-panel" style={{
-          background: "#f9fafb",
+          background: "#243B5C",
           padding: "16px",
           borderRadius: "8px",
           marginBottom: "20px",
-          border: "1px solid #e5e7eb"
+          border: "1px solid #4A6388"
         }}>
-          <h3 style={{ fontSize: "14px", fontWeight: "600", marginTop: "0", marginBottom: "12px", color: "#1f2937" }}>
+          <h3 style={{ fontSize: "14px", fontWeight: "600", marginTop: "0", marginBottom: "12px", color: "#FFFFFF" }}>
             {editId ? "Editar Aluno" : "Novo Aluno"}
           </h3>
 
@@ -1960,7 +1960,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
           )}
 
           <div style={{ marginBottom: "12px" }}>
-            <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Nome</label>
+            <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Nome</label>
             <input
               type="text"
               value={form.name}
@@ -1980,7 +1980,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
           </div>
 
           <div style={{ marginBottom: "12px" }}>
-            <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Preço/Aula (R$)</label>
+            <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Preço/Aula (R$)</label>
             <input
               type="number"
               value={form.pricePerClass}
@@ -2004,7 +2004,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
           <div className="student-form-section" style={{ marginBottom: "12px", padding: "12px", background: "#fff", border: `1px solid ${theme.light}`, borderRadius: "8px" }}>
             <p style={{ fontSize: "12px", fontWeight: "600", color: theme.primary, margin: "0 0 10px 0" }}>Cobrança</p>
             <div style={{ marginBottom: "10px" }}>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Tipo de cobrança</label>
+              <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Tipo de cobrança</label>
               <select
                 value={form.billingType}
                 onChange={(e) => {
@@ -2138,7 +2138,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
 
                 <div style={{ display: "grid", gridTemplateColumns: form.billingType === BILLING_TYPES.monthlyPackage ? "1fr" : "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
                   {form.billingType !== BILLING_TYPES.monthlyPackage && <div>
-                    <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Aulas contratadas</label>
+                    <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Aulas contratadas</label>
                     <input
                       type="number"
                       value={form.packageClasses}
@@ -2158,7 +2158,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                     />
                   </div>}
                   <div>
-                    <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>
+                    <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>
                       {form.billingType === BILLING_TYPES.monthlyPackage ? "Valor mensal previsto (R$)" : "Valor do plano (R$)"}
                     </label>
                     <input
@@ -2210,7 +2210,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
 
                 {form.billingType !== BILLING_TYPES.monthlyPackage && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: form.billingType === BILLING_TYPES.monthly ? "10px" : "0" }}>
                   <div>
-                    <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Início do ciclo</label>
+                    <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Início do ciclo</label>
                     <input
                       type="date"
                       value={form.billingCycleStart}
@@ -2228,7 +2228,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Vencimento</label>
+                    <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Vencimento</label>
                     <input
                       type="date"
                       value={form.billingDueDate}
@@ -2248,7 +2248,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
                 </div>}
 
                 {(form.billingType === BILLING_TYPES.monthly || form.billingType === BILLING_TYPES.monthlyPackage) && (
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", fontWeight: "600", color: "#4b5563" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", fontWeight: "600", color: "#C2CAD7" }}>
                     <input
                       type="checkbox"
                       checked={form.billingAutoRenew}
@@ -2265,7 +2265,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
           <div className="student-form-section" style={{ marginBottom: "12px", padding: "12px", background: "#fff", border: `1px solid ${theme.light}`, borderRadius: "8px" }}>
             <p style={{ fontSize: "12px", fontWeight: "600", color: theme.primary, margin: "0 0 10px 0" }}>Dados Pessoais (opcional)</p>
             <div style={{ marginBottom: "10px" }}>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>CPF</label>
+              <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>CPF</label>
               <input
                 type="text"
                 value={form.cpf}
@@ -2289,7 +2289,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
               />
             </div>
             <div style={{ marginBottom: "10px" }}>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>E-mail</label>
+              <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>E-mail</label>
               <input
                 type="email"
                 value={form.email}
@@ -2308,7 +2308,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
               />
             </div>
             <div style={{ marginBottom: "10px" }}>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>WhatsApp</label>
+              <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>WhatsApp</label>
               <input
                 type="tel"
                 value={form.phone}
@@ -2332,7 +2332,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
               />
             </div>
             <div>
-              <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Data de Nascimento</label>
+              <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Data de Nascimento</label>
               <input
                 type="date"
                 value={form.birthDate}
@@ -2352,7 +2352,7 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
           </div>
 
           <div className="student-form-field" style={{ marginBottom: "12px" }}>
-            <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "4px" }}>Observações (opcional)</label>
+            <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Observações (opcional)</label>
             <textarea
               value={form.notes}
               onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
@@ -2372,12 +2372,12 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
           </div>
 
           <div className="student-form-section" style={{ marginBottom: "12px" }}>
-            <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", display: "block", marginBottom: "8px" }}>Horários da Semana</label>
+            <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "8px" }}>Horários da Semana</label>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {DAYS.map((day, dayIdx) => {
                 const dayTimes = form.schedule.filter(s => s.day === dayIdx).sort((a, b) => a.time.localeCompare(b.time));
                 return (
-                  <div key={dayIdx} className="student-schedule-day-card" style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 12px" }}>
+                  <div key={dayIdx} className="student-schedule-day-card" style={{ background: "#fff", border: "1px solid #4A6388", borderRadius: "8px", padding: "10px 12px" }}>
                     <p style={{ fontSize: "12px", fontWeight: "700", color: theme.primary, margin: "0 0 6px" }}>{day}</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: dayTimes.length > 0 ? "8px" : "0" }}>
                       {dayTimes.map(s => (

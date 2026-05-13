@@ -230,21 +230,23 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
           left: 0,
           right: 0,
           bottom: 0,
-          background: "rgba(0, 0, 0, 0.5)",
+          background: "rgba(10, 18, 31, 0.78)",
           display: "flex",
           alignItems: "flex-end",
           zIndex: 1000
         }}>
           <div style={{
-            background: "white",
+            background: "#1D314E",
             width: "100%",
             maxHeight: "80vh",
             borderRadius: "16px 16px 0 0",
             padding: "20px",
-            overflowY: "auto"
+            overflowY: "auto",
+            border: "1px solid #4A6388",
+            boxShadow: "0 -18px 50px rgba(10, 18, 31, 0.45)"
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0", color: "#1f2937" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: "700", margin: "0", color: "#FFFFFF" }}>
                 {DAYS[getDayOfWeek(currentDate.getFullYear(), currentDate.getMonth(), selectedDayModal) - 1]} - {selectedDayModal} de {MONTHS[currentDate.getMonth()]}
               </h3>
               <button
@@ -254,7 +256,7 @@ export function AgendaTab({ students, records, setRecords, scheduleOverrides, se
                   border: "none",
                   fontSize: "24px",
                   cursor: "pointer",
-                  color: "#6b7280",
+                  color: "#C2CAD7",
                   padding: "0",
                   width: "32px",
                   height: "32px",
@@ -556,7 +558,7 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
         style={{
           padding: "10px 12px",
           background: theme.primary,
-          color: "white",
+          color: "#142339",
           border: "none",
           borderRadius: "6px",
           fontSize: "12px",
@@ -568,12 +570,12 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
       </button>
 
       {showAddClass && (
-        <div style={{ background: "#f9fafb", padding: "12px", borderRadius: "8px", border: "1px solid #e5e7eb" }}>
+        <div style={{ background: "#243B5C", padding: "12px", borderRadius: "12px", border: "1px solid #4A6388" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
             <select
               value={addForm.studentId}
               onChange={(e) => setAddForm(form => ({ ...form, studentId: e.target.value }))}
-              style={{ padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px" }}
+              style={{ padding: "8px", border: "1px solid #4A6388", borderRadius: "6px", fontSize: "12px", background: "#142339", color: "#FFFFFF" }}
             >
               <option value="">Aluno</option>
               {students.map(student => <option key={student.id} value={student.id}>{student.name}</option>)}
@@ -582,12 +584,12 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
               type="time"
               value={addForm.time}
               onChange={(e) => setAddForm(form => ({ ...form, time: e.target.value }))}
-              style={{ padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px" }}
+              style={{ padding: "8px", border: "1px solid #4A6388", borderRadius: "6px", fontSize: "12px", background: "#142339", color: "#FFFFFF" }}
             />
             <select
               value={addForm.type}
               onChange={(e) => setAddForm(form => ({ ...form, type: e.target.value }))}
-              style={{ padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px" }}
+              style={{ padding: "8px", border: "1px solid #4A6388", borderRadius: "6px", fontSize: "12px", background: "#142339", color: "#FFFFFF" }}
             >
               <option value={SCHEDULE_ITEM_TYPES.extra}>Avulsa</option>
               <option value={SCHEDULE_ITEM_TYPES.replacement}>Reposição</option>
@@ -600,7 +602,7 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
               placeholder="Valor opcional"
               min="0"
               step="0.01"
-              style={{ padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px" }}
+              style={{ padding: "8px", border: "1px solid #4A6388", borderRadius: "6px", fontSize: "12px", background: "#142339", color: "#FFFFFF" }}
             />
           </div>
           <input
@@ -608,12 +610,12 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
             value={addForm.note}
             onChange={(e) => setAddForm(form => ({ ...form, note: e.target.value }))}
             placeholder="Observação opcional"
-            style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", marginBottom: "8px" }}
+            style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid #4A6388", borderRadius: "6px", fontSize: "12px", background: "#142339", color: "#FFFFFF", marginBottom: "8px" }}
           />
           <select
             value={addForm.locationId}
             onChange={(e) => setAddForm(form => ({ ...form, locationId: e.target.value }))}
-            style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", marginBottom: "8px", background: "white" }}
+            style={{ width: "100%", boxSizing: "border-box", padding: "8px", border: "1px solid #4A6388", borderRadius: "6px", fontSize: "12px", background: "#142339", color: "#FFFFFF", marginBottom: "8px" }}
           >
             <option value="">Local padrão do aluno</option>
             {locations.map(location => (
@@ -626,8 +628,8 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
             style={{
               width: "100%",
               padding: "8px",
-              background: savingSchedule || !addForm.studentId || !addForm.time ? "#d1d5db" : theme.primary,
-              color: "white",
+              background: savingSchedule || !addForm.studentId || !addForm.time ? "#4A6388" : theme.primary,
+              color: "#142339",
               border: "none",
               borderRadius: "6px",
               fontSize: "12px",
@@ -641,7 +643,7 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
       )}
 
       {classesWithAttendance.length === 0 && (
-        <div style={{ textAlign: "center", padding: "20px", color: "#9ca3af", background: "#f9fafb", borderRadius: "8px" }}>
+        <div style={{ textAlign: "center", padding: "20px", color: "#C2CAD7", background: "#243B5C", borderRadius: "12px", border: "1px solid #4A6388" }}>
           <p>Nenhuma aula agendada para este dia</p>
         </div>
       )}
@@ -652,27 +654,27 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
           const isAttendanceSaving = savingAttendanceKey === cls.key;
           return (
         <div key={cls.key} style={{
-          background: "#f9fafb",
+          background: "#243B5C",
           padding: "12px",
-          borderRadius: "8px",
-          border: `1px solid ${statusStyle.border}`
+          borderRadius: "12px",
+          border: `1px solid ${statusStyle.border === "#e5e7eb" ? "#4A6388" : statusStyle.border}`
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
             <div>
-              <p style={{ fontSize: "14px", fontWeight: "600", margin: "0 0 4px 0", color: "#1f2937" }}>
+              <p style={{ fontSize: "14px", fontWeight: "700", margin: "0 0 4px 0", color: "#FFFFFF" }}>
                 {cls.studentName}
               </p>
-              <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0" }}>
+              <p style={{ fontSize: "12px", color: "#C2CAD7", margin: "0" }}>
                 {cls.time} · {formatCurrency(cls.pricePerClass)}
               </p>
-              <p style={{ fontSize: "11px", color: "#6b7280", margin: "3px 0 0 0" }}>
+              <p style={{ fontSize: "11px", color: "#91A0B6", margin: "3px 0 0 0" }}>
                 {cls.locationName || "Sem local"}
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "6px" }}>
                 <span style={{ padding: "3px 7px", borderRadius: "4px", background: theme.light, color: theme.dark, fontSize: "11px", fontWeight: "700" }}>
                   {getScheduleItemTypeLabel(cls.scheduleType)}
                 </span>
-                {cls.scheduleNote && <span style={{ padding: "3px 7px", borderRadius: "4px", background: "#f3f4f6", color: "#4b5563", fontSize: "11px", fontWeight: "600" }}>{cls.scheduleNote}</span>}
+                {cls.scheduleNote && <span style={{ padding: "3px 7px", borderRadius: "4px", background: "rgba(242, 207, 124, 0.14)", color: "#F2CF7C", fontSize: "11px", fontWeight: "600" }}>{cls.scheduleNote}</span>}
               </div>
             </div>
             <span style={{
@@ -703,13 +705,13 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
             </button>
             <button
               onClick={() => openWhatsAppMessage(cls.studentPhone, `Olá, ${cls.studentName}! Confirmando sua aula do dia ${dateLabel} às ${cls.time}. Pode confirmar?`)}
-              style={{ flex: 1, padding: "7px", background: "#dcfce7", border: "none", color: "#166534", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+              style={{ flex: 1, padding: "7px", background: "rgba(242, 207, 124, 0.18)", border: "1px solid rgba(242, 207, 124, 0.35)", color: "#F2CF7C", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
             >
               Confirmar
             </button>
             <button
               onClick={() => openWhatsAppMessage(cls.studentPhone, `Olá, ${cls.studentName}! Se precisar trocar o horário da aula do dia ${dateLabel}, me avise por aqui para combinarmos a remarcação.`)}
-              style={{ flex: 1, padding: "7px", background: "#eff6ff", border: "none", color: "#1d4ed8", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+              style={{ flex: 1, padding: "7px", background: "#243B5C", border: "1px solid #4A6388", color: "#F2CF7C", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
             >
               WhatsApp
             </button>
@@ -719,7 +721,7 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
                 setRescheduleForm({ date: "", time: cls.time });
               }}
               disabled={savingSchedule}
-              style={{ flex: 1, padding: "7px", background: "white", border: `1px solid ${theme.medium}`, color: theme.primary, borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+              style={{ flex: 1, padding: "7px", background: "#243B5C", border: `1px solid ${theme.medium}`, color: theme.primary, borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
             >
               Remarcar
             </button>
@@ -737,18 +739,18 @@ function DayDetailsPanel({ dayNum, currentDate, students, records, setRecords, s
                 type="date"
                 value={rescheduleForm.date}
                 onChange={(e) => setRescheduleForm(form => ({ ...form, date: e.target.value }))}
-                style={{ padding: "7px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px" }}
+                style={{ padding: "7px", border: "1px solid #4A6388", borderRadius: "6px", fontSize: "12px", background: "#142339", color: "#FFFFFF" }}
               />
               <input
                 type="time"
                 value={rescheduleForm.time}
                 onChange={(e) => setRescheduleForm(form => ({ ...form, time: e.target.value }))}
-                style={{ padding: "7px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px" }}
+                style={{ padding: "7px", border: "1px solid #4A6388", borderRadius: "6px", fontSize: "12px", background: "#142339", color: "#FFFFFF" }}
               />
               <button
                 onClick={() => rescheduleClass(cls)}
                 disabled={savingSchedule || !rescheduleForm.date || !rescheduleForm.time}
-                style={{ padding: "7px 10px", background: theme.primary, color: "white", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+                style={{ padding: "7px 10px", background: theme.primary, color: "#142339", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
               >
                 OK
               </button>
