@@ -373,9 +373,11 @@ Implementado:
   - `{valor}`;
   - `{proxima_aula}`;
   - `{saldo_pacote}`.
+- O formulário de criação explica que `{primeiro_nome}` troca automaticamente pelo primeiro nome do aluno selecionado e que `{nome}` usa o nome completo.
 
 Validacao:
 
+- `node tests\communicationTemplateHelp.test.mjs`
 - `node tests\communicationLibrary.test.mjs`
 - `node tests\messageTemplates.test.mjs`
 - `node tests\reportsDecision.test.mjs`

@@ -3615,6 +3615,24 @@ body .communication-student-card > div:first-child {
   resize: vertical;
 }
 
+.communication-template-help {
+  padding: 10px 11px;
+  border: 0.5px solid rgba(242, 207, 124, 0.28);
+  border-radius: 12px;
+  background: rgba(242, 207, 124, 0.1);
+}
+
+.communication-template-help p {
+  margin: 0;
+  color: #DCE7FF;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.communication-template-help p + p {
+  margin-top: 5px;
+}
+
 .communication-template-form button,
 .communication-send-button {
   min-height: 42px;

@@ -223,6 +223,10 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
             placeholder="Texto. Use {primeiro_nome}, {nome}, {valor}, {proxima_aula} ou {saldo_pacote}."
             rows={4}
           />
+          <div className="communication-template-help">
+            <p>Use {'{primeiro_nome}'} para trocar automaticamente pelo primeiro nome do aluno selecionado.</p>
+            <p>{'{nome}'} usa o nome completo. Exemplo: "Olá, {'{primeiro_nome}'}! Sua próxima aula é {'{proxima_aula}'}."</p>
+          </div>
           <button type="submit" disabled={!customTitle.trim() || !customBody.trim()}>
             {editingTemplateId ? 'Salvar alterações' : 'Criar mensagem'}
           </button>
