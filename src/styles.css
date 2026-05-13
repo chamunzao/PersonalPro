@@ -2048,8 +2048,27 @@ body .app-main-session .session-note-area {
 body .app-main-session .session-note-input {
   margin-top: 10px;
   border-radius: 18px !important;
-  color: rgba(242, 207, 124, 0.14) !important;
+  color: #FFFFFF !important;
   font-weight: 700;
+}
+
+body .app-main-session .session-exercise-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+body .app-main-session .session-exercise-quick-actions button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(242, 207, 124, 0.35);
+  border-radius: 999px;
+  background: rgba(242, 207, 124, 0.14);
+  color: #F2CF7C;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
 }
 
 body .app-main-session .session-note-area {

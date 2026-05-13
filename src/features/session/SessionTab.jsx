@@ -29,6 +29,7 @@ import { buildSessionStudentSummary } from './sessionStudentSummary';
 import { getSessionFlowSections } from './sessionClassFlow';
 import { persistSessionNotesDraft } from './sessionNotes';
 import { buildSessionCheckoutSummary, hasSessionCheckoutChanges } from './sessionCheckoutUtils';
+import { EXERCISE_QUICK_ACTIONS, appendExerciseQuickAction } from './sessionExerciseQuickActions';
 import { ReplacementFlow } from '../schedule/ReplacementFlow';
 import { buildReplacementOverride } from '../schedule/replacementActions';
 
@@ -483,6 +484,16 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     }));
   }
 
+  function applyExerciseQuickAction(classKey, exerciseIndex, actionId) {
+    updateDraft(classKey, current => ({
+      ...current,
+      exerciseNotes: {
+        ...(current.exerciseNotes || {}),
+        [exerciseIndex]: appendExerciseQuickAction((current.exerciseNotes || {})[exerciseIndex], actionId)
+      }
+    }));
+  }
+
   function startEditWorkoutFromClass(classKey, activeWorkout) {
     setEditingWorkoutKey(classKey);
     setWorkoutEditForms(prev => ({
@@ -852,6 +863,17 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                             placeholder="Ex: 4x12, 20kg, reduzir carga..."
                             className="session-note-input"
                           />
+                          <div className="session-exercise-quick-actions">
+                            {EXERCISE_QUICK_ACTIONS.map(action => (
+                              <button
+                                key={action.id}
+                                type="button"
+                                onClick={() => applyExerciseQuickAction(classKey, index, action.id)}
+                              >
+                                {action.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       ))}
                     </div>}

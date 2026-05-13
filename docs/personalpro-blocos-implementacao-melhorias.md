@@ -440,3 +440,38 @@ Validacao:
 - `node tests\sessionCheckout.test.mjs`
 - `node tests\sessionWorkouts.test.mjs`
 - `npm run build`
+
+## Bloco 10 - Acoes rapidas por exercicio na Aula
+
+Status: implementado para validacao.
+
+Objetivo:
+
+- Reduzir digitacao durante o registro da aula.
+- Permitir que o personal registre ocorrencias comuns de cada exercicio em um toque.
+
+Como implementar:
+
+- Criar helper puro para acoes rapidas de exercicio.
+- Adicionar botoes abaixo da nota de cada exercicio na aba `Aula`.
+- Cada botao preenche ou acrescenta uma observacao padrao sem duplicar texto.
+
+Implementado:
+
+- Criado helper `src/features/session/sessionExerciseQuickActions.js`.
+- Criado teste `tests/sessionExerciseQuickActions.test.mjs`.
+- Adicionadas acoes:
+  - `Subiu carga`;
+  - `Manteve`;
+  - `Sentiu dor`;
+  - `Trocar`.
+- A nota do exercicio continua editavel manualmente.
+- Corrigida a cor do campo de nota do exercicio para manter o texto legivel.
+
+Validacao:
+
+- `node tests\sessionExerciseQuickActions.test.mjs`
+- `node tests\sessionNotes.test.mjs`
+- `node tests\sessionWorkouts.test.mjs`
+- `node tests\sessionClassFlow.test.mjs`
+- `npm run build`
