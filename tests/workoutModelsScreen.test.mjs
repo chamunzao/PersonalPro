@@ -19,7 +19,19 @@ assert.match(
 assert.match(
   workoutModelsTab,
   /Biblioteca de Treinos/,
+  "models screen should use the approved kicker"
+);
+
+assert.match(
+  workoutModelsTab,
+  /Seu espaço de treinos/,
   "models screen should use the approved title"
+);
+
+assert.match(
+  workoutModelsTab,
+  /Crie, edite e duplique treinos para aplicar nos alunos\./,
+  "models screen should use the approved supporting text"
 );
 
 assert.match(

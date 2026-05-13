@@ -207,9 +207,9 @@ export function WorkoutModelsTab({ theme }) {
   return (
     <div className="app-page workout-models-page">
       <section className="app-card workout-models-hero">
-        <p className="dashboard-kicker">BIBLIOTECA DE TREINOS</p>
-        <h2 className="app-page-title">Biblioteca de Treinos</h2>
-        <p className="app-page-kicker">Crie, edite e duplique treinos prontos para aplicar nos alunos.</p>
+        <p className="dashboard-kicker">Biblioteca de Treinos</p>
+        <h2 className="app-page-title">Seu espaço de treinos</h2>
+        <p className="app-page-kicker">Crie, edite e duplique treinos para aplicar nos alunos.</p>
       </section>
 
       <section className="app-card workout-model-editor">
