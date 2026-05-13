@@ -40,14 +40,15 @@ export async function saveAttendanceRecord({ userId, classKey, status, activity,
   await setDoc(recordRef, data, { merge: true });
 }
 
-export async function saveSessionNotes({ userId, classKey, sessionNote, exerciseNotes, exerciseLogs }) {
+export async function saveSessionNotes({ userId, classKey, sessionNote, exerciseNotes, exerciseLogs, sessionCheckout }) {
   const recordKey = normalizeClassKey(classKey);
 
   await setDoc(getRecordRef(userId, recordKey), {
     key: recordKey,
     sessionNote: sessionNote || null,
     exerciseNotes: exerciseNotes || {},
-    exerciseLogs: exerciseLogs || {}
+    exerciseLogs: exerciseLogs || {},
+    sessionCheckout: sessionCheckout || {}
   }, { merge: true });
 }
 
@@ -74,13 +75,14 @@ export function applyAttendanceRecordUpdate(records, { classKey, status, activit
   return [...records, nextRecord];
 }
 
-export function applySessionNotesUpdate(records, { classKey, sessionNote, exerciseNotes, exerciseLogs }) {
+export function applySessionNotesUpdate(records, { classKey, sessionNote, exerciseNotes, exerciseLogs, sessionCheckout }) {
   const existing = records.findIndex(record => record.key === classKey);
   const nextRecord = {
     ...(existing >= 0 ? records[existing] : { key: classKey, status: null, activity: null, customPrice: null }),
     sessionNote: sessionNote || null,
     exerciseNotes: exerciseNotes || {},
-    exerciseLogs: exerciseLogs || {}
+    exerciseLogs: exerciseLogs || {},
+    sessionCheckout: sessionCheckout || {}
   };
 
   if (existing >= 0) {

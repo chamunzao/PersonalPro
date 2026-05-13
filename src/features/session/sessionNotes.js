@@ -1,4 +1,5 @@
 import { applySessionNotesUpdate } from "../../services/recordsService.js";
+import { normalizeSessionCheckout } from "./sessionCheckoutUtils.js";
 
 export async function persistSessionNotesDraft({
   userId,
@@ -10,19 +11,22 @@ export async function persistSessionNotesDraft({
   const sessionNote = draft.sessionNote || "";
   const exerciseNotes = draft.exerciseNotes || {};
   const exerciseLogs = draft.exerciseLogs || {};
+  const sessionCheckout = normalizeSessionCheckout(draft.sessionCheckout);
 
   await saveSessionNotesRecord({
     userId,
     classKey,
     sessionNote,
     exerciseNotes,
-    exerciseLogs
+    exerciseLogs,
+    sessionCheckout
   });
 
   setRecords(prev => applySessionNotesUpdate(prev, {
     classKey,
     sessionNote,
     exerciseNotes,
-    exerciseLogs
+    exerciseLogs,
+    sessionCheckout
   }));
 }

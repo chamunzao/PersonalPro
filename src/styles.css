@@ -2298,6 +2298,56 @@ body .app-main-session .session-action-danger {
   border-top: 0;
 }
 
+.session-checkout-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 12px 12px;
+  background: #243B5C;
+}
+
+.session-checkout-field {
+  min-width: 0;
+}
+
+.session-checkout-field span {
+  display: block;
+  margin-bottom: 5px;
+  color: #C2CAD7;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.session-checkout-field input,
+.session-checkout-field select {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  border: 0.5px solid #4A6388;
+  border-radius: 10px;
+  background: #142339;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.session-checkout-field input::placeholder {
+  color: #8796AC;
+}
+
+.session-checkout-field input:focus,
+.session-checkout-field select:focus {
+  border-color: #F2CF7C;
+}
+
+@media (max-width: 720px) {
+  .session-checkout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .session-student-summary {
   margin: 12px;
   padding: 12px;

@@ -106,6 +106,8 @@ Objetivo:
 - Criar fechamento rapido depois da aula.
 - Padronizar o que deve ser registrado.
 
+Status: implementado para validacao.
+
 Como implementar:
 
 - Adicionar campos curtos:
@@ -119,6 +121,29 @@ Aceite:
 
 - O personal consegue fechar a aula em menos de um minuto.
 - As notas salvas alimentam a proxima aula.
+
+Implementado:
+
+- Criado helper `src/features/session/sessionCheckoutUtils.js`.
+- Criado teste `tests/sessionCheckout.test.mjs`.
+- O bloco `Depois da aula` agora possui campos de check-out:
+  - esforco;
+  - dor ou limitacao;
+  - evolucao de carga;
+  - proxima acao.
+- O check-out e salvo junto com as notas da aula em `records`.
+- Campos de check-out contam como alteracao da aula e liberam o fluxo de salvar/gerar nova versao.
+- Quando uma nova versao de treino e criada, o resumo da versao inclui tambem o check-out preenchido.
+
+Validacao executada:
+
+- `node tests\sessionCheckout.test.mjs`
+- `node tests\sessionNotes.test.mjs`
+- `node tests\sessionClassFlow.test.mjs`
+- `node tests\sessionStudentSummary.test.mjs`
+- `node tests\sessionWorkouts.test.mjs`
+- `node tests\recordsService.test.mjs`
+- `npm run build`
 
 ## Bloco 4 - Perfil do aluno como hub presencial
 

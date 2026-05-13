@@ -27,6 +27,7 @@ import { loadSessionWorkoutEntries } from './sessionWorkouts';
 import { buildSessionStudentSummary } from './sessionStudentSummary';
 import { getSessionFlowSections } from './sessionClassFlow';
 import { persistSessionNotesDraft } from './sessionNotes';
+import { buildSessionCheckoutSummary, hasSessionCheckoutChanges } from './sessionCheckoutUtils';
 
 function IconCheck() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -57,6 +58,7 @@ function getActiveWorkout(workoutPlans) {
 function hasSessionChanges(draft) {
   if (draft?.sessionNote?.trim()) return true;
   if (hasExerciseLogChanges(draft)) return true;
+  if (hasSessionCheckoutChanges(draft?.sessionCheckout)) return true;
   return Object.values(draft?.exerciseNotes || {}).some(note => String(note || "").trim());
 }
 
@@ -111,7 +113,9 @@ function buildWorkoutVersionFromSession(activeWorkout, draft, selectedDateBR) {
         notes: `${previousNotes}Aula ${selectedDateBR}: ${sessionChange}`
       };
     }),
-    sessionSummary: draft?.sessionNote || ""
+    sessionSummary: [draft?.sessionNote || "", buildSessionCheckoutSummary(draft?.sessionCheckout)]
+      .filter(Boolean)
+      .join("\n\n")
   };
 }
 
@@ -302,7 +306,8 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
           next[key] = {
             sessionNote: record?.sessionNote || "",
             exerciseNotes: record?.exerciseNotes || {},
-            exerciseLogs: record?.exerciseLogs || {}
+            exerciseLogs: record?.exerciseLogs || {},
+            sessionCheckout: record?.sessionCheckout || {}
           };
         }
       });
@@ -406,7 +411,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
   function updateDraft(classKey, updater) {
     setDrafts(prev => ({
       ...prev,
-      [classKey]: updater(prev[classKey] || { sessionNote: "", exerciseNotes: {}, exerciseLogs: {} })
+      [classKey]: updater(prev[classKey] || { sessionNote: "", exerciseNotes: {}, exerciseLogs: {}, sessionCheckout: {} })
     }));
   }
 
@@ -901,6 +906,72 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                   placeholder="Notas gerais da aula, dores, substituições, percepção de esforço..."
                   className="session-note-area"
                 />
+                </div>
+
+                <div className="session-checkout-grid">
+                  <label className="session-checkout-field">
+                    <span>Esforco</span>
+                    <select
+                      value={draft.sessionCheckout?.effort || ""}
+                      onChange={(event) => updateDraft(classKey, current => ({
+                        ...current,
+                        sessionCheckout: {
+                          ...(current.sessionCheckout || {}),
+                          effort: event.target.value
+                        }
+                      }))}
+                    >
+                      <option value="">Selecionar</option>
+                      <option value="Leve">Leve</option>
+                      <option value="Moderado">Moderado</option>
+                      <option value="Intenso">Intenso</option>
+                    </select>
+                  </label>
+                  <label className="session-checkout-field">
+                    <span>Dor ou limitacao</span>
+                    <input
+                      type="text"
+                      value={draft.sessionCheckout?.pain || ""}
+                      onChange={(event) => updateDraft(classKey, current => ({
+                        ...current,
+                        sessionCheckout: {
+                          ...(current.sessionCheckout || {}),
+                          pain: event.target.value
+                        }
+                      }))}
+                      placeholder="Ex: sem dor, ombro leve..."
+                    />
+                  </label>
+                  <label className="session-checkout-field">
+                    <span>Evolucao de carga</span>
+                    <input
+                      type="text"
+                      value={draft.sessionCheckout?.loadProgress || ""}
+                      onChange={(event) => updateDraft(classKey, current => ({
+                        ...current,
+                        sessionCheckout: {
+                          ...(current.sessionCheckout || {}),
+                          loadProgress: event.target.value
+                        }
+                      }))}
+                      placeholder="Ex: subiu carga no leg press"
+                    />
+                  </label>
+                  <label className="session-checkout-field">
+                    <span>Proxima acao</span>
+                    <input
+                      type="text"
+                      value={draft.sessionCheckout?.nextAction || ""}
+                      onChange={(event) => updateDraft(classKey, current => ({
+                        ...current,
+                        sessionCheckout: {
+                          ...(current.sessionCheckout || {}),
+                          nextAction: event.target.value
+                        }
+                      }))}
+                      placeholder="Ex: revisar posterior"
+                    />
+                  </label>
                 </div>
 
                 <div className="session-save-row" style={{ gridTemplateColumns: activeWorkout ? undefined : "1fr" }}>
