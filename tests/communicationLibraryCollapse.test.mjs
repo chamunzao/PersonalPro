@@ -32,3 +32,21 @@ assert.match(
   /onFocus=\{\(\) => setIsTemplateSearchFocused\(true\)\}/,
   "message search should expand the list on focus"
 );
+
+assert.doesNotMatch(
+  communicationTab,
+  /\{isTemplateLibraryExpanded && \(\s*<form className="communication-template-form"/,
+  "message creation form should be available without expanding existing templates"
+);
+
+assert.match(
+  communicationTab,
+  /function selectTemplateForEditing\(template\)/,
+  "selecting a template should load it into the editable form"
+);
+
+assert.match(
+  communicationTab,
+  /onClick=\{\(\) => selectTemplateForEditing\(template\)\}/,
+  "template selection should open the selected message in the form below"
+);

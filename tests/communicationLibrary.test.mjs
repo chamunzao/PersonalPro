@@ -44,6 +44,15 @@ assert.equal(custom.type, "custom", "custom message templates are tagged separat
 assert.equal(custom.title, "Retorno avaliação", "custom template keeps personal title");
 assert.match(custom.id, /^custom-/, "custom template gets a generated id");
 
+assert.equal(
+  createCustomMessageTemplate({
+    title: " Confirmar treino ",
+    body: " Olá, {primeiro_nome}! "
+  }).body,
+  "Olá, {primeiro_nome}!",
+  "custom templates trim text entered from the editable form"
+);
+
 const edited = updateCustomMessageTemplate(custom, {
   title: "Retorno pós-avaliação",
   body: "Olá, {primeiro_nome}! Sua avaliação foi atualizada."

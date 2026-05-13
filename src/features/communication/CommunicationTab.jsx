@@ -149,11 +149,13 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
     }
   }
 
-  function startEditCustomTemplate(template) {
-    setEditingTemplateId(template.id);
+  function selectTemplateForEditing(template) {
     setSelectedTemplateId(template.id);
+    setEditingTemplateId(template.type === 'custom' ? template.id : '');
     setCustomTitle(template.title);
-    setCustomBody(template.body);
+    setCustomBody(template.type === 'custom'
+      ? template.body
+      : getMessageForTemplate({ template, student: selectedStudent, records, payments, now }));
   }
 
   function cancelEditCustomTemplate() {
@@ -214,14 +216,14 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
                 <TemplateOption
                   template={template}
                   selected={selectedTemplate?.id === template.id}
-                  onClick={() => setSelectedTemplateId(template.id)}
+                  onClick={() => selectTemplateForEditing(template)}
                 />
                 {template.type === 'custom' && (
                   <div className="communication-template-actions">
                     <button
                       type="button"
                       className="communication-template-edit"
-                      onClick={() => startEditCustomTemplate(template)}
+                      onClick={() => selectTemplateForEditing(template)}
                       aria-label={`Editar ${template.title}`}
                     >
                       Editar
@@ -241,37 +243,35 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
           </div>
         )}
 
-        {isTemplateLibraryExpanded && (
-          <form className="communication-template-form" onSubmit={addCustomTemplate}>
-            <input
-              value={customTitle}
-              onChange={(event) => setCustomTitle(event.target.value)}
-              placeholder="Nome da mensagem"
-            />
-            <textarea
-              value={customBody}
-              onChange={(event) => setCustomBody(event.target.value)}
-              placeholder="Texto. Use {primeiro_nome}, {nome}, {valor}, {proxima_aula} ou {saldo_pacote}."
-              rows={4}
-            />
-            <div className="communication-template-help">
-              <p>Use {'{primeiro_nome}'} para trocar automaticamente pelo primeiro nome do aluno selecionado.</p>
-              <p>{'{nome}'} usa o nome completo.</p>
-              <p>{'{valor}'} insere o valor previsto do plano ou aula.</p>
-              <p>{'{proxima_aula}'} mostra a próxima aula quando houver agenda.</p>
-              <p>{'{saldo_pacote}'} mostra o saldo de aulas quando disponível.</p>
-              <p>Exemplo: "Olá, {'{primeiro_nome}'}! Sua próxima aula é {'{proxima_aula}'}."</p>
-            </div>
-            <button type="submit" disabled={!customTitle.trim() || !customBody.trim()}>
-              {editingTemplateId ? 'Salvar alterações' : 'Criar mensagem'}
+        <form className="communication-template-form" onSubmit={addCustomTemplate}>
+          <input
+            value={customTitle}
+            onChange={(event) => setCustomTitle(event.target.value)}
+            placeholder="Nome da mensagem"
+          />
+          <textarea
+            value={customBody}
+            onChange={(event) => setCustomBody(event.target.value)}
+            placeholder="Texto. Use {primeiro_nome}, {nome}, {valor}, {proxima_aula} ou {saldo_pacote}."
+            rows={4}
+          />
+          <div className="communication-template-help">
+            <p>Use {'{primeiro_nome}'} para trocar automaticamente pelo primeiro nome do aluno selecionado.</p>
+            <p>{'{nome}'} usa o nome completo.</p>
+            <p>{'{valor}'} insere o valor previsto do plano ou aula.</p>
+            <p>{'{proxima_aula}'} mostra a próxima aula quando houver agenda.</p>
+            <p>{'{saldo_pacote}'} mostra o saldo de aulas quando disponível.</p>
+            <p>Exemplo: "Olá, {'{primeiro_nome}'}! Sua próxima aula é {'{proxima_aula}'}."</p>
+          </div>
+          <button type="submit" disabled={!customTitle.trim() || !customBody.trim()}>
+            {editingTemplateId ? 'Salvar alterações' : 'Criar mensagem'}
+          </button>
+          {editingTemplateId && (
+            <button type="button" className="communication-template-cancel" onClick={cancelEditCustomTemplate}>
+              Cancelar edição
             </button>
-            {editingTemplateId && (
-              <button type="button" className="communication-template-cancel" onClick={cancelEditCustomTemplate}>
-                Cancelar edição
-              </button>
-            )}
-          </form>
-        )}
+          )}
+        </form>
       </section>
 
       {students.length === 0 ? (
