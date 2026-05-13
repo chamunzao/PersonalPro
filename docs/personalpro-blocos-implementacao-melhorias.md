@@ -283,6 +283,8 @@ Objetivo:
 
 - Concentrar o que precisa ser resolvido.
 
+Status: implementado para validacao.
+
 Como implementar:
 
 - Criar pendencias por categoria:
@@ -296,6 +298,33 @@ Como implementar:
 Aceite:
 
 - A central de pendencias ajuda a decidir o proximo passo, nao apenas informa problemas.
+
+Implementado:
+
+- Criado helper `src/features/alerts/alertActions.js`.
+- Criado teste `tests/alertActions.test.mjs`.
+- A Central de Acoes continua usando alertas calculados como fonte principal.
+- Foi adicionada uma camada de decisoes do usuario em `users/{userId}/alertActions`.
+- Cada pendencia agora pode ser:
+  - resolvida;
+  - adiada por 3 dias;
+  - ignorada no mes atual.
+- Pendencias resolvidas, adiadas ainda vigentes ou ignoradas no mes deixam de aparecer imediatamente.
+- As acoes existentes de WhatsApp, marcar pago, presente e falta continuam disponiveis.
+
+Validacao executada:
+
+- `node tests\alertActions.test.mjs`
+- `node tests\replacementActions.test.mjs`
+- `node tests\workoutModels.test.mjs`
+- `node tests\recordsService.test.mjs`
+- `node tests\sessionNotes.test.mjs`
+- `node tests\sessionClassFlow.test.mjs`
+- `node tests\sessionStudentSummary.test.mjs`
+- `node tests\studentProfileSummary.test.mjs`
+- `node tests\sessionCheckout.test.mjs`
+- `node tests\sessionWorkouts.test.mjs`
+- `npm run build`
 
 ## Bloco 8 - Relatorios de decisao
 

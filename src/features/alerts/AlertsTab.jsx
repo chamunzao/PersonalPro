@@ -1,11 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../AuthContext';
-import { db, doc, setDoc } from '../../firebase';
+import { db, doc, setDoc, collection, getDocs } from '../../firebase';
 import { formatDate, formatDateISO } from '../../lib/dates';
 import { formatCurrency } from '../../lib/money';
 import { updateAttendanceRecord } from '../attendance/attendanceActions';
 import { calculateBillingStatus } from '../billing/billingCalculations';
 import { getClassesForDate } from '../schedule/scheduleCalculations';
+import {
+  buildAlertActionRecord,
+  filterActionableAlerts,
+  getDefaultSnoozeDate
+} from './alertActions';
 import { calculateAlerts } from './alertsCalculations';
 
 function openWhatsAppMessage(phone, message) {
@@ -83,12 +88,14 @@ function ActionButton({ children, onClick, disabled, tone = 'neutral', theme }) 
 function AlertsTab({ students, records, setRecords, payments, setPayments, scheduleOverrides, loadingData, theme }) {
   const { user } = useAuth();
   const [savingKey, setSavingKey] = useState(null);
-  const alerts = calculateAlerts({
+  const [alertActions, setAlertActions] = useState([]);
+  const calculatedAlerts = calculateAlerts({
     students,
     records,
     payments,
     getClassesForDate: (dateISO) => getClassesForDate(dateISO, students, scheduleOverrides)
   });
+  const alerts = filterActionableAlerts(calculatedAlerts, alertActions);
   const counts = alerts.reduce((acc, alert) => {
     acc[alert.severity] = (acc[alert.severity] || 0) + 1;
     return acc;
@@ -99,6 +106,50 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
     warning: { background: '#fef3c7', color: '#d97706', border: '#fde68a', label: 'Atenção' },
     info: { background: 'rgba(242, 207, 124, 0.14)', color: '#F2CF7C', border: 'rgba(242, 207, 124, 0.35)', label: 'Hoje' }
   };
+
+  useEffect(() => {
+    async function loadAlertActions() {
+      if (!user) return;
+      try {
+        const snap = await getDocs(collection(db, `users/${user.uid}/alertActions`));
+        setAlertActions(snap.docs.map(item => ({ id: item.id, ...item.data() })));
+      } catch (error) {
+        console.error('Error loading alert actions:', error);
+      }
+    }
+
+    loadAlertActions();
+  }, [user]);
+
+  async function saveAlertAction(alert, status, patch = {}) {
+    if (!user || !alert?.id) return;
+    const actionId = encodeURIComponent(alert.id);
+    const action = buildAlertActionRecord({
+      alertId: alert.id,
+      status,
+      ...patch
+    });
+
+    setSavingKey(`${alert.id}-${status}`);
+    try {
+      await setDoc(doc(db, `users/${user.uid}/alertActions/${actionId}`), action, { merge: true });
+      setAlertActions(prev => {
+        const nextAction = { id: actionId, ...action };
+        const existing = prev.findIndex(item => item.alertId === alert.id);
+        if (existing >= 0) {
+          const next = [...prev];
+          next[existing] = { ...next[existing], ...nextAction };
+          return next;
+        }
+        return [...prev, nextAction];
+      });
+    } catch (error) {
+      console.error('Error saving alert action:', error);
+      alert('Erro ao atualizar pendencia');
+    } finally {
+      setSavingKey(null);
+    }
+  }
 
   async function savePaymentFromAlert(alert, student, billingStatus) {
     if (!user || !student) return;
@@ -208,6 +259,9 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
             const isSavingPayment = savingKey === `${alert.id}-payment`;
             const isSavingPresent = savingKey === `${alert.id}-present`;
             const isSavingAbsent = savingKey === `${alert.id}-absent`;
+            const isResolving = savingKey === `${alert.id}-resolved`;
+            const isSnoozing = savingKey === `${alert.id}-snoozed`;
+            const isIgnoring = savingKey === `${alert.id}-ignored`;
 
             return (
               <div key={alert.id} className={`alert-card alert-card-${alert.severity}`} style={{
@@ -276,6 +330,31 @@ function AlertsTab({ students, records, setRecords, payments, setPayments, sched
                       </ActionButton>
                     </>
                   )}
+
+                  <ActionButton
+                    theme={theme}
+                    tone="success"
+                    disabled={isResolving}
+                    onClick={() => saveAlertAction(alert, 'resolved')}
+                  >
+                    {isResolving ? 'Resolvendo...' : 'Resolver'}
+                  </ActionButton>
+                  <ActionButton
+                    theme={theme}
+                    tone="neutral"
+                    disabled={isSnoozing}
+                    onClick={() => saveAlertAction(alert, 'snoozed', { snoozedUntil: getDefaultSnoozeDate() })}
+                  >
+                    Adiar 3 dias
+                  </ActionButton>
+                  <ActionButton
+                    theme={theme}
+                    tone="neutral"
+                    disabled={isIgnoring}
+                    onClick={() => saveAlertAction(alert, 'ignored')}
+                  >
+                    Ignorar mes
+                  </ActionButton>
                 </div>
               </div>
             );
