@@ -2342,8 +2342,140 @@ body .app-main-session .session-action-danger {
   border-color: #F2CF7C;
 }
 
+.replacement-flow {
+  margin: 0;
+  padding: 12px;
+  background: #1B2D49;
+  border-top: 0.5px solid #4A6388;
+}
+
+.replacement-flow-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.replacement-flow-header p,
+.replacement-flow-header small {
+  display: block;
+  margin: 0;
+}
+
+.replacement-flow-header p {
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.replacement-flow-header small {
+  margin-top: 3px;
+  color: #C2CAD7;
+  font-size: 11px;
+}
+
+.replacement-flow-header button {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #C2CAD7;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.replacement-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.replacement-flow-grid label span {
+  display: block;
+  margin-bottom: 5px;
+  color: #C2CAD7;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.replacement-flow-grid input {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  border: 0.5px solid #4A6388;
+  border-radius: 10px;
+  background: #142339;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.replacement-flow-grid input::placeholder {
+  color: #8796AC;
+}
+
+.replacement-flow-message {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 0.5px solid rgba(220, 231, 255, 0.12);
+  border-radius: 10px;
+}
+
+.replacement-flow-message p,
+.replacement-flow-message small {
+  display: block;
+  margin: 0;
+}
+
+.replacement-flow-message p {
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.replacement-flow-message small {
+  margin-top: 5px;
+  color: #DCE7FF;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.replacement-flow-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.replacement-flow-actions button {
+  min-height: 38px;
+  padding: 8px;
+  border: 0;
+  border-radius: 12px;
+  background: #243B5C;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.replacement-flow-actions button:disabled {
+  color: #8796AC;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 @media (max-width: 720px) {
   .session-checkout-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .replacement-flow-grid,
+  .replacement-flow-actions {
     grid-template-columns: 1fr;
   }
 }

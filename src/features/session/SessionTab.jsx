@@ -20,6 +20,7 @@ import {
   getBillingStatusLabel
 } from '../billing/billingCalculations';
 import { getClassesForDate } from '../schedule/scheduleCalculations';
+import { getScheduleItemsForStudent } from '../schedule/scheduleCalculations';
 import { updateAttendanceRecord } from '../attendance/attendanceActions';
 import { saveSessionNotes as saveSessionNotesRecord } from '../../services/recordsService';
 import { DEMO_EMAIL, getDemoWorkoutPlans } from '../../services/demoData';
@@ -28,6 +29,8 @@ import { buildSessionStudentSummary } from './sessionStudentSummary';
 import { getSessionFlowSections } from './sessionClassFlow';
 import { persistSessionNotesDraft } from './sessionNotes';
 import { buildSessionCheckoutSummary, hasSessionCheckoutChanges } from './sessionCheckoutUtils';
+import { ReplacementFlow } from '../schedule/ReplacementFlow';
+import { buildReplacementOverride } from '../schedule/replacementActions';
 
 function IconCheck() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -177,7 +180,7 @@ function SessionFlowSection({ section, children }) {
   );
 }
 
-function SessionTab({ students, records, setRecords, payments, scheduleOverrides, loadingData, theme }) {
+function SessionTab({ students, records, setRecords, payments, scheduleOverrides, setScheduleOverrides = () => {}, loadingData, theme }) {
   const { user } = useAuth();
   const [selectedDateISO, setSelectedDateISO] = useState(formatDateISO(new Date()));
   const [selectedTime, setSelectedTime] = useState("");
@@ -187,6 +190,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
   const [workoutEditForms, setWorkoutEditForms] = useState({});
   const [workoutLoadErrors, setWorkoutLoadErrors] = useState({});
   const [anamnesisByStudent, setAnamnesisByStudent] = useState({});
+  const [replacementFlow, setReplacementFlow] = useState(null);
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
   const [savingKey, setSavingKey] = useState(null);
 
@@ -348,17 +352,81 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     }
   }
 
-  async function markAbsent(classKey) {
+  async function markAbsent(classKey, cls) {
     if (!user) return;
     setSavingKey(classKey);
     try {
       await updateAttendanceRecord({ user, classKey, status: "absent", setRecords });
+      if (cls) {
+        const student = students.find(item => item.id === cls.studentId);
+        setReplacementFlow({
+          classKey,
+          cls,
+          student,
+          missedClass: {
+            date: selectedDateBR,
+            time: cls.time
+          }
+        });
+      }
     } catch (error) {
       console.error("Error marking attendance:", error);
       alert("Erro ao marcar falta");
     } finally {
       setSavingKey(null);
     }
+  }
+
+  async function saveAbsenceReason(classKey, reason) {
+    if (!user) return;
+    await updateAttendanceRecord({
+      user,
+      classKey,
+      status: "absent",
+      activity: String(reason || "").trim(),
+      setRecords
+    });
+  }
+
+  async function saveReplacement({ student, cls, dateISO, time, note, reason }) {
+    if (!user || !student) return;
+    if (reason) {
+      await saveAbsenceReason(`${selectedDateBR}_${student.id}_${cls.time}`, reason);
+    }
+
+    const targetOverride = scheduleOverrides.find(item => item.date === dateISO && item.studentId === student.id);
+    const targetItems = getScheduleItemsForStudent(dateISO, student, targetOverride);
+    if (targetItems.some(item => item.time === time)) {
+      alert("Este aluno ja tem aula nesse horario.");
+      return;
+    }
+
+    const { overrideId, payload } = buildReplacementOverride({
+      dateISO,
+      studentId: student.id,
+      existingItems: targetItems,
+      replacementTime: time,
+      note,
+      pricePerClass: cls.pricePerClass,
+      locationId: cls.locationId || student.defaultLocationId || ""
+    });
+
+    await setDoc(doc(db, `users/${user.uid}/scheduleOverrides/${overrideId}`), payload);
+    setScheduleOverrides(prev => {
+      const nextOverride = {
+        key: overrideId,
+        date: dateISO,
+        studentId: student.id,
+        ...payload
+      };
+      const existing = prev.findIndex(item => item.key === overrideId);
+      if (existing >= 0) {
+        const next = [...prev];
+        next[existing] = nextOverride;
+        return next;
+      }
+      return [...prev, nextOverride];
+    });
   }
 
   async function createWorkoutVersionFromClass(classKey, studentId, activeWorkout) {
@@ -644,7 +712,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                       <IconCheck /> {record?.status === "present" ? "Presente" : "Marcar"}
                     </button>
                     <button
-                      onClick={() => markAbsent(classKey)}
+                      onClick={() => markAbsent(classKey, cls)}
                       disabled={saving}
                       className="session-action-danger"
                       style={{ opacity: saving ? 0.65 : 1, background: record?.status === "absent" ? "#fee2e2" : "white" }}
@@ -656,6 +724,21 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
 
                 <SessionFlowSection section={beforeSection}>
                   <SessionStudentSummaryPanel summary={studentSummary} />
+                  {replacementFlow?.classKey === classKey && (
+                    <ReplacementFlow
+                      student={replacementFlow.student}
+                      missedClass={replacementFlow.missedClass}
+                      selectedDate={selectedDate}
+                      theme={theme}
+                      onClose={() => setReplacementFlow(null)}
+                      onSaveReason={(reason) => saveAbsenceReason(classKey, reason)}
+                      onSaveReplacement={(payload) => saveReplacement({
+                        student: replacementFlow.student,
+                        cls: replacementFlow.cls,
+                        ...payload
+                      })}
+                    />
+                  )}
                 </SessionFlowSection>
 
                 <SessionFlowSection section={duringSection}>

@@ -200,6 +200,8 @@ Objetivo:
 
 - Guiar o personal quando o aluno falta ou precisa remarcar.
 
+Status: implementado para validacao.
+
 Como implementar:
 
 - Adicionar motivo da falta.
@@ -209,6 +211,31 @@ Como implementar:
 Aceite:
 
 - Falta nao vira apenas status; vira fluxo operacional.
+
+Implementado:
+
+- Criado helper `src/features/schedule/replacementActions.js`.
+- Criado teste `tests/replacementActions.test.mjs`.
+- Criado painel `src/features/schedule/ReplacementFlow.jsx`.
+- Ao marcar falta na aba `Aula`, a falta continua sendo registrada rapidamente.
+- Depois da falta, a tela oferece:
+  - registrar motivo da falta;
+  - criar reposicao com data e horario;
+  - salvar reposicao como `scheduleOverride` do tipo `replacement`;
+  - abrir mensagem pronta no WhatsApp quando houver telefone.
+- A reposicao criada atualiza o estado local de agenda e passa a aparecer nas telas que usam `scheduleOverrides`.
+
+Validacao executada:
+
+- `node tests\replacementActions.test.mjs`
+- `node tests\sessionClassFlow.test.mjs`
+- `node tests\sessionNotes.test.mjs`
+- `node tests\recordsService.test.mjs`
+- `node tests\sessionStudentSummary.test.mjs`
+- `node tests\sessionCheckout.test.mjs`
+- `node tests\studentProfileSummary.test.mjs`
+- `node tests\sessionWorkouts.test.mjs`
+- `npm run build`
 
 ## Bloco 6 - Modelos de treino editaveis
 
