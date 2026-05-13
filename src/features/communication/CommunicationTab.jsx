@@ -81,6 +81,8 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
   const [customTemplates, setCustomTemplates] = useState(loadCustomTemplates);
   const [selectedTemplateId, setSelectedTemplateId] = useState(standardTemplates[0]?.id || '');
   const [studentSearch, setStudentSearch] = useState('');
+  const [isStudentListExpanded, setIsStudentListExpanded] = useState(false);
+  const [isStudentSearchFocused, setIsStudentSearchFocused] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(students[0]?.id || '');
   const [customTitle, setCustomTitle] = useState('');
   const [customBody, setCustomBody] = useState('');
@@ -98,6 +100,7 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
   const shouldShowTemplateList = isTemplateLibraryExpanded || isTemplateSearchFocused || templateSearch.trim();
   const selectedTemplate = templates.find(template => template.id === selectedTemplateId) || templates[0];
   const filteredStudents = filterStudentsForCommunication(students, studentSearch);
+  const shouldShowStudentList = isStudentListExpanded || isStudentSearchFocused || studentSearch.trim();
   const selectedStudent = students.find(student => student.id === selectedStudentId) || filteredStudents[0] || students[0] || null;
   const selectedPayment = selectedStudent ? getMonthPayment(selectedStudent, payments, monthKey) : null;
   const hasSelectedPhone = !!String(selectedStudent?.phone || '').replace(/\D/g, '');
@@ -156,6 +159,16 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
     setCustomBody(template.type === 'custom'
       ? template.body
       : getMessageForTemplate({ template, student: selectedStudent, records, payments, now }));
+    setIsTemplateLibraryExpanded(false);
+    setIsTemplateSearchFocused(false);
+    setTemplateSearch('');
+  }
+
+  function selectStudent(studentId) {
+    setSelectedStudentId(studentId);
+    setIsStudentListExpanded(false);
+    setIsStudentSearchFocused(false);
+    setStudentSearch('');
   }
 
   function cancelEditCustomTemplate() {
@@ -285,36 +298,49 @@ function CommunicationTab({ students, records, payments, loadingData, theme }) {
               <p className="dashboard-kicker">ALUNO</p>
               <h3>Selecionar destinatário</h3>
             </div>
-            {selectedStudent && (
-              <span className={`communication-payment-pill ${selectedPayment ? 'communication-paid' : 'communication-pending'}`}>
-                {selectedPayment ? 'Pago' : 'Pendente'}
-              </span>
-            )}
+            <button
+              type="button"
+              className="communication-library-toggle"
+              onClick={() => setIsStudentListExpanded(current => !current)}
+            >
+              {isStudentListExpanded ? 'Recolher' : 'Expandir'}
+            </button>
+          </div>
+
+          <div className="communication-library-summary">
+            <p>
+              Aluno selecionado: <strong>{selectedStudent?.name || 'nenhum'}</strong>
+              {selectedStudent && ` · ${selectedPayment ? 'Pago' : 'Pendente'} · ${hasSelectedPhone ? selectedStudent.phone : 'Sem WhatsApp'}`}
+            </p>
           </div>
 
           <input
             className="communication-student-search"
             value={studentSearch}
             onChange={(event) => setStudentSearch(event.target.value)}
+            onFocus={() => setIsStudentSearchFocused(true)}
+            onBlur={() => setIsStudentSearchFocused(false)}
             placeholder="Pesquisar aluno"
           />
 
-          <div className="communication-student-name-list">
-            {filteredStudents.map(student => {
-              const hasPhone = !!String(student.phone || '').replace(/\D/g, '');
-              return (
-                <button
-                  type="button"
-                  key={student.id}
-                  className={`communication-student-name ${selectedStudent?.id === student.id ? 'communication-student-selected' : ''}`}
-                  onClick={() => setSelectedStudentId(student.id)}
-                >
-                  <span>{student.name}</span>
-                  <small>{hasPhone ? student.phone : 'Sem WhatsApp'}</small>
-                </button>
-              );
-            })}
-          </div>
+          {shouldShowStudentList && (
+            <div className="communication-student-name-list" onMouseDown={(event) => event.preventDefault()}>
+              {filteredStudents.map(student => {
+                const hasPhone = !!String(student.phone || '').replace(/\D/g, '');
+                return (
+                  <button
+                    type="button"
+                    key={student.id}
+                    className={`communication-student-name ${selectedStudent?.id === student.id ? 'communication-student-selected' : ''}`}
+                    onClick={() => selectStudent(student.id)}
+                  >
+                    <span>{student.name}</span>
+                    <small>{hasPhone ? student.phone : 'Sem WhatsApp'}</small>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <div className="communication-preview-card">
             <div>

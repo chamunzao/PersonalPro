@@ -50,3 +50,15 @@ assert.match(
   /onClick=\{\(\) => selectTemplateForEditing\(template\)\}/,
   "template selection should open the selected message in the form below"
 );
+
+assert.match(
+  communicationTab,
+  /setIsTemplateLibraryExpanded\(false\)/,
+  "template selection should collapse the template list"
+);
+
+assert.match(
+  communicationTab,
+  /setTemplateSearch\(''\)/,
+  "template selection should clear the template search so the list closes"
+);
