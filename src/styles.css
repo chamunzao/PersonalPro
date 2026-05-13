@@ -3472,6 +3472,181 @@ body .communication-student-card > div:first-child {
   padding-bottom: 10px;
 }
 
+.communication-library-card,
+.communication-send-panel {
+  padding: 14px;
+  border: 0.5px solid #4A6388;
+  border-radius: 16px;
+  background: #243B5C;
+}
+
+.communication-section-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.communication-section-header h3 {
+  margin: 4px 0 0;
+  color: #FFFFFF;
+  font-size: 17px;
+  line-height: 1.15;
+  font-weight: 850;
+}
+
+.communication-section-header > span {
+  color: #F2CF7C;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.communication-template-list,
+.communication-student-name-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.communication-template-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.communication-template-option,
+.communication-student-name {
+  min-width: 0;
+  padding: 10px 11px;
+  border: 0.5px solid #4A6388;
+  border-radius: 12px;
+  background: #142339;
+  text-align: left;
+  cursor: pointer;
+}
+
+.communication-template-selected,
+.communication-student-selected {
+  border-color: rgba(242, 207, 124, 0.72);
+  background: rgba(242, 207, 124, 0.14);
+}
+
+.communication-template-option span,
+.communication-student-name span {
+  display: block;
+  overflow: hidden;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.communication-template-option small,
+.communication-student-name small {
+  display: block;
+  margin-top: 3px;
+  color: #C2CAD7;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.communication-template-delete {
+  padding: 0 10px;
+  border: 0.5px solid rgba(239, 68, 68, 0.35);
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.14);
+  color: #EF4444;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.communication-template-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.communication-template-form input,
+.communication-template-form textarea,
+.communication-student-search,
+.communication-preview-card textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 0.5px solid #4A6388;
+  border-radius: 12px;
+  background: #142339;
+  color: #FFFFFF;
+  font: inherit;
+}
+
+.communication-template-form input,
+.communication-student-search {
+  min-height: 42px;
+  padding: 0 11px;
+}
+
+.communication-template-form textarea,
+.communication-preview-card textarea {
+  padding: 10px 11px;
+  resize: vertical;
+}
+
+.communication-template-form button,
+.communication-send-button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: #F2CF7C;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.communication-template-form button:disabled,
+.communication-send-button:disabled {
+  background: #4A6388;
+  color: #C2CAD7;
+  cursor: not-allowed;
+}
+
+.communication-student-search {
+  margin-bottom: 10px;
+}
+
+.communication-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 0.5px solid #4A6388;
+  border-radius: 14px;
+  background: #142339;
+}
+
+.communication-preview-card p {
+  margin: 0 0 3px;
+  color: #C2CAD7;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.communication-preview-card strong {
+  color: #FFFFFF;
+  font-size: 14px;
+}
+
+.communication-send-warning {
+  color: #EF4444;
+  font-size: 12px;
+}
+
 .communication-paid,
 .reports-paid {
   background: rgba(242, 207, 124, 0.16) !important;

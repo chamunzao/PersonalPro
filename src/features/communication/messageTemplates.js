@@ -3,6 +3,54 @@ import { formatDate, jsDayToIndex } from "../../lib/dates.js";
 import { formatCurrency } from "../../lib/money.js";
 import { calculateAdvanceCreditStatus, calculateBillingStatus } from "../billing/billingCalculations.js";
 
+const STANDARD_TEMPLATE_DEFINITIONS = [
+  {
+    id: "weeklyConfirmation",
+    title: "Confirmar semana",
+    description: "Envia horarios fixos da semana"
+  },
+  {
+    id: "nextClassConfirmation",
+    title: "Confirmar proxima aula",
+    description: "Usa o proximo horario fixo do aluno"
+  },
+  {
+    id: "paymentReminder",
+    title: "Cobrar pagamento",
+    description: "Lembrete de pendencia ou recebido"
+  },
+  {
+    id: "packageEnding",
+    title: "Pacote acabando",
+    description: "Mensagem para renovacao"
+  },
+  {
+    id: "absenceReplacement",
+    title: "Falta e reposicao",
+    description: "Combina nova data"
+  },
+  {
+    id: "postClass",
+    title: "Pos-aula",
+    description: "Fecha a aula pelo WhatsApp"
+  },
+  {
+    id: "weeklyCheckIn",
+    title: "Check-in semanal",
+    description: "Pergunta sobre dores, energia e rotina"
+  },
+  {
+    id: "workoutReminder",
+    title: "Enviar treino",
+    description: "Reforca acompanhamento do treino atual"
+  },
+  {
+    id: "inactiveStudent",
+    title: "Aluno inativo",
+    description: "Convida para retomar a rotina"
+  }
+];
+
 function getFirstName(student) {
   const name = String(student?.name || "").trim();
   return name.split(" ")[0] || "aluno";
@@ -32,6 +80,13 @@ function getMonthPayment(student, payments, monthKey) {
 
 function getMonthKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function normalizeText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 function formatClassSchedule(nextClass) {
@@ -144,6 +199,49 @@ export function buildCommunicationMessages({ student, records = [], payments = [
     weeklyCheckIn: `Ola, ${getFirstName(student)}! Check-in rapido da semana: como voce esta se sentindo com os treinos, dores, energia e rotina? Me responde por aqui para eu ajustar o acompanhamento.`,
     workoutReminder: `Ola, ${getFirstName(student)}! Passando para reforcar seu treino atual. Se tiver duvida em algum exercicio, me chama por aqui antes da proxima aula.`
   };
+}
+
+export function getStandardMessageTemplates() {
+  return STANDARD_TEMPLATE_DEFINITIONS.map(template => ({
+    ...template,
+    type: "standard"
+  }));
+}
+
+export function createCustomMessageTemplate({ title, body }) {
+  return {
+    id: `custom-${Date.now()}`,
+    type: "custom",
+    title: String(title || "").trim(),
+    description: "Mensagem criada pelo personal",
+    body: String(body || "").trim()
+  };
+}
+
+export function filterStudentsForCommunication(students, query) {
+  const normalizedQuery = normalizeText(query);
+  return [...students]
+    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")))
+    .filter(student => {
+      if (!normalizedQuery) return true;
+      const haystack = normalizeText(`${student.name || ""} ${student.phone || ""}`);
+      return haystack.includes(normalizedQuery);
+    });
+}
+
+export function buildTemplateMessageForStudent({ template, student, context = {} }) {
+  const firstName = getFirstName(student);
+  const fullName = String(student?.name || firstName).trim() || firstName;
+  const amount = Number(context.amount || student?.packagePrice || student?.pricePerClass || 0);
+  const replacements = {
+    nome: fullName,
+    primeiro_nome: firstName,
+    valor: formatCurrency(amount),
+    proxima_aula: context.nextClassText || "a combinar",
+    saldo_pacote: context.remainingClasses ?? "a confirmar"
+  };
+
+  return String(template?.body || "").replace(/\{(nome|primeiro_nome|valor|proxima_aula|saldo_pacote)\}/g, (_, key) => replacements[key]);
 }
 
 export { getMonthPayment, getNextClassFromSchedule, getWeeklyScheduleText };

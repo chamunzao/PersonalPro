@@ -362,9 +362,21 @@ Implementado:
 - `CommunicationTab.jsx` passou a consumir templates centralizados.
 - Foram adicionadas acoes rapidas para confirmar proxima aula, falta/reposicao, pos-aula e aluno inativo.
 - Confirmacao da proxima aula usa a proxima data e horario fixo quando a agenda do aluno esta cadastrada.
+- A tela de Comunicacao foi reorganizada para:
+  - selecionar primeiro a mensagem padrao;
+  - permitir que o personal crie mensagens padrao personalizadas;
+  - pesquisar e selecionar um aluno em lista simples;
+  - mostrar uma previa antes do envio pelo WhatsApp.
+- Mensagens personalizadas suportam variaveis:
+  - `{primeiro_nome}`;
+  - `{nome}`;
+  - `{valor}`;
+  - `{proxima_aula}`;
+  - `{saldo_pacote}`.
 
 Validacao:
 
+- `node tests\communicationLibrary.test.mjs`
 - `node tests\messageTemplates.test.mjs`
 - `node tests\reportsDecision.test.mjs`
 - `node tests\reportsLayout.test.mjs`
