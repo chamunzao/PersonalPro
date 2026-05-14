@@ -115,6 +115,67 @@ export function addExecutedSet(executedWorkout, exerciseId) {
   return appendChange(nextWorkout, { type: "add-set", exerciseId });
 }
 
+function createSeriesCopy(series = {}, copyIndex = 0) {
+  return {
+    ...clone(series),
+    id: `${series.id || "series"}-copy-${copyIndex}`,
+    sourceSetIndex: null,
+    completed: false,
+    dropSteps: (series.dropSteps || []).map((step, index) => ({
+      ...step,
+      id: `${series.id || "series"}-copy-${copyIndex}-drop-${index}`,
+      completed: false
+    }))
+  };
+}
+
+export function duplicateExecutedSet(executedWorkout, exerciseId, seriesId) {
+  const nextWorkout = mapExercises(executedWorkout, exercise => {
+    if (exercise.executionId !== exerciseId) return exercise;
+    const sourceIndex = exercise.series.findIndex(series => series.id === seriesId);
+    if (sourceIndex < 0) return exercise;
+    const sourceSeries = exercise.series[sourceIndex];
+    const existingCopies = exercise.series.filter(series => String(series.id || "").startsWith(`${seriesId}-copy-`)).length;
+    const nextSeries = [...exercise.series];
+    nextSeries.splice(sourceIndex + 1, 0, createSeriesCopy(sourceSeries, existingCopies));
+    return {
+      ...exercise,
+      sets: String(nextSeries.length),
+      series: nextSeries
+    };
+  });
+
+  return appendChange(nextWorkout, { type: "duplicate-set", exerciseId, seriesId });
+}
+
+export function removeExecutedSet(executedWorkout, exerciseId, seriesId) {
+  const nextWorkout = mapExercises(executedWorkout, exercise => {
+    if (exercise.executionId !== exerciseId) return exercise;
+    const nextSeries = exercise.series.filter(series => series.id !== seriesId);
+    return {
+      ...exercise,
+      sets: String(Math.max(nextSeries.length, 1)),
+      series: nextSeries.length ? nextSeries : exercise.series
+    };
+  });
+
+  return appendChange(nextWorkout, { type: "remove-set", exerciseId, seriesId });
+}
+
+export function updateExecutedSetMeta(executedWorkout, exerciseId, seriesId, patch = {}) {
+  const nextWorkout = mapExercises(executedWorkout, exercise => {
+    if (exercise.executionId !== exerciseId) return exercise;
+    return {
+      ...exercise,
+      series: exercise.series.map(series => (
+        series.id === seriesId ? { ...series, ...patch } : series
+      ))
+    };
+  });
+
+  return appendChange(nextWorkout, { type: "update-set-meta", exerciseId, seriesId, patch });
+}
+
 export function transformSetToDropSet(executedWorkout, exerciseId, seriesId) {
   const nextWorkout = mapExercises(executedWorkout, exercise => {
     if (exercise.executionId !== exerciseId) return exercise;

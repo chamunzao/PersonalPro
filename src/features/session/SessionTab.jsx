@@ -26,12 +26,15 @@ import { saveSessionNotes as saveSessionNotesRecord } from '../../services/recor
 import { DEMO_EMAIL, getDemoWorkoutPlans } from '../../services/demoData';
 import { loadSessionWorkoutEntries } from './sessionWorkouts';
 import { buildSessionStudentSummary } from './sessionStudentSummary';
+import { buildSessionClassCenterSummary } from './sessionClassCenter';
 import { getSessionFlowSections } from './sessionClassFlow';
 import { persistSessionNotesDraft } from './sessionNotes';
 import { buildSessionCheckoutSummary, hasSessionCheckoutChanges } from './sessionCheckoutUtils';
 import { EXERCISE_QUICK_ACTIONS, appendExerciseQuickAction } from './sessionExerciseQuickActions';
 import { applySessionSetAction, buildSessionSetRowsWithAdjustment, buildSessionWorkoutRows, getCompactSetCount } from './sessionWorkoutLayout';
-import { addDropSetStep, addExecutedExercise, addExecutedSet, createBisetGroup, ensureExecutedWorkout, removeBisetGroup, removeDropSetStep, transformSetToDropSet, updateDropSetStep } from './sessionExecutedWorkout';
+import { addDropSetStep, addExecutedExercise, addExecutedSet, createBisetGroup, duplicateExecutedSet, ensureExecutedWorkout, removeBisetGroup, removeDropSetStep, removeExecutedSet, transformSetToDropSet, updateDropSetStep, updateExecutedSetMeta } from './sessionExecutedWorkout';
+import { buildSessionExecutionPanel, completeCurrentSessionSet, stepCurrentSessionSetValue, updateCurrentSessionSetValue } from './sessionExecutionPanel';
+import { hasOpenSetActionMenu, isSetMenuInteractionTarget } from './sessionSetMenus';
 import { ReplacementFlow } from '../schedule/ReplacementFlow';
 import { buildReplacementOverride } from '../schedule/replacementActions';
 
@@ -186,6 +189,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
   const { user } = useAuth();
   const [selectedDateISO, setSelectedDateISO] = useState(formatDateISO(new Date()));
   const [selectedTime, setSelectedTime] = useState("");
+  const [activeClassKey, setActiveClassKey] = useState("");
   const [workoutsByStudent, setWorkoutsByStudent] = useState({});
   const [drafts, setDrafts] = useState({});
   const [editingWorkoutKey, setEditingWorkoutKey] = useState(null);
@@ -231,6 +235,41 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     () => classes.filter(cls => cls.time === selectedTime),
     [classes, selectedTime]
   );
+
+  useEffect(() => {
+    if (classesAtTime.length === 0) {
+      setActiveClassKey("");
+      return;
+    }
+
+    const keys = classesAtTime.map(cls => getClassKey(selectedDateBR, cls.studentId, cls.time));
+    if (!keys.includes(activeClassKey)) {
+      setActiveClassKey(keys[0]);
+    }
+  }, [activeClassKey, classesAtTime, selectedDateBR]);
+
+  useEffect(() => {
+    if (!hasOpenSetActionMenu(setActionMenus)) return undefined;
+
+    function closeMenusOnOutsideClick(event) {
+      if (isSetMenuInteractionTarget(event.target)) return;
+      setSetActionMenus({});
+    }
+
+    function closeMenusOnEscape(event) {
+      if (event.key === "Escape") {
+        setSetActionMenus({});
+      }
+    }
+
+    document.addEventListener("pointerdown", closeMenusOnOutsideClick);
+    document.addEventListener("keydown", closeMenusOnEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeMenusOnOutsideClick);
+      document.removeEventListener("keydown", closeMenusOnEscape);
+    };
+  }, [setActionMenus]);
 
   useEffect(() => {
     const loadWorkouts = async () => {
@@ -546,7 +585,57 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
       if (actionId === "add-set") return addExecutedSet(executedWorkout, exerciseId);
       if (actionId === "drop-set") return transformSetToDropSet(executedWorkout, exerciseId, seriesId);
       if (actionId === "add-drop-step") return addDropSetStep(executedWorkout, exerciseId, seriesId);
+      if (actionId === "duplicate-set") return duplicateExecutedSet(executedWorkout, exerciseId, seriesId);
+      if (actionId === "warmup") return updateExecutedSetMeta(executedWorkout, exerciseId, seriesId, { type: "warmup" });
       return executedWorkout;
+    });
+    setSetActionMenus(prev => ({
+      ...prev,
+      [`${classKey}-${exerciseId}-${seriesId}`]: false
+    }));
+  }
+
+  function updateExecutedSetNote(classKey, activeWorkout, exerciseId, seriesId, previousNote = "") {
+    const note = window.prompt("Observacao da serie", previousNote || "");
+    if (note === null) return;
+    updateExecutedWorkout(classKey, activeWorkout, executedWorkout => updateExecutedSetMeta(executedWorkout, exerciseId, seriesId, { notes: note }));
+    setSetActionMenus(prev => ({
+      ...prev,
+      [`${classKey}-${exerciseId}-${seriesId}`]: false
+    }));
+  }
+
+  function hasSetDataForRemoval(sessionWorkout, draft, exerciseIndex, exerciseId, seriesId) {
+    const exercise = (sessionWorkout?.exercises || [])[exerciseIndex] || {};
+    const series = (exercise.series || []).find(item => item.id === seriesId);
+    const setLog = draft.exerciseLogs?.[exerciseIndex]?.[seriesId] || {};
+    return Boolean(
+      setLog.completed
+      || String(setLog.repsDone || "").trim()
+      || String(setLog.weightDone || "").trim()
+      || series?.completed
+      || series?.dropSteps?.some(step => step.completed || String(step.reps || "").trim() || String(step.weight || "").trim())
+      || String(series?.notes || "").trim()
+    );
+  }
+
+  function removeExecutedSetFromClass(classKey, activeWorkout, sessionWorkout, draft, exerciseIndex, exerciseId, seriesId) {
+    if (hasSetDataForRemoval(sessionWorkout, draft, exerciseIndex, exerciseId, seriesId)) {
+      const confirmed = window.confirm("Esta serie tem dados preenchidos. Remover mesmo assim?");
+      if (!confirmed) return;
+    }
+
+    updateExecutedWorkout(classKey, activeWorkout, executedWorkout => removeExecutedSet(executedWorkout, exerciseId, seriesId));
+    updateDraft(classKey, current => {
+      const exerciseLog = { ...((current.exerciseLogs || {})[exerciseIndex] || {}) };
+      delete exerciseLog[seriesId];
+      return {
+        ...current,
+        exerciseLogs: {
+          ...(current.exerciseLogs || {}),
+          [exerciseIndex]: exerciseLog
+        }
+      };
     });
     setSetActionMenus(prev => ({
       ...prev,
@@ -814,6 +903,16 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                 ? { ...exercise, groupName: `Biset ${groupIndex + 1}` }
                 : exercise;
             });
+            const centerSummary = buildSessionClassCenterSummary({
+              workout: sessionWorkout || activeWorkout,
+              draft,
+              record,
+              studentSummary
+            });
+            const executionPanel = activeWorkout
+              ? buildSessionExecutionPanel({ workout: sessionWorkout || activeWorkout, draft })
+              : null;
+            const isActiveClass = activeClassKey === classKey;
 
             const hasNotes = record?.sessionNote || Object.keys(record?.exerciseNotes || {}).length > 0 || Object.keys(record?.exerciseLogs || {}).length > 0;
             const draftHasChanges = hasSessionChanges(draft);
@@ -827,14 +926,42 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
             const afterSection = flowSections.find(section => section.id === "after");
 
             return (
-              <div key={classKey} className={`session-student-card ${hasNotes ? "session-student-card-active" : ""}`}>
+              <div key={classKey} className={`session-student-card session-student-card-center ${hasNotes ? "session-student-card-active" : ""} ${isActiveClass ? "session-student-card-selected" : ""}`}>
                 <div className="session-student-header">
                   <div style={{ minWidth: 0 }}>
-                    <h3 className="session-student-name">{cls.studentName}</h3>
-                    <p className="session-student-meta">
-                      {cls.time} {cls.scheduleTypeLabel ? `- ${cls.scheduleTypeLabel}` : ""}
-                    </p>
+                    <div className="session-student-title-row">
+                      <div>
+                        <h3 className="session-student-name">{cls.studentName}</h3>
+                        <p className="session-student-meta">
+                          {cls.time} {cls.scheduleTypeLabel ? `- ${cls.scheduleTypeLabel}` : ""}
+                        </p>
+                      </div>
+                      <span className={`session-student-status-pill session-student-status-${centerSummary.statusLabel.toLowerCase().replace(/\s+/g, "-")}`}>
+                        {centerSummary.statusLabel}
+                      </span>
+                    </div>
                     <p className="session-student-place">{cls.location || student?.location || "Sem local"}</p>
+                    <div className="session-center-summary-grid">
+                      <div>
+                        <span>Treino</span>
+                        <strong>{centerSummary.workoutName}</strong>
+                      </div>
+                      <div>
+                        <span>Exercicio atual</span>
+                        <strong>{centerSummary.currentExerciseName}</strong>
+                      </div>
+                      <div>
+                        <span>Progresso</span>
+                        <strong>{centerSummary.progressLabel}</strong>
+                      </div>
+                    </div>
+                    {centerSummary.alerts.length > 0 && (
+                      <div className="session-center-alerts">
+                        {centerSummary.alerts.map(alert => (
+                          <span key={alert}>{alert}</span>
+                        ))}
+                      </div>
+                    )}
                     <span style={{
                       display: "inline-block",
                       marginTop: "6px",
@@ -849,25 +976,41 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                     </span>
                   </div>
                   <div className="session-student-actions">
-                    <button
-                      onClick={() => markPresent(classKey)}
-                      disabled={saving}
-                      className="session-action-primary"
-                      style={{ opacity: saving ? 0.65 : 1, background: record?.status === "present" ? "rgba(242, 207, 124, 0.14)" : theme.primary, color: record?.status === "present" ? "#F2CF7C" : "#142339" }}
-                    >
-                      <IconCheck /> {record?.status === "present" ? "Presente" : "Marcar"}
-                    </button>
-                    <button
-                      onClick={() => markAbsent(classKey, cls)}
-                      disabled={saving}
-                      className="session-action-danger"
-                      style={{ opacity: saving ? 0.65 : 1, background: record?.status === "absent" ? "#fee2e2" : "white" }}
-                    >
-                      Falta
-                    </button>
+                    {!isActiveClass && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveClassKey(classKey)}
+                        className="session-action-primary"
+                        style={{ background: theme.primary, color: "#142339" }}
+                      >
+                        Abrir
+                      </button>
+                    )}
+                    {isActiveClass && (
+                      <>
+                        <button
+                          onClick={() => markPresent(classKey)}
+                          disabled={saving}
+                          className="session-action-primary"
+                          style={{ opacity: saving ? 0.65 : 1, background: record?.status === "present" ? "rgba(242, 207, 124, 0.14)" : theme.primary, color: record?.status === "present" ? "#F2CF7C" : "#142339" }}
+                        >
+                          <IconCheck /> {record?.status === "present" ? "Presente" : "Marcar"}
+                        </button>
+                        <button
+                          onClick={() => markAbsent(classKey, cls)}
+                          disabled={saving}
+                          className="session-action-danger"
+                          style={{ opacity: saving ? 0.65 : 1, background: record?.status === "absent" ? "#fee2e2" : "white" }}
+                        >
+                          Falta
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
+                {isActiveClass && (
+                  <>
                 <SessionFlowSection section={beforeSection}>
                   <SessionStudentSummaryPanel summary={studentSummary} />
                   {replacementFlow?.classKey === classKey && (
@@ -912,6 +1055,119 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                     </div>
 
                     {!editingWorkout && <div className="session-exercise-list session-exercise-list-compact">
+                      {executionPanel && (
+                        <div className="session-current-set-panel">
+                          <div className="session-current-set-header">
+                            <div>
+                              <span>Execucao agora</span>
+                              <strong>{executionPanel.exerciseName}</strong>
+                              <small>{executionPanel.seriesTitle} · {executionPanel.exerciseProgressLabel}</small>
+                            </div>
+                            <div className="session-current-set-tools">
+                              <span>{executionPanel.workoutProgressLabel}</span>
+                              <button
+                                type="button"
+                                className="session-set-menu-button"
+                                onClick={() => toggleSetActionMenu(classKey, executionPanel.exerciseId, executionPanel.setKey)}
+                                aria-label="Acoes da serie atual"
+                              >
+                                ...
+                              </button>
+                              {setActionMenus[`${classKey}-${executionPanel.exerciseId}-${executionPanel.setKey}`] && (
+                                <div className="session-set-menu session-current-set-menu">
+                                  <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, "drop-set")}>
+                                    <strong>Adicionar drop set</strong>
+                                    <small>Somente nesta serie</small>
+                                  </button>
+                                  <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, "duplicate-set")}>
+                                    <strong>Duplicar serie</strong>
+                                    <small>Copia o padrao desta serie</small>
+                                  </button>
+                                  <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, "warmup")}>
+                                    <strong>Marcar aquecimento</strong>
+                                    <small>Mantem os dados da serie</small>
+                                  </button>
+                                  <button type="button" onClick={() => updateExecutedSetNote(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, "")}>
+                                    <strong>Adicionar observacao</strong>
+                                    <small>Nota rapida da serie</small>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="session-set-menu-danger"
+                                    onClick={() => removeExecutedSetFromClass(classKey, activeWorkout, sessionWorkout, draft, executionPanel.exerciseIndex, executionPanel.exerciseId, executionPanel.setKey)}
+                                  >
+                                    <strong>Remover serie</strong>
+                                    <small>Pede confirmacao se houver dados</small>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="session-current-set-grid">
+                            <label className="session-current-set-field">
+                              <span>Carga</span>
+                              <div>
+                                <button
+                                  type="button"
+                                  onClick={() => updateDraft(classKey, current => stepCurrentSessionSetValue(current, executionPanel, "weightDone", -2.5))}
+                                  aria-label="Diminuir carga"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="text"
+                                  value={executionPanel.weightValue}
+                                  onChange={(event) => updateDraft(classKey, current => updateCurrentSessionSetValue(current, executionPanel, "weightDone", event.target.value))}
+                                  placeholder={executionPanel.weightPlaceholder}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => updateDraft(classKey, current => stepCurrentSessionSetValue(current, executionPanel, "weightDone", 2.5))}
+                                  aria-label="Aumentar carga"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </label>
+                            <label className="session-current-set-field">
+                              <span>Repeticoes</span>
+                              <div>
+                                <button
+                                  type="button"
+                                  onClick={() => updateDraft(classKey, current => stepCurrentSessionSetValue(current, executionPanel, "repsDone", -1))}
+                                  aria-label="Diminuir repeticoes"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="text"
+                                  value={executionPanel.repsValue}
+                                  onChange={(event) => updateDraft(classKey, current => updateCurrentSessionSetValue(current, executionPanel, "repsDone", event.target.value))}
+                                  placeholder={executionPanel.repsPlaceholder}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => updateDraft(classKey, current => stepCurrentSessionSetValue(current, executionPanel, "repsDone", 1))}
+                                  aria-label="Aumentar repeticoes"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </label>
+                          </div>
+                          <div className="session-current-set-footer">
+                            <span>Descanso: {executionPanel.restLabel}</span>
+                            <button
+                              type="button"
+                              className="session-action-primary"
+                              disabled={!executionPanel.canComplete}
+                              onClick={() => updateDraft(classKey, current => completeCurrentSessionSet(current, executionPanel))}
+                            >
+                              Completar serie
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       {buildSessionWorkoutRows({ exercises: sessionExercises, draft }).map(row => {
                         const { exercise, index } = row;
                         const expandedKey = `${classKey}-${index}`;
@@ -980,22 +1236,43 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                                                 <strong>Criar biset com proximo</strong>
                                                 <small>Agrupa dois exercicios</small>
                                               </button>
-                                              <button type="button" onClick={() => removeBisetForExercise(classKey, activeWorkout, sessionWorkout, exerciseId)}>
-                                                <strong>Desfazer biset</strong>
-                                                <small>Mantem os exercicios</small>
-                                              </button>
                                               <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, exerciseId, setIndex, "add-set")}>
                                                 <strong>Adicionar serie</strong>
                                                 <small>Copia o padrao anterior</small>
+                                              </button>
+                                              <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, exerciseId, setIndex, "duplicate-set")}>
+                                                <strong>Duplicar serie</strong>
+                                                <small>Copia esta serie</small>
+                                              </button>
+                                              <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, exerciseId, setIndex, "warmup")}>
+                                                <strong>Marcar aquecimento</strong>
+                                                <small>Somente nesta serie</small>
+                                              </button>
+                                              <button type="button" onClick={() => updateExecutedSetNote(classKey, activeWorkout, exerciseId, setIndex, setRow.note)}>
+                                                <strong>Adicionar observacao</strong>
+                                                <small>Nota rapida da serie</small>
                                               </button>
                                               <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, exerciseId, setIndex, "add-drop-step")}>
                                                 <strong>Adicionar etapa drop</strong>
                                                 <small>Dentro da mesma serie</small>
                                               </button>
+                                              <button type="button" onClick={() => removeBisetForExercise(classKey, activeWorkout, sessionWorkout, exerciseId)}>
+                                                <strong>Desfazer biset</strong>
+                                                <small>Mantem os exercicios</small>
+                                              </button>
+                                              <button
+                                                type="button"
+                                                className="session-set-menu-danger"
+                                                onClick={() => removeExecutedSetFromClass(classKey, activeWorkout, sessionWorkout, draft, index, exerciseId, setIndex)}
+                                              >
+                                                <strong>Remover serie</strong>
+                                                <small>Pede confirmacao se houver dados</small>
+                                              </button>
                                             </div>
                                           )}
                                         </div>
                                         {setRow.targetLabel && <p className="session-set-target">{setRow.targetLabel}</p>}
+                                        {setRow.note && <p className="session-set-note">{setRow.note}</p>}
                                         <div className="session-set-card-grid">
                                           <label className="session-set-card-field">
                                             <span>Peso</span>
@@ -1499,6 +1776,8 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                   )}
                 </div>
                 </SessionFlowSection>
+                  </>
+                )}
               </div>
             );
           })}

@@ -4,6 +4,8 @@ const TECHNIQUE_LABELS = {
   "drop-set": "Drop set",
   dropset: "Drop set",
   biset: "Biset",
+  warmup: "Aquecimento",
+  aquecimento: "Aquecimento",
   superset: "Supersérie",
   supersetie: "Supersérie"
 };
@@ -30,7 +32,11 @@ export function buildExercisePrescription(exercise = {}) {
 
 export function countCompactCompletedSets(exerciseLog) {
   return Object.values(exerciseLog || {}).filter(setLog => (
-    String(setLog?.repsDone || "").trim() || String(setLog?.weightDone || "").trim()
+    setLog?.completed === true
+    || (
+      setLog?.completed !== false
+      && (String(setLog?.repsDone || "").trim() || String(setLog?.weightDone || "").trim())
+    )
   )).length;
 }
 
@@ -61,7 +67,7 @@ export function buildSessionSetRowsWithAdjustment({ exercise = {}, exerciseLog =
   if (Array.isArray(exercise.series) && exercise.series.length) {
     return exercise.series.map((series, index) => {
       const setLog = exerciseLog?.[series.id] || exerciseLog?.[series.sourceSetIndex] || exerciseLog?.[index] || {};
-      const technique = series.type === "drop-set" ? "drop-set" : series.type === "biset" ? "biset" : "";
+      const technique = series.type || "";
       return {
         index: series.id,
         title: `Série ${index + 1}`,
@@ -71,7 +77,8 @@ export function buildSessionSetRowsWithAdjustment({ exercise = {}, exerciseLog =
         weightValue: setLog.weightDone || "",
         repsPlaceholder: series.targetReps || exercise.reps || "10",
         weightPlaceholder: series.targetWeight || exercise.weight || "Carga",
-        dropSteps: series.dropSteps || []
+        dropSteps: series.dropSteps || [],
+        note: series.notes || ""
       };
     });
   }

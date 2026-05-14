@@ -116,10 +116,31 @@ const extraDropRows = buildSessionSetRows({
 assert.equal(extraDropRows[1].typeLabel, "Normal", "drop set on a duplicate should not affect its source set");
 assert.equal(extraDropRows[2].typeLabel, "Drop set", "drop set should apply to the selected duplicate set");
 
+const pendingTypedRows = buildSessionWorkoutRows({
+  exercises: [
+    { name: "Remada aberta", sets: "2", reps: "10", weight: "40 kg" }
+  ],
+  draft: {
+    exerciseLogs: {
+      0: {
+        0: { repsDone: "10", weightDone: "40 kg", completed: true },
+        1: { repsDone: "9", weightDone: "42 kg", completed: false }
+      }
+    }
+  }
+});
+
+assert.equal(
+  pendingTypedRows[0].progressLabel,
+  "1/2 séries feitas",
+  "typing weight or reps in the execution panel should not count as a completed set until completion is explicit"
+);
+
 const executedRows = buildSessionSetRows({
   exercise: {
     series: [
       { id: "s1", type: "normal", targetReps: "10", targetWeight: "40 kg", rest: "60s" },
+      { id: "s-warm", type: "warmup", targetReps: "15", targetWeight: "20 kg", rest: "30s", notes: "Mobilidade" },
       {
         id: "s2",
         type: "drop-set",
@@ -139,5 +160,7 @@ const executedRows = buildSessionSetRows({
 
 assert.equal(executedRows[0].index, "s1", "executed workout rows should use stable series ids");
 assert.equal(executedRows[0].weightValue, "42 kg", "executed rows should keep legacy index-based logs");
-assert.equal(executedRows[1].typeLabel, "Drop set", "executed workout drop sets should keep their visible label");
-assert.equal(executedRows[1].dropSteps.length, 2, "drop set rows should expose nested drop steps");
+assert.equal(executedRows[1].typeLabel, "Aquecimento", "executed workout warmups should keep their visible label");
+assert.equal(executedRows[1].note, "Mobilidade", "set rows should expose series notes");
+assert.equal(executedRows[2].typeLabel, "Drop set", "executed workout drop sets should keep their visible label");
+assert.equal(executedRows[2].dropSteps.length, 2, "drop set rows should expose nested drop steps");

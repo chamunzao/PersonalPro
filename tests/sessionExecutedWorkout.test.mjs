@@ -5,9 +5,12 @@ import {
   addDropSetStep,
   createBisetGroup,
   createExecutedWorkoutFromPlan,
+  duplicateExecutedSet,
   removeDropSetStep,
   removeBisetGroup,
+  removeExecutedSet,
   transformSetToDropSet,
+  updateExecutedSetMeta,
   updateDropSetStep
 } from "../src/features/session/sessionExecutedWorkout.js";
 
@@ -32,6 +35,24 @@ const withAddedSet = addExecutedSet(executed, "exercise-0");
 assert.equal(withAddedSet.exercises[0].series.length, 3, "adding a set should append one series");
 assert.equal(withAddedSet.exercises[0].series[2].targetReps, "8 - 10", "new series should copy target reps from previous series");
 assert.equal(withAddedSet.exercises[0].series[2].completed, false, "new series should start incomplete");
+
+const withDuplicatedSet = duplicateExecutedSet(withAddedSet, "exercise-0", "exercise-0-set-1");
+assert.equal(withDuplicatedSet.exercises[0].series.length, 4, "duplicating a set should insert one series");
+assert.equal(withDuplicatedSet.exercises[0].series[2].targetReps, "8 - 10", "duplicated series should copy target reps");
+assert.equal(withDuplicatedSet.exercises[0].series[2].id, "exercise-0-set-1-copy-0", "duplicated series should receive a stable copy id");
+assert.equal(withDuplicatedSet.exercises[0].series[2].completed, false, "duplicated series should start incomplete");
+
+const withWarmup = updateExecutedSetMeta(withDuplicatedSet, "exercise-0", "exercise-0-set-1-copy-0", { type: "warmup", notes: "Sentiu ombro" });
+assert.equal(withWarmup.exercises[0].series[2].type, "warmup", "series quick action should mark warmup");
+assert.equal(withWarmup.exercises[0].series[2].notes, "Sentiu ombro", "series note should be editable");
+
+const withRemovedSet = removeExecutedSet(withWarmup, "exercise-0", "exercise-0-set-1-copy-0");
+assert.equal(withRemovedSet.exercises[0].series.length, 3, "removing a set should delete only the selected series");
+assert.deepEqual(
+  withRemovedSet.exercises[0].series.map(series => series.id),
+  ["exercise-0-set-0", "exercise-0-set-1", "exercise-0-set-2"],
+  "removing a duplicated series should preserve original series order"
+);
 
 const withDropSet = transformSetToDropSet(withAddedSet, "exercise-0", "exercise-0-set-1");
 const dropSeries = withDropSet.exercises[0].series[1];
