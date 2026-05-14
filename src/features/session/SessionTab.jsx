@@ -30,6 +30,8 @@ import { getSessionFlowSections } from './sessionClassFlow';
 import { persistSessionNotesDraft } from './sessionNotes';
 import { buildSessionCheckoutSummary, hasSessionCheckoutChanges } from './sessionCheckoutUtils';
 import { EXERCISE_QUICK_ACTIONS, appendExerciseQuickAction } from './sessionExerciseQuickActions';
+import { applySessionSetAction, buildSessionSetRowsWithAdjustment, buildSessionWorkoutRows, getCompactSetCount } from './sessionWorkoutLayout';
+import { addDropSetStep, addExecutedExercise, addExecutedSet, createBisetGroup, ensureExecutedWorkout, removeBisetGroup, removeDropSetStep, transformSetToDropSet, updateDropSetStep } from './sessionExecutedWorkout';
 import { ReplacementFlow } from '../schedule/ReplacementFlow';
 import { buildReplacementOverride } from '../schedule/replacementActions';
 
@@ -37,8 +39,7 @@ function IconCheck() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
 }
 
-const EMPTY_EXERCISE = { name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" };
-const MAX_VISIBLE_SETS = 8;
+const EMPTY_EXERCISE = { name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "", technique: "", groupName: "" };
 
 function getClassKey(dateBR, studentId, time) {
   return `${dateBR}_${studentId}_${time}`;
@@ -63,12 +64,12 @@ function hasSessionChanges(draft) {
   if (draft?.sessionNote?.trim()) return true;
   if (hasExerciseLogChanges(draft)) return true;
   if (hasSessionCheckoutChanges(draft?.sessionCheckout)) return true;
+  if (draft?.executedWorkout) return true;
   return Object.values(draft?.exerciseNotes || {}).some(note => String(note || "").trim());
 }
 
 function getSetCount(sets) {
-  const parsed = parseInt(String(sets || "").match(/\d+/)?.[0] || "0", 10);
-  return Math.min(Math.max(parsed || 1, 1), MAX_VISIBLE_SETS);
+  return getCompactSetCount(sets);
 }
 
 function hasExerciseLogChanges(draft) {
@@ -192,6 +193,10 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
   const [workoutLoadErrors, setWorkoutLoadErrors] = useState({});
   const [anamnesisByStudent, setAnamnesisByStudent] = useState({});
   const [replacementFlow, setReplacementFlow] = useState(null);
+  const [expandedExercises, setExpandedExercises] = useState({});
+  const [exerciseAdjustments, setExerciseAdjustments] = useState({});
+  const [setActionMenus, setSetActionMenus] = useState({});
+  const [addExerciseForms, setAddExerciseForms] = useState({});
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
   const [savingKey, setSavingKey] = useState(null);
 
@@ -312,6 +317,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
             sessionNote: record?.sessionNote || "",
             exerciseNotes: record?.exerciseNotes || {},
             exerciseLogs: record?.exerciseLogs || {},
+            executedWorkout: record?.executedWorkout || null,
             sessionCheckout: record?.sessionCheckout || {}
           };
         }
@@ -320,15 +326,18 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     });
   }, [classesAtTime, records, selectedDateBR]);
 
-  async function saveSessionNotes(classKey) {
+  async function saveSessionNotes(classKey, activeWorkout = null) {
     if (!user) return;
     setSavingKey(classKey);
     try {
       const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {} };
+      const draftToSave = activeWorkout
+        ? { ...draft, executedWorkout: draft.executedWorkout || ensureExecutedWorkout(null, activeWorkout) }
+        : draft;
       await persistSessionNotesDraft({
         userId: user.uid,
         classKey,
-        draft,
+        draft: draftToSave,
         saveSessionNotesRecord,
         setRecords
       });
@@ -492,6 +501,125 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
         [exerciseIndex]: appendExerciseQuickAction((current.exerciseNotes || {})[exerciseIndex], actionId)
       }
     }));
+  }
+
+  function toggleExerciseDetails(classKey, exerciseIndex) {
+    const key = `${classKey}-${exerciseIndex}`;
+    setExpandedExercises(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  }
+
+  function applyExerciseSetAction(classKey, exerciseIndex, setIndex, actionId) {
+    const key = `${classKey}-${exerciseIndex}`;
+    setExerciseAdjustments(prev => ({
+      ...prev,
+      [key]: applySessionSetAction(prev[key] || {}, actionId, setIndex)
+    }));
+    setSetActionMenus(prev => ({
+      ...prev,
+      [`${key}-${setIndex}`]: false
+    }));
+  }
+
+  function toggleSetActionMenu(classKey, exerciseIndex, setIndex) {
+    const key = `${classKey}-${exerciseIndex}-${setIndex}`;
+    setSetActionMenus(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  }
+
+  function updateExecutedWorkout(classKey, activeWorkout, updater) {
+    updateDraft(classKey, current => {
+      const executedWorkout = ensureExecutedWorkout(current.executedWorkout, activeWorkout);
+      return {
+        ...current,
+        executedWorkout: updater(executedWorkout)
+      };
+    });
+  }
+
+  function applyExecutedSetAction(classKey, activeWorkout, exerciseId, seriesId, actionId) {
+    updateExecutedWorkout(classKey, activeWorkout, executedWorkout => {
+      if (actionId === "add-set") return addExecutedSet(executedWorkout, exerciseId);
+      if (actionId === "drop-set") return transformSetToDropSet(executedWorkout, exerciseId, seriesId);
+      if (actionId === "add-drop-step") return addDropSetStep(executedWorkout, exerciseId, seriesId);
+      return executedWorkout;
+    });
+    setSetActionMenus(prev => ({
+      ...prev,
+      [`${classKey}-${exerciseId}-${seriesId}`]: false
+    }));
+  }
+
+  function addExecutedExerciseFromForm(classKey, activeWorkout, afterExerciseId) {
+    const formKey = `${classKey}-${afterExerciseId || "end"}`;
+    const form = addExerciseForms[formKey] || {};
+    if (!String(form.name || "").trim()) return;
+    updateExecutedWorkout(classKey, activeWorkout, executedWorkout => addExecutedExercise(
+      executedWorkout,
+      {
+        name: form.name,
+        sets: form.sets || "3",
+        reps: form.reps || "10",
+        weight: form.weight || "",
+        rest: form.rest || "",
+        notes: form.notes || ""
+      },
+      { afterExerciseId }
+    ));
+    setAddExerciseForms(prev => ({
+      ...prev,
+      [formKey]: {}
+    }));
+  }
+
+  function updateAddExerciseForm(classKey, afterExerciseId, patch) {
+    const formKey = `${classKey}-${afterExerciseId || "end"}`;
+    setAddExerciseForms(prev => ({
+      ...prev,
+      [formKey]: {
+        ...(prev[formKey] || {}),
+        ...patch
+      }
+    }));
+  }
+
+  function createBisetWithNextExercise(classKey, activeWorkout, sessionWorkout, exerciseIndex) {
+    const currentExercise = sessionWorkout.exercises?.[exerciseIndex];
+    const nextExercise = sessionWorkout.exercises?.[exerciseIndex + 1];
+    if (!currentExercise || !nextExercise) return;
+    updateExecutedWorkout(classKey, activeWorkout, executedWorkout => createBisetGroup(
+      executedWorkout,
+      [currentExercise.executionId, nextExercise.executionId]
+    ));
+  }
+
+  function removeBisetForExercise(classKey, activeWorkout, sessionWorkout, exerciseId) {
+    const group = (sessionWorkout.groups || []).find(item => item.exerciseIds?.includes(exerciseId));
+    if (!group) return;
+    updateExecutedWorkout(classKey, activeWorkout, executedWorkout => removeBisetGroup(executedWorkout, group.id));
+  }
+
+  function updateExecutedDropStep(classKey, activeWorkout, exerciseId, seriesId, stepId, patch) {
+    updateExecutedWorkout(classKey, activeWorkout, executedWorkout => updateDropSetStep(
+      executedWorkout,
+      exerciseId,
+      seriesId,
+      stepId,
+      patch
+    ));
+  }
+
+  function removeExecutedDropStep(classKey, activeWorkout, exerciseId, seriesId, stepId) {
+    updateExecutedWorkout(classKey, activeWorkout, executedWorkout => removeDropSetStep(
+      executedWorkout,
+      exerciseId,
+      seriesId,
+      stepId
+    ));
   }
 
   function startEditWorkoutFromClass(classKey, activeWorkout) {
@@ -679,6 +807,13 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
             const savingWorkout = savingKey === `workout-${classKey}`;
             const editingWorkout = editingWorkoutKey === classKey;
             const workoutForm = workoutEditForms[classKey] || { name: activeWorkout?.name || "", active: activeWorkout?.active !== false, exercises: activeWorkout?.exercises || [] };
+            const sessionWorkout = draft.executedWorkout || (activeWorkout ? ensureExecutedWorkout(null, activeWorkout) : null);
+            const sessionExercises = (sessionWorkout?.exercises || activeWorkout?.exercises || []).map(exercise => {
+              const groupIndex = (sessionWorkout?.groups || []).findIndex(group => group.exerciseIds?.includes(exercise.executionId));
+              return groupIndex >= 0
+                ? { ...exercise, groupName: `Biset ${groupIndex + 1}` }
+                : exercise;
+            });
 
             const hasNotes = record?.sessionNote || Object.keys(record?.exerciseNotes || {}).length > 0 || Object.keys(record?.exerciseLogs || {}).length > 0;
             const draftHasChanges = hasSessionChanges(draft);
@@ -764,8 +899,8 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                   <div className="session-card-body">
                     <div className="session-workout-header">
                       <div>
-                        <p className="session-workout-name">{activeWorkout.name}</p>
-                        <p className="session-workout-count">{(activeWorkout.exercises || []).length} exercícios</p>
+                        <p className="session-workout-name">{sessionWorkout?.name || activeWorkout.name}</p>
+                        <p className="session-workout-count">{(sessionWorkout?.exercises || activeWorkout.exercises || []).length} exercícios executados</p>
                       </div>
                       <button
                         onClick={() => editingWorkout ? setEditingWorkoutKey(null) : startEditWorkoutFromClass(classKey, activeWorkout)}
@@ -776,7 +911,246 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                       </button>
                     </div>
 
-                    {!editingWorkout && <div className="session-exercise-list">
+                    {!editingWorkout && <div className="session-exercise-list session-exercise-list-compact">
+                      {buildSessionWorkoutRows({ exercises: sessionExercises, draft }).map(row => {
+                        const { exercise, index } = row;
+                        const expandedKey = `${classKey}-${index}`;
+                        const isExpanded = !!expandedExercises[expandedKey];
+                        return (
+                          <div key={`compact-${exercise.name}-${index}`} className={`session-exercise ${isExpanded ? "session-exercise-expanded" : ""}`}>
+                            <button
+                              type="button"
+                              className="session-exercise-summary"
+                              onClick={() => toggleExerciseDetails(classKey, index)}
+                            >
+                              <span className="session-exercise-letter">{row.letter}</span>
+                              <span className="session-exercise-copy">
+                                <span className="session-exercise-name">{index + 1}. {exercise.name}</span>
+                                <span className="session-exercise-prescription">{row.prescription}</span>
+                                <span className="session-exercise-progress">{row.progressLabel}</span>
+                                {(row.metaLabel || row.techniqueLabel || row.groupLabel) && (
+                                  <span className="session-exercise-tags">
+                                    {row.techniqueLabel && <span>{row.techniqueLabel}</span>}
+                                    {row.groupLabel && <span>{row.groupLabel}</span>}
+                                    {row.metaLabel && <span>{row.metaLabel}</span>}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="session-exercise-toggle">{isExpanded ? "Fechar" : "Registrar"}</span>
+                            </button>
+
+                            {isExpanded && (
+                              <div className="session-exercise-details">
+                                {exercise.notes && <p className="session-exercise-note">{exercise.notes}</p>}
+                                <div className="session-exercise-workbench">
+                                  <div className="session-set-list session-set-card-list">
+                                  {buildSessionSetRowsWithAdjustment({
+                                    exercise,
+                                    exerciseLog: draft.exerciseLogs?.[index],
+                                    adjustment: exerciseAdjustments[expandedKey]
+                                  }).map(setRow => {
+                                    const setIndex = setRow.index;
+                                    const exerciseId = exercise.executionId || `exercise-${index}`;
+                                    const setActionMenuKey = `${classKey}-${exerciseId}-${setIndex}`;
+                                    const isSetActionMenuOpen = !!setActionMenus[setActionMenuKey];
+                                    return (
+                                      <div className="session-set-card" key={setIndex}>
+                                        <div className="session-set-card-header">
+                                          <strong>{setRow.title}</strong>
+                                          <div className="session-set-card-tools">
+                                            <span className={setRow.typeLabel === "Drop set" ? "session-set-type-drop" : ""}>
+                                              {setRow.typeLabel}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              className="session-set-menu-button"
+                                              onClick={() => toggleSetActionMenu(classKey, exerciseId, setIndex)}
+                                              aria-label={`Acoes da ${setRow.title}`}
+                                            >
+                                              ...
+                                            </button>
+                                          </div>
+                                          {isSetActionMenuOpen && (
+                                            <div className="session-set-menu">
+                                              <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, exerciseId, setIndex, "drop-set")}>
+                                                <strong>Adicionar drop set</strong>
+                                                <small>Somente nesta serie</small>
+                                              </button>
+                                              <button type="button" onClick={() => createBisetWithNextExercise(classKey, activeWorkout, sessionWorkout, index)}>
+                                                <strong>Criar biset com proximo</strong>
+                                                <small>Agrupa dois exercicios</small>
+                                              </button>
+                                              <button type="button" onClick={() => removeBisetForExercise(classKey, activeWorkout, sessionWorkout, exerciseId)}>
+                                                <strong>Desfazer biset</strong>
+                                                <small>Mantem os exercicios</small>
+                                              </button>
+                                              <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, exerciseId, setIndex, "add-set")}>
+                                                <strong>Adicionar serie</strong>
+                                                <small>Copia o padrao anterior</small>
+                                              </button>
+                                              <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, exerciseId, setIndex, "add-drop-step")}>
+                                                <strong>Adicionar etapa drop</strong>
+                                                <small>Dentro da mesma serie</small>
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                        {setRow.targetLabel && <p className="session-set-target">{setRow.targetLabel}</p>}
+                                        <div className="session-set-card-grid">
+                                          <label className="session-set-card-field">
+                                            <span>Peso</span>
+                                            <input
+                                              type="text"
+                                              value={setRow.weightValue}
+                                              onChange={(event) => updateDraft(classKey, current => ({
+                                                ...current,
+                                                exerciseLogs: {
+                                                  ...(current.exerciseLogs || {}),
+                                                  [index]: {
+                                                    ...((current.exerciseLogs || {})[index] || {}),
+                                                    [setIndex]: {
+                                                      ...(((current.exerciseLogs || {})[index] || {})[setIndex] || {}),
+                                                      weightDone: event.target.value
+                                                    }
+                                                  }
+                                                }
+                                              }))}
+                                              placeholder={setRow.weightPlaceholder}
+                                              className="session-set-input"
+                                            />
+                                          </label>
+                                          <label className="session-set-card-field">
+                                            <span>Reps</span>
+                                          <input
+                                            type="text"
+                                            value={setRow.repsValue}
+                                            onChange={(event) => updateDraft(classKey, current => ({
+                                              ...current,
+                                              exerciseLogs: {
+                                                ...(current.exerciseLogs || {}),
+                                                [index]: {
+                                                  ...((current.exerciseLogs || {})[index] || {}),
+                                                  [setIndex]: {
+                                                    ...(((current.exerciseLogs || {})[index] || {})[setIndex] || {}),
+                                                    repsDone: event.target.value
+                                                  }
+                                                }
+                                              }
+                                            }))}
+                                            placeholder={setRow.repsPlaceholder}
+                                            className="session-set-input"
+                                          />
+                                          </label>
+                                        </div>
+                                        {setRow.dropSteps?.length > 0 && (
+                                          <div className="session-drop-steps">
+                                            {setRow.dropSteps.map((step, stepIndex) => (
+                                              <div className="session-drop-step" key={step.id || stepIndex}>
+                                                <strong>Drop {stepIndex + 1}</strong>
+                                                <input
+                                                  type="text"
+                                                  value={step.weight || ""}
+                                                  onChange={(event) => updateExecutedDropStep(classKey, activeWorkout, exerciseId, setIndex, step.id, { weight: event.target.value })}
+                                                  placeholder={setRow.weightPlaceholder || "Carga"}
+                                                />
+                                                <input
+                                                  type="text"
+                                                  value={step.reps || ""}
+                                                  onChange={(event) => updateExecutedDropStep(classKey, activeWorkout, exerciseId, setIndex, step.id, { reps: event.target.value })}
+                                                  placeholder={setRow.repsPlaceholder || "Reps"}
+                                                />
+                                                <label>
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={!!step.completed}
+                                                    onChange={(event) => updateExecutedDropStep(classKey, activeWorkout, exerciseId, setIndex, step.id, { completed: event.target.checked })}
+                                                  />
+                                                  OK
+                                                </label>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => removeExecutedDropStep(classKey, activeWorkout, exerciseId, setIndex, step.id)}
+                                                  aria-label="Remover etapa do drop set"
+                                                >
+                                                  -
+                                                </button>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                  </div>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={draft.exerciseNotes?.[index] || ""}
+                                  onChange={(event) => updateDraft(classKey, current => ({
+                                    ...current,
+                                    exerciseNotes: {
+                                      ...(current.exerciseNotes || {}),
+                                      [index]: event.target.value
+                                    }
+                                  }))}
+                                  placeholder="Ex: 4x12, 20kg, reduzir carga..."
+                                  className="session-note-input"
+                                />
+                                <div className="session-exercise-quick-actions">
+                                  {EXERCISE_QUICK_ACTIONS.map(action => (
+                                    <button
+                                      key={action.id}
+                                      type="button"
+                                      onClick={() => applyExerciseQuickAction(classKey, index, action.id)}
+                                    >
+                                      {action.label}
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className="session-add-exercise-form">
+                                  <strong>Adicionar exercicio abaixo</strong>
+                                  <div className="session-add-exercise-grid">
+                                    <input
+                                      type="text"
+                                      value={addExerciseForms[`${classKey}-${exercise.executionId || `exercise-${index}`}`]?.name || ""}
+                                      onChange={(event) => updateAddExerciseForm(classKey, exercise.executionId || `exercise-${index}`, { name: event.target.value })}
+                                      placeholder="Exercicio"
+                                    />
+                                    <input
+                                      type="text"
+                                      value={addExerciseForms[`${classKey}-${exercise.executionId || `exercise-${index}`}`]?.sets || ""}
+                                      onChange={(event) => updateAddExerciseForm(classKey, exercise.executionId || `exercise-${index}`, { sets: event.target.value })}
+                                      placeholder="Series"
+                                    />
+                                    <input
+                                      type="text"
+                                      value={addExerciseForms[`${classKey}-${exercise.executionId || `exercise-${index}`}`]?.reps || ""}
+                                      onChange={(event) => updateAddExerciseForm(classKey, exercise.executionId || `exercise-${index}`, { reps: event.target.value })}
+                                      placeholder="Reps"
+                                    />
+                                    <input
+                                      type="text"
+                                      value={addExerciseForms[`${classKey}-${exercise.executionId || `exercise-${index}`}`]?.weight || ""}
+                                      onChange={(event) => updateAddExerciseForm(classKey, exercise.executionId || `exercise-${index}`, { weight: event.target.value })}
+                                      placeholder="Carga"
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="session-action-muted"
+                                    onClick={() => addExecutedExerciseFromForm(classKey, activeWorkout, exercise.executionId || `exercise-${index}`)}
+                                  >
+                                    Adicionar ao treino executado
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>}
+
+                    {!editingWorkout && <div className="session-exercise-list session-exercise-list-legacy-hidden">
                       {(activeWorkout.exercises || []).map((exercise, index) => (
                         <div key={`${exercise.name}-${index}`} className="session-exercise">
                           <div className="session-exercise-title-row">
@@ -879,7 +1253,11 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                     </div>}
 
                     {editingWorkout && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div className="session-workout-builder">
+                        <div className="session-builder-intro">
+                          <strong>Montagem do treino</strong>
+                          <span>Edite a lista completa, marque drop set, biset ou supersérie e mantenha tudo visível na aula.</span>
+                        </div>
                         <input
                           type="text"
                           value={workoutForm.name}
@@ -896,7 +1274,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                           }}
                         />
                         {(workoutForm.exercises || []).map((exercise, index) => (
-                          <div key={index} style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "8px" }}>
+                          <div key={index} className="session-builder-exercise">
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 72px 72px", gap: "6px", marginBottom: "6px" }}>
                               <input
                                 type="text"
@@ -933,6 +1311,26 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                                 value={exercise.rest || ""}
                                 onChange={(event) => updateWorkoutExercise(classKey, index, { rest: event.target.value })}
                                 placeholder="Descanso"
+                                style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
+                              />
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginBottom: "6px" }}>
+                              <select
+                                value={exercise.technique || ""}
+                                onChange={(event) => updateWorkoutExercise(classKey, index, { technique: event.target.value })}
+                                style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
+                                aria-label="Tipo do exercÃ­cio"
+                              >
+                                <option value="">ExercÃ­cio normal</option>
+                                <option value="drop-set">Drop set</option>
+                                <option value="biset">Biset</option>
+                                <option value="superset">SupersÃ©rie</option>
+                              </select>
+                              <input
+                                type="text"
+                                value={exercise.groupName || ""}
+                                onChange={(event) => updateWorkoutExercise(classKey, index, { groupName: event.target.value })}
+                                placeholder="Grupo: A, Biset 1..."
                                 style={{ padding: "7px 8px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }}
                               />
                             </div>
@@ -1081,7 +1479,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
 
                 <div className="session-save-row" style={{ gridTemplateColumns: activeWorkout ? undefined : "1fr" }}>
                   <button
-                    onClick={() => saveSessionNotes(classKey)}
+                    onClick={() => saveSessionNotes(classKey, activeWorkout)}
                     disabled={saving}
                     className="session-action-primary"
                     style={{ width: "100%", background: saving ? "#d1d5db" : theme.primary, borderColor: saving ? "#d1d5db" : theme.primary, cursor: saving ? "not-allowed" : "pointer" }}

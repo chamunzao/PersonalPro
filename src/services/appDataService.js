@@ -22,7 +22,10 @@ function mapRecordDoc(recordDoc) {
     activity: data.activity || null,
     customPrice: data.customPrice || null,
     sessionNote: data.sessionNote || null,
-    exerciseNotes: data.exerciseNotes || {}
+    exerciseNotes: data.exerciseNotes || {},
+    exerciseLogs: data.exerciseLogs || {},
+    executedWorkout: data.executedWorkout || null,
+    sessionCheckout: data.sessionCheckout || {}
   };
 }
 

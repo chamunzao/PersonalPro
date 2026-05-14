@@ -11,6 +11,7 @@ export async function persistSessionNotesDraft({
   const sessionNote = draft.sessionNote || "";
   const exerciseNotes = draft.exerciseNotes || {};
   const exerciseLogs = draft.exerciseLogs || {};
+  const executedWorkout = draft.executedWorkout || null;
   const sessionCheckout = normalizeSessionCheckout(draft.sessionCheckout);
 
   await saveSessionNotesRecord({
@@ -19,6 +20,7 @@ export async function persistSessionNotesDraft({
     sessionNote,
     exerciseNotes,
     exerciseLogs,
+    executedWorkout,
     sessionCheckout
   });
 
@@ -27,6 +29,7 @@ export async function persistSessionNotesDraft({
     sessionNote,
     exerciseNotes,
     exerciseLogs,
+    executedWorkout,
     sessionCheckout
   }));
 }
