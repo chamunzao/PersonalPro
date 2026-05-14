@@ -34,6 +34,10 @@ function isSetCompleted(series = {}, setLog = {}) {
   return Boolean(series.completed) || hasValue(setLog.repsDone) || hasValue(setLog.weightDone);
 }
 
+function isDropSet(series = {}) {
+  return series.type === "drop-set" && Array.isArray(series.dropSteps) && series.dropSteps.length > 0;
+}
+
 function getWorkoutProgress(workout = {}, draft = {}) {
   return (workout.exercises || []).reduce((progress, exercise, exerciseIndex) => {
     const series = getSeries(exercise);
@@ -90,7 +94,18 @@ export function buildSessionExecutionPanel({ workout = {}, draft = {} } = {}) {
     weightValue: setLog.weightDone || "",
     repsPlaceholder: set?.targetReps || exercise.reps || "10",
     weightPlaceholder: set?.targetWeight || exercise.weight || "Carga",
-    canComplete: hasValue(setLog.repsDone) && hasValue(setLog.weightDone),
+    isDropSet: isDropSet(set),
+    dropSteps: isDropSet(set) ? set.dropSteps.map((step, index) => ({
+      id: step.id || index,
+      role: step.role || (index === 0 ? "main" : "drop"),
+      label: step.label || (index === 0 ? "Serie principal" : `Drop ${index}`),
+      weight: step.weight || "",
+      reps: step.reps || "",
+      completed: Boolean(step.completed)
+    })) : [],
+    canComplete: isDropSet(set)
+      ? set.dropSteps.every(step => step.completed)
+      : hasValue(setLog.repsDone) && hasValue(setLog.weightDone),
     restLabel: set?.rest || exercise.rest || "Sem descanso",
     exerciseProgressLabel: `${exerciseCompleted}/${series.length} series`,
     workoutProgressLabel: `${workoutProgress.completed}/${workoutProgress.total} series`
@@ -102,7 +117,8 @@ export function completeCurrentSessionSet(draft = {}, panel = null) {
 
   const exerciseLog = draft.exerciseLogs?.[panel.exerciseIndex] || {};
   const currentSetLog = exerciseLog[panel.setKey] || {};
-  if (!hasValue(currentSetLog.repsDone) || !hasValue(currentSetLog.weightDone)) return draft;
+  if (!panel.isDropSet && (!hasValue(currentSetLog.repsDone) || !hasValue(currentSetLog.weightDone))) return draft;
+  if (panel.isDropSet && !panel.canComplete) return draft;
 
   return {
     ...draft,

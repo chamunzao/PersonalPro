@@ -7,6 +7,7 @@ import {
   createExecutedWorkoutFromPlan,
   duplicateExecutedSet,
   removeDropSetStep,
+  undoDropSet,
   removeBisetGroup,
   removeExecutedSet,
   transformSetToDropSet,
@@ -57,12 +58,18 @@ assert.deepEqual(
 const withDropSet = transformSetToDropSet(withAddedSet, "exercise-0", "exercise-0-set-1");
 const dropSeries = withDropSet.exercises[0].series[1];
 assert.equal(dropSeries.type, "drop-set", "selected series should become a drop set");
-assert.equal(dropSeries.dropSteps.length, 2, "drop set should start with two editable steps");
+assert.deepEqual(
+  dropSeries.dropSteps.map(step => step.label),
+  ["Serie principal", "Drop 1", "Drop 2", "Drop 3"],
+  "drop set should start with one main step and three drop steps"
+);
+assert.equal(dropSeries.dropSteps[0].role, "main", "first drop step should represent the main series");
 assert.equal(withDropSet.exercises[0].series[0].type, "normal", "other series should remain normal");
 
 const withDropStep = addDropSetStep(withDropSet, "exercise-0", "exercise-0-set-1");
-assert.equal(withDropStep.exercises[0].series[1].dropSteps.length, 3, "drop set should allow extra steps");
-assert.equal(withDropStep.exercises[0].series[1].dropSteps[2].completed, false, "new drop step should start incomplete");
+assert.equal(withDropStep.exercises[0].series[1].dropSteps.length, 5, "drop set should allow extra steps");
+assert.equal(withDropStep.exercises[0].series[1].dropSteps[4].label, "Drop 4", "new drop step should keep sequential labels");
+assert.equal(withDropStep.exercises[0].series[1].dropSteps[4].completed, false, "new drop step should start incomplete");
 
 const withEditedDropStep = updateDropSetStep(withDropStep, "exercise-0", "exercise-0-set-1", "exercise-0-set-1-drop-2", {
   weight: "20 kg",
@@ -73,8 +80,18 @@ assert.equal(withEditedDropStep.exercises[0].series[1].dropSteps[2].weight, "20 
 assert.equal(withEditedDropStep.exercises[0].series[1].dropSteps[2].completed, true, "drop step completion should be editable");
 
 const withRemovedDropStep = removeDropSetStep(withEditedDropStep, "exercise-0", "exercise-0-set-1", "exercise-0-set-1-drop-2");
-assert.equal(withRemovedDropStep.exercises[0].series[1].dropSteps.length, 2, "drop set steps should be removable");
+assert.equal(withRemovedDropStep.exercises[0].series[1].dropSteps.length, 4, "drop set steps should be removable");
 assert.equal(withRemovedDropStep.exercises[0].series[1].type, "drop-set", "removing a step should preserve the main drop set series");
+
+const withoutDropSet = undoDropSet(withEditedDropStep, "exercise-0", "exercise-0-set-1");
+assert.equal(withoutDropSet.exercises[0].series[1].type, "normal", "undoing a drop set should restore a normal series");
+assert.equal(withoutDropSet.exercises[0].series[1].targetWeight, "30 kg", "undoing a drop set should preserve the main step weight when possible");
+assert.equal(withoutDropSet.exercises[0].series[1].targetReps, "8 - 10", "undoing a drop set should preserve the main step reps when possible");
+assert.deepEqual(
+  withoutDropSet.exercises[0].series[1].dropStepsArchive.map(step => step.label),
+  ["Serie principal", "Drop 1", "Drop 2", "Drop 3", "Drop 4"],
+  "undoing a drop set should archive internal steps instead of deleting filled data"
+);
 
 const withInsertedExercise = addExecutedExercise(
   executed,

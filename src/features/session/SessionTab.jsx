@@ -32,7 +32,7 @@ import { persistSessionNotesDraft } from './sessionNotes';
 import { buildSessionCheckoutSummary, hasSessionCheckoutChanges } from './sessionCheckoutUtils';
 import { EXERCISE_QUICK_ACTIONS, appendExerciseQuickAction } from './sessionExerciseQuickActions';
 import { applySessionSetAction, buildSessionSetRowsWithAdjustment, buildSessionWorkoutRows, getCompactSetCount } from './sessionWorkoutLayout';
-import { addDropSetStep, addExecutedExercise, addExecutedSet, createBisetGroup, duplicateExecutedSet, ensureExecutedWorkout, removeBisetGroup, removeDropSetStep, removeExecutedSet, transformSetToDropSet, updateDropSetStep, updateExecutedSetMeta } from './sessionExecutedWorkout';
+import { addDropSetStep, addExecutedExercise, addExecutedSet, createBisetGroup, duplicateExecutedSet, ensureExecutedWorkout, removeBisetGroup, removeDropSetStep, removeExecutedSet, transformSetToDropSet, undoDropSet, updateDropSetStep, updateExecutedSetMeta } from './sessionExecutedWorkout';
 import { buildSessionExecutionPanel, completeCurrentSessionSet, stepCurrentSessionSetValue, updateCurrentSessionSetValue } from './sessionExecutionPanel';
 import { hasOpenSetActionMenu, isSetMenuInteractionTarget } from './sessionSetMenus';
 import { ReplacementFlow } from '../schedule/ReplacementFlow';
@@ -585,6 +585,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
       if (actionId === "add-set") return addExecutedSet(executedWorkout, exerciseId);
       if (actionId === "drop-set") return transformSetToDropSet(executedWorkout, exerciseId, seriesId);
       if (actionId === "add-drop-step") return addDropSetStep(executedWorkout, exerciseId, seriesId);
+      if (actionId === "undo-drop-set") return undoDropSet(executedWorkout, exerciseId, seriesId);
       if (actionId === "duplicate-set") return duplicateExecutedSet(executedWorkout, exerciseId, seriesId);
       if (actionId === "warmup") return updateExecutedSetMeta(executedWorkout, exerciseId, seriesId, { type: "warmup" });
       return executedWorkout;
@@ -1079,6 +1080,12 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                                     <strong>Adicionar drop set</strong>
                                     <small>Somente nesta serie</small>
                                   </button>
+                                  {executionPanel.isDropSet && (
+                                    <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, "undo-drop-set")}>
+                                      <strong>Desfazer drop set</strong>
+                                      <small>Preserva as etapas preenchidas</small>
+                                    </button>
+                                  )}
                                   <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, "duplicate-set")}>
                                     <strong>Duplicar serie</strong>
                                     <small>Copia o padrao desta serie</small>
@@ -1155,6 +1162,44 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                               </div>
                             </label>
                           </div>
+                          {executionPanel.dropSteps?.length > 0 && (
+                            <div className="session-current-drop-summary">
+                              {executionPanel.dropSteps.map(step => (
+                                <div className={step.completed ? "session-current-drop-step session-current-drop-step-done" : "session-current-drop-step"} key={step.id}>
+                                  <span>{step.label}</span>
+                                  <input
+                                    type="text"
+                                    value={step.weight || ""}
+                                    onChange={(event) => updateExecutedDropStep(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, step.id, { weight: event.target.value })}
+                                    placeholder="Carga"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={step.reps || ""}
+                                    onChange={(event) => updateExecutedDropStep(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, step.id, { reps: event.target.value })}
+                                    placeholder="Reps"
+                                  />
+                                  <label>
+                                    <input
+                                      type="checkbox"
+                                      checked={!!step.completed}
+                                      onChange={(event) => updateExecutedDropStep(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, step.id, { completed: event.target.checked })}
+                                    />
+                                    OK
+                                  </label>
+                                  {step.role !== "main" && (
+                                    <button
+                                      type="button"
+                                      onClick={() => removeExecutedDropStep(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, step.id)}
+                                      aria-label="Remover etapa do drop set atual"
+                                    >
+                                      -
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                           <div className="session-current-set-footer">
                             <span>Descanso: {executionPanel.restLabel}</span>
                             <button
@@ -1256,6 +1301,12 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                                                 <strong>Adicionar etapa drop</strong>
                                                 <small>Dentro da mesma serie</small>
                                               </button>
+                                              {setRow.typeLabel === "Drop set" && (
+                                                <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, exerciseId, setIndex, "undo-drop-set")}>
+                                                  <strong>Desfazer drop set</strong>
+                                                  <small>Mantem os dados preenchidos</small>
+                                                </button>
+                                              )}
                                               <button type="button" onClick={() => removeBisetForExercise(classKey, activeWorkout, sessionWorkout, exerciseId)}>
                                                 <strong>Desfazer biset</strong>
                                                 <small>Mantem os exercicios</small>
@@ -1323,7 +1374,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                                           <div className="session-drop-steps">
                                             {setRow.dropSteps.map((step, stepIndex) => (
                                               <div className="session-drop-step" key={step.id || stepIndex}>
-                                                <strong>Drop {stepIndex + 1}</strong>
+                                                <strong>{step.label || (stepIndex === 0 ? "Serie principal" : `Drop ${stepIndex}`)}</strong>
                                                 <input
                                                   type="text"
                                                   value={step.weight || ""}

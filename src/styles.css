@@ -989,6 +989,81 @@ textarea::placeholder {
   box-sizing: border-box;
 }
 
+.session-current-drop-summary {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.session-current-drop-step {
+  display: grid;
+  grid-template-columns: minmax(88px, 1fr) minmax(68px, 0.8fr) minmax(56px, 0.65fr) auto 30px;
+  gap: 8px;
+  align-items: center;
+  min-height: 42px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 0.5px solid rgba(74, 99, 136, 0.85);
+  background: rgba(36, 59, 92, 0.72);
+}
+
+.session-current-drop-step span,
+.session-current-drop-step small {
+  color: #91A0B6;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.session-current-drop-step strong {
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.session-current-drop-step input[type="text"] {
+  width: 100%;
+  min-height: 32px;
+  border-radius: 8px;
+  border: 0.5px solid #4A6388;
+  background: #142339;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 850;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.session-current-drop-step label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #CBD5E1;
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.session-current-drop-step button {
+  min-width: 30px;
+  min-height: 30px;
+  border-radius: 50%;
+  border: 0.5px solid rgba(248, 113, 113, 0.6);
+  background: rgba(248, 113, 113, 0.12);
+  color: #FCA5A5;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.session-current-drop-step-done {
+  border-color: rgba(16, 185, 129, 0.7);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.session-current-drop-step-done small {
+  color: #7DD3B0;
+}
+
 .session-current-set-footer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -2152,6 +2227,19 @@ body .app-main-session .session-exercise {
   .session-current-set-grid,
   .session-current-set-footer {
     grid-template-columns: 1fr;
+  }
+
+  .session-current-drop-step {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .session-current-drop-step span {
+    grid-column: 1 / -1;
+  }
+
+  .session-current-drop-step label,
+  .session-current-drop-step button {
+    justify-self: start;
   }
 
   .session-current-set-footer .session-action-primary {

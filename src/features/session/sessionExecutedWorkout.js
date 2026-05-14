@@ -129,6 +129,32 @@ function createSeriesCopy(series = {}, copyIndex = 0) {
   };
 }
 
+function createDropStep(series = {}, stepIndex = 0, previousStep = {}) {
+  const isMainStep = stepIndex === 0;
+  return {
+    id: isMainStep ? `${series.id}-drop-main` : `${series.id}-drop-${stepIndex}`,
+    role: isMainStep ? "main" : "drop",
+    label: isMainStep ? "Serie principal" : `Drop ${stepIndex}`,
+    weight: previousStep.weight || series.targetWeight || "",
+    reps: previousStep.reps || series.targetReps || "",
+    completed: false
+  };
+}
+
+function normalizeDropSteps(series = {}) {
+  if (Array.isArray(series.dropSteps) && series.dropSteps.length) {
+    return series.dropSteps.map((step, index) => ({
+      ...step,
+      id: step.id || (index === 0 ? `${series.id}-drop-main` : `${series.id}-drop-${index}`),
+      role: step.role || (index === 0 ? "main" : "drop"),
+      label: step.label || (index === 0 ? "Serie principal" : `Drop ${index}`),
+      completed: Boolean(step.completed)
+    }));
+  }
+
+  return Array.from({ length: 4 }).map((_, index) => createDropStep(series, index));
+}
+
 export function duplicateExecutedSet(executedWorkout, exerciseId, seriesId) {
   const nextWorkout = mapExercises(executedWorkout, exercise => {
     if (exercise.executionId !== exerciseId) return exercise;
@@ -183,24 +209,10 @@ export function transformSetToDropSet(executedWorkout, exerciseId, seriesId) {
       ...exercise,
       series: exercise.series.map(series => {
         if (series.id !== seriesId) return series;
-        const existingSteps = series.dropSteps?.length ? series.dropSteps : [
-          {
-            id: `${series.id}-drop-0`,
-            weight: series.targetWeight || "",
-            reps: series.targetReps || "",
-            completed: false
-          },
-          {
-            id: `${series.id}-drop-1`,
-            weight: series.targetWeight || "",
-            reps: series.targetReps || "",
-            completed: false
-          }
-        ];
         return {
           ...series,
           type: "drop-set",
-          dropSteps: existingSteps
+          dropSteps: normalizeDropSteps(series)
         };
       })
     };
@@ -216,18 +228,14 @@ export function addDropSetStep(executedWorkout, exerciseId, seriesId) {
       ...exercise,
       series: exercise.series.map(series => {
         if (series.id !== seriesId) return series;
-        const previousStep = series.dropSteps?.[series.dropSteps.length - 1] || {};
+        const existingSteps = normalizeDropSteps(series);
+        const previousStep = existingSteps[existingSteps.length - 1] || {};
         return {
           ...series,
           type: "drop-set",
           dropSteps: [
-            ...(series.dropSteps || []),
-            {
-              id: `${series.id}-drop-${series.dropSteps?.length || 0}`,
-              weight: previousStep.weight || series.targetWeight || "",
-              reps: previousStep.reps || series.targetReps || "",
-              completed: false
-            }
+            ...existingSteps,
+            createDropStep(series, existingSteps.length, previousStep)
           ]
         };
       })
@@ -264,15 +272,41 @@ export function removeDropSetStep(executedWorkout, exerciseId, seriesId, stepId)
       ...exercise,
       series: exercise.series.map(series => {
         if (series.id !== seriesId) return series;
+        const nextDropSteps = normalizeDropSteps(series).filter(step => step.id !== stepId);
         return {
           ...series,
-          dropSteps: (series.dropSteps || []).filter(step => step.id !== stepId)
+          dropSteps: nextDropSteps.length ? nextDropSteps : normalizeDropSteps(series)
         };
       })
     };
   });
 
   return appendChange(nextWorkout, { type: "remove-drop-step", exerciseId, seriesId, stepId });
+}
+
+export function undoDropSet(executedWorkout, exerciseId, seriesId) {
+  const nextWorkout = mapExercises(executedWorkout, exercise => {
+    if (exercise.executionId !== exerciseId) return exercise;
+    return {
+      ...exercise,
+      series: exercise.series.map(series => {
+        if (series.id !== seriesId) return series;
+        const dropStepsArchive = normalizeDropSteps(series);
+        const mainStep = dropStepsArchive[0] || {};
+        return {
+          ...series,
+          type: "normal",
+          targetWeight: mainStep.weight || series.targetWeight || "",
+          targetReps: mainStep.reps || series.targetReps || "",
+          completed: Boolean(mainStep.completed && dropStepsArchive.every(step => step.completed)),
+          dropSteps: [],
+          dropStepsArchive
+        };
+      })
+    };
+  });
+
+  return appendChange(nextWorkout, { type: "undo-drop-set", exerciseId, seriesId });
 }
 
 export function addExecutedExercise(executedWorkout, exercise = {}, options = {}) {

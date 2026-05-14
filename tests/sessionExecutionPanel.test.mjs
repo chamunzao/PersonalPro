@@ -114,8 +114,10 @@ const dropWorkout = {
           targetReps: "10",
           targetWeight: "42 kg",
           dropSteps: [
-            { id: "drop-1", completed: false },
-            { id: "drop-2", completed: false }
+            { id: "drop-main", label: "Serie principal", weight: "42 kg", reps: "10", completed: true },
+            { id: "drop-1", label: "Drop 1", weight: "36 kg", reps: "8", completed: true },
+            { id: "drop-2", label: "Drop 2", weight: "30 kg", reps: "6", completed: true },
+            { id: "drop-3", label: "Drop 3", weight: "24 kg", reps: "4", completed: true }
           ]
         }
       ]
@@ -130,18 +132,33 @@ const dropWorkout = {
   ]
 };
 
-const dropPanel = buildSessionExecutionPanel({ workout: dropWorkout, draft: {} });
-const dropWithWeight = updateCurrentSessionSetValue({}, dropPanel, "weightDone", "42 kg");
-const dropReadyDraft = updateCurrentSessionSetValue(dropWithWeight, dropPanel, "repsDone", "10");
-const dropReadyPanel = buildSessionExecutionPanel({ workout: dropWorkout, draft: dropReadyDraft });
-
-assert.equal(dropReadyPanel.canComplete, true, "drop set should be completable after weight and reps are typed");
-
-const completedDropDraft = completeCurrentSessionSet(dropReadyDraft, dropReadyPanel);
-const nextAfterDrop = buildSessionExecutionPanel({ workout: dropWorkout, draft: completedDropDraft });
+const nextAfterDrop = buildSessionExecutionPanel({ workout: dropWorkout, draft: {} });
 
 assert.equal(
   nextAfterDrop.exerciseName,
   "Puxada frontal",
-  "explicitly completing a drop set should advance to the next pending series"
+  "a drop set with all internal steps complete should advance to the next pending series"
 );
+
+const incompleteDropWorkout = {
+  ...dropWorkout,
+  exercises: [
+    {
+      ...dropWorkout.exercises[0],
+      series: [
+        {
+          ...dropWorkout.exercises[0].series[0],
+          dropSteps: [
+            { id: "drop-main", label: "Serie principal", weight: "42 kg", reps: "10", completed: true },
+            { id: "drop-1", label: "Drop 1", weight: "36 kg", reps: "8", completed: false }
+          ]
+        }
+      ]
+    },
+    dropWorkout.exercises[1]
+  ]
+};
+const incompleteDropPanel = buildSessionExecutionPanel({ workout: incompleteDropWorkout, draft: {} });
+assert.equal(incompleteDropPanel.canComplete, false, "drop set should wait for all internal steps before completing the main series");
+assert.equal(incompleteDropPanel.dropSteps.length, 2, "drop set panel should expose internal steps without counting them as normal series");
+assert.equal(incompleteDropPanel.dropSteps[0].label, "Serie principal", "drop set panel should identify the main step");

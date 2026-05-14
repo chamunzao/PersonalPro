@@ -26,8 +26,10 @@ const workout = {
           id: "puxada-set-0",
           type: "drop-set",
           dropSteps: [
+            { id: "drop-main", completed: true },
             { id: "drop-1", completed: true },
-            { id: "drop-2", completed: true }
+            { id: "drop-2", completed: true },
+            { id: "drop-3", completed: true }
           ]
         }
       ]
@@ -108,4 +110,29 @@ assert.deepEqual(
   explicitlyCompletedDropProgress,
   { completed: 2, total: 3 },
   "explicit completion should count a drop-set series even when its internal steps were created earlier"
+);
+
+const incompleteDropProgress = getSessionWorkoutProgress({
+  ...workout,
+  exercises: [
+    workout.exercises[0],
+    {
+      ...workout.exercises[1],
+      series: [
+        {
+          ...workout.exercises[1].series[0],
+          dropSteps: [
+            { id: "drop-main", completed: true },
+            { id: "drop-1", completed: false }
+          ]
+        }
+      ]
+    }
+  ]
+}, draft);
+
+assert.deepEqual(
+  incompleteDropProgress,
+  { completed: 1, total: 3 },
+  "drop-set steps should belong to one main series and only count when every step is complete"
 );
