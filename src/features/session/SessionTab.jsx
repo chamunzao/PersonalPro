@@ -30,6 +30,7 @@ import { buildSessionClassCenterSummary } from './sessionClassCenter';
 import { getSessionFlowSections } from './sessionClassFlow';
 import { persistSessionNotesDraft } from './sessionNotes';
 import { buildSessionCheckoutSummary, hasSessionCheckoutChanges } from './sessionCheckoutUtils';
+import { buildSessionCompletionSummary, buildWorkoutPlanUpdateFromExecuted } from './sessionCompletionSummary';
 import { EXERCISE_QUICK_ACTIONS, appendExerciseQuickAction } from './sessionExerciseQuickActions';
 import { applySessionSetAction, buildSessionSetRowsWithAdjustment, buildSessionWorkoutRows, getCompactSetCount } from './sessionWorkoutLayout';
 import { addDropSetStep, addExecutedExercise, addExecutedExercises, addExecutedSet, createExerciseGroup, duplicateExecutedSet, ensureExecutedWorkout, removeBisetGroup, removeDropSetStep, removeExecutedSet, reorderExerciseGroup, transformSetToDropSet, undoDropSet, updateDropSetStep, updateExecutedSetMeta } from './sessionExecutedWorkout';
@@ -530,6 +531,48 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     }
   }
 
+  async function updateWorkoutFromExecutedClass(classKey, studentId, activeWorkout) {
+    if (!user || !activeWorkout) return;
+    const draft = drafts[classKey] || { sessionNote: "", exerciseNotes: {}, exerciseLogs: {} };
+    const executedWorkout = draft.executedWorkout || ensureExecutedWorkout(null, activeWorkout);
+    if (!executedWorkout?.exercises?.length) {
+      alert("Nenhum treino executado encontrado para atualizar o treino do aluno.");
+      return;
+    }
+
+    const confirmed = window.confirm("Atualizar o treino original do aluno com o treino executado nesta aula?");
+    if (!confirmed) return;
+
+    setSavingKey(`update-workout-${classKey}`);
+    try {
+      await persistSessionNotesDraft({
+        userId: user.uid,
+        classKey,
+        draft: { ...draft, executedWorkout },
+        saveSessionNotesRecord,
+        setRecords
+      });
+
+      const payload = {
+        ...buildWorkoutPlanUpdateFromExecuted(executedWorkout, selectedDateBR),
+        updatedFromClassKey: classKey
+      };
+
+      await updateDoc(doc(db, `users/${user.uid}/students/${studentId}/workoutPlans/${activeWorkout.id}`), payload);
+      setWorkoutsByStudent(prev => ({
+        ...prev,
+        [studentId]: (prev[studentId] || []).map(plan => (
+          plan.id === activeWorkout.id ? { ...plan, ...payload } : plan
+        ))
+      }));
+    } catch (error) {
+      console.error("Error updating workout from executed class:", error);
+      alert("Erro ao atualizar treino do aluno");
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
   function updateDraft(classKey, updater) {
     setDrafts(prev => ({
       ...prev,
@@ -1017,6 +1060,11 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
             const sessionExerciseBlocks = buildSessionExerciseGroupBlocks({
               exercises: sessionExercises,
               groups: sessionWorkout?.groups || []
+            });
+            const completionSummary = buildSessionCompletionSummary({
+              plannedWorkout: activeWorkout,
+              executedWorkout: sessionWorkout,
+              draft
             });
             const centerSummary = buildSessionClassCenterSummary({
               workout: sessionWorkout || activeWorkout,
@@ -2119,17 +2167,53 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                   </div>
                 )}
 
-                <div className="session-save-row" style={{ gridTemplateColumns: activeWorkout ? undefined : "1fr" }}>
+                <div className="session-completion-summary">
+                  <div className="session-completion-summary-header">
+                    <div>
+                      <span>Encerramento da aula</span>
+                      <strong>{completionSummary.completedSeriesLabel}</strong>
+                    </div>
+                    <small>{completionSummary.changeCount} alteracoes durante a aula</small>
+                  </div>
+                  <div className="session-completion-grid">
+                    <div>
+                      <span>Treino planejado</span>
+                      <strong>{completionSummary.plannedWorkoutName}</strong>
+                    </div>
+                    <div>
+                      <span>Treino executado</span>
+                      <strong>{completionSummary.executedWorkoutName}</strong>
+                    </div>
+                  </div>
+                  {(completionSummary.addedExercises.length > 0 || completionSummary.dropSets.length > 0 || completionSummary.groups.length > 0) && (
+                    <div className="session-completion-list">
+                      {completionSummary.addedExercises.length > 0 && <p><strong>Adicionados:</strong> {completionSummary.addedExercises.join(", ")}</p>}
+                      {completionSummary.dropSets.length > 0 && <p><strong>Drop sets:</strong> {completionSummary.dropSets.join(", ")}</p>}
+                      {completionSummary.groups.length > 0 && <p><strong>Agrupamentos:</strong> {completionSummary.groups.join(" | ")}</p>}
+                    </div>
+                  )}
+                </div>
+
+                <div className="session-save-row session-save-row-final" style={{ gridTemplateColumns: activeWorkout ? undefined : "1fr" }}>
                   <button
                     onClick={() => saveSessionNotes(classKey, activeWorkout)}
                     disabled={saving}
                     className="session-action-primary"
                     style={{ width: "100%", background: saving ? "#d1d5db" : theme.primary, borderColor: saving ? "#d1d5db" : theme.primary, cursor: saving ? "not-allowed" : "pointer" }}
                   >
-                    {saving ? "Salvando..." : "Salvar notas"}
+                    {saving ? "Salvando..." : "Salvar apenas nesta aula"}
                   </button>
 
                   {activeWorkout && (
+                  <>
+                  <button
+                    onClick={() => updateWorkoutFromExecutedClass(classKey, cls.studentId, activeWorkout)}
+                    disabled={savingKey === `update-workout-${classKey}` || !draftHasChanges}
+                    className="session-action-muted"
+                    style={{ width: "100%", background: savingKey === `update-workout-${classKey}` || !draftHasChanges ? "#e5e7eb" : "#243B5C", color: savingKey === `update-workout-${classKey}` || !draftHasChanges ? "#9ca3af" : "white", cursor: savingKey === `update-workout-${classKey}` || !draftHasChanges ? "not-allowed" : "pointer" }}
+                  >
+                    {savingKey === `update-workout-${classKey}` ? "Atualizando..." : "Atualizar treino do aluno"}
+                  </button>
                   <button
                     onClick={() => createWorkoutVersionFromClass(classKey, cls.studentId, activeWorkout)}
                     disabled={savingWorkout || !draftHasChanges}
@@ -2138,6 +2222,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                   >
                     {savingWorkout ? "Atualizando..." : "Nova versão"}
                   </button>
+                  </>
                   )}
                 </div>
                 </SessionFlowSection>
