@@ -888,7 +888,7 @@ function MeasurementsTabContent({ studentId, measurements, setMeasurements, show
       {measurements.length === 0 ? (
         <p style={{ color: "#91A0B6", textAlign: "center", padding: "20px" }}>Nenhuma medição registrada</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div className="profile-plan-list">
           {measurements.map((m, idx) => {
             const prev = idx < measurements.length - 1 ? measurements[idx + 1] : null;
             const pesoChange = prev ? (m.peso - prev.peso) : null;
@@ -938,11 +938,15 @@ function MeasurementsTabContent({ studentId, measurements, setMeasurements, show
 
 function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewWorkout, setShowNewWorkout, expandedWorkout, setExpandedWorkout, theme }) {
   const { user } = useAuth();
+  const emptyExerciseForm = { name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "", type: "normal", imageUrl: "" };
   const [saving, setSaving] = useState(false);
   const [editingWorkoutId, setEditingWorkoutId] = useState(null);
-  const [formData, setFormData] = useState({ name: "", active: true, exercises: [] });
-  const [exerciseForm, setExerciseForm] = useState({ name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" });
+  const [formData, setFormData] = useState({ name: "", active: true, startDate: formatDate(new Date()), exercises: [], days: [] });
+  const [exerciseForm, setExerciseForm] = useState(emptyExerciseForm);
   const [userWorkoutModels, setUserWorkoutModels] = useState([]);
+  const [expandedWorkoutDay, setExpandedWorkoutDay] = useState(null);
+  const [exerciseTargetDayIndex, setExerciseTargetDayIndex] = useState("");
+  const [editingExerciseContext, setEditingExerciseContext] = useState(null);
 
   useEffect(() => {
     async function loadWorkoutModels() {
@@ -964,7 +968,9 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
   ];
 
   async function saveWorkout() {
-    if (!formData.name.trim() || formData.exercises.length === 0) return;
+    const planDays = normalizeWorkoutDays(formData);
+    const hasContent = (formData.exercises || []).length > 0 || planDays.length > 0;
+    if (!formData.name.trim() || !hasContent) return;
     if (!user) return;
     setSaving(true);
 
@@ -973,8 +979,14 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
       const data = {
         name: formData.name,
         createdAt: existingWorkout?.createdAt || formatDate(new Date()),
+        startDate: formData.startDate || existingWorkout?.startDate || formatDate(new Date()),
         active: formData.active,
-        exercises: formData.exercises
+        status: formData.active ? "ativo" : (existingWorkout?.status || "rascunho"),
+        exercises: formData.exercises,
+        days: planDays.map((day, index) => ({
+          ...day,
+          dayNumber: index + 1
+        }))
       };
 
       if (editingWorkoutId) {
@@ -999,8 +1011,11 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
 
   function resetWorkoutForm() {
     setEditingWorkoutId(null);
-    setFormData({ name: "", active: true, exercises: [] });
-    setExerciseForm({ name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" });
+    setFormData({ name: "", active: true, startDate: formatDate(new Date()), exercises: [], days: [] });
+    setExerciseForm(emptyExerciseForm);
+    setExpandedWorkoutDay(null);
+    setExerciseTargetDayIndex("");
+    setEditingExerciseContext(null);
   }
 
   function startEditWorkout(plan) {
@@ -1008,20 +1023,44 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
     setFormData({
       name: plan.name || "",
       active: plan.active !== false,
-      exercises: (plan.exercises || []).map(exercise => ({ ...exercise }))
+      startDate: plan.startDate || plan.createdAt || "",
+      exercises: (plan.exercises || []).map(exercise => ({ ...exercise })),
+      days: normalizeWorkoutDays(plan)
     });
-    setExerciseForm({ name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" });
+    setExerciseForm(emptyExerciseForm);
     setShowNewWorkout(true);
     setExpandedWorkout(plan.id);
+    setExpandedWorkoutDay(null);
+    setExerciseTargetDayIndex("");
+    setEditingExerciseContext(null);
   }
 
   function addExercise() {
     if (!exerciseForm.name.trim()) return;
-    setFormData(f => ({
-      ...f,
-      exercises: [...f.exercises, { ...exerciseForm }]
-    }));
-    setExerciseForm({ name: "", sets: "", reps: "", weight: "", rest: "", notes: "", muscleGroup: "", equipment: "", instructions: "" });
+    if (editingExerciseContext) {
+      saveEditedExercise();
+      return;
+    }
+
+    const newExercise = { ...exerciseForm, id: `exercise-${Date.now()}` };
+    setFormData(f => {
+      const days = normalizeWorkoutDays(f);
+      const selectedDayIndex = Number(exerciseTargetDayIndex);
+      const shouldAddToDay = exerciseTargetDayIndex !== "" && Number.isInteger(selectedDayIndex) && days[selectedDayIndex];
+
+      return {
+        ...f,
+        exercises: [...(f.exercises || []), newExercise],
+        days: shouldAddToDay
+          ? days.map((day, dayIndex) => (
+            dayIndex === selectedDayIndex
+              ? { ...day, exercises: [...(day.exercises || []), newExercise] }
+              : day
+          ))
+          : f.days
+      };
+    });
+    resetExerciseEditor();
   }
 
   function applyTemplate(templateId) {
@@ -1031,7 +1070,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
       active: true,
       createdAt: formatDate(new Date())
     });
-    setFormData(plan);
+    setFormData({ ...plan, days: normalizeWorkoutDays(plan) });
   }
 
   async function saveWorkoutAsModel(plan) {
@@ -1060,6 +1099,59 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
       equipment: exercise.equipment,
       instructions: exercise.instructions
     }));
+  }
+
+  function resetExerciseEditor() {
+    setExerciseForm(emptyExerciseForm);
+    setEditingExerciseContext(null);
+  }
+
+  function startEditPlanExercise(dayIndex, exercise, groupId = null) {
+    setExerciseForm({
+      ...emptyExerciseForm,
+      ...exercise,
+      type: exercise.type || "normal"
+    });
+    setExerciseTargetDayIndex(String(dayIndex));
+    setEditingExerciseContext({ dayIndex, exerciseId: exercise.id, groupId });
+  }
+
+  function saveEditedExercise() {
+    if (!editingExerciseContext) return;
+    const updatedExercise = { ...exerciseForm, id: editingExerciseContext.exerciseId || exerciseForm.id || `exercise-${Date.now()}` };
+    setFormData(current => ({
+      ...current,
+      exercises: (current.exercises || []).map(exercise => (
+        exercise.id === updatedExercise.id ? { ...exercise, ...updatedExercise } : exercise
+      )),
+      days: normalizeWorkoutDays(current).map((day, dayIndex) => {
+        if (dayIndex !== editingExerciseContext.dayIndex) return day;
+
+        if (editingExerciseContext.groupId) {
+          return {
+            ...day,
+            groups: (day.groups || []).map(group => (
+              group.id === editingExerciseContext.groupId
+                ? {
+                  ...group,
+                  exercises: (group.exercises || []).map(exercise => (
+                    exercise.id === updatedExercise.id ? { ...exercise, ...updatedExercise } : exercise
+                  ))
+                }
+                : group
+            ))
+          };
+        }
+
+        return {
+          ...day,
+          exercises: (day.exercises || []).map(exercise => (
+            exercise.id === updatedExercise.id ? { ...exercise, ...updatedExercise } : exercise
+          ))
+        };
+      })
+    }));
+    resetExerciseEditor();
   }
 
   function removeExercise(idx) {
@@ -1091,7 +1183,13 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
   async function duplicateWorkout(plan) {
     if (!user) return;
     try {
-      const newData = { ...plan };
+      const newData = {
+        ...plan,
+        name: `${plan.name || "Plano"} - copia`,
+        active: false,
+        status: "rascunho",
+        createdAt: formatDate(new Date())
+      };
       delete newData.id;
       const docRef = await addDoc(collection(db, `users/${user.uid}/students/${studentId}/workoutPlans`), newData);
       setWorkoutPlans(prev => [{ id: docRef.id, ...newData }, ...prev]);
@@ -1104,12 +1202,333 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
     if (!user) return;
     try {
       await updateDoc(doc(db, `users/${user.uid}/students/${studentId}/workoutPlans/${plan.id}`), {
-        active: !plan.active
+        active: !plan.active,
+        status: !plan.active ? "ativo" : "rascunho"
       });
-      setWorkoutPlans(prev => prev.map(p => p.id === plan.id ? { ...p, active: !p.active } : p));
+      setWorkoutPlans(prev => prev.map(p => p.id === plan.id ? { ...p, active: !p.active, status: !p.active ? "ativo" : "rascunho" } : p));
     } catch (error) {
       console.error("Error toggling workout:", error);
     }
+  }
+
+  async function finalizeWorkout(plan) {
+    if (!user) return;
+    if (!window.confirm("Finalizar este plano de treino? Ele continuara salvo no perfil e disponivel para edicao depois.")) return;
+    try {
+      const patch = {
+        active: false,
+        status: "finalizado",
+        finishedAt: formatDate(new Date())
+      };
+      await updateDoc(doc(db, `users/${user.uid}/students/${studentId}/workoutPlans/${plan.id}`), patch);
+      setWorkoutPlans(prev => prev.map(p => p.id === plan.id ? { ...p, ...patch } : p));
+    } catch (error) {
+      console.error("Error finalizing workout:", error);
+      alert("Erro ao finalizar plano");
+    }
+  }
+
+  function getPlanStatus(plan = {}) {
+    if (plan.status === "finalizado" || plan.status === "finalized") return "Finalizado";
+    if (plan.status === "rascunho" || plan.status === "draft") return "Rascunho";
+    return plan.active ? "Ativo" : "Rascunho";
+  }
+
+  function getPlanDayCount(plan = {}) {
+    const explicitDays = plan.days || plan.trainingDays || plan.dayPlans || [];
+    if (Array.isArray(explicitDays) && explicitDays.length > 0) return explicitDays.length;
+    return (plan.exercises || []).length > 0 ? 1 : 0;
+  }
+
+  function getPlanCoverInitial(plan = {}) {
+    return String(plan.name || "P").trim().charAt(0).toUpperCase() || "P";
+  }
+
+  function normalizeWorkoutDays(plan = {}) {
+    const explicitDays = plan.days || plan.trainingDays || plan.dayPlans || [];
+    if (Array.isArray(explicitDays) && explicitDays.length > 0) {
+      return explicitDays.map((day, index) => normalizeWorkoutDay(day, index, plan));
+    }
+
+    if (Array.isArray(plan.exercises) && plan.exercises.length > 0) {
+      return [normalizeWorkoutDay({
+        id: "day-1",
+        dayNumber: 1,
+        name: plan.name || "Treino",
+        muscleGroup: inferDayMuscleGroup(plan.exercises),
+        notes: "",
+        exercises: plan.exercises
+      }, 0, plan)];
+    }
+
+    return [];
+  }
+
+  function normalizeWorkoutDay(day = {}, index = 0, plan = {}) {
+    const exercises = Array.isArray(day.exercises) ? day.exercises.map((exercise, exerciseIndex) => normalizePlanExercise(exercise, exerciseIndex)) : [];
+    const groups = Array.isArray(day.groups)
+      ? day.groups.map((group, groupIndex) => normalizeWorkoutGroup(group, groupIndex))
+      : [];
+    return {
+      id: day.id || `day-${index + 1}`,
+      dayNumber: Number(day.dayNumber) || index + 1,
+      name: day.name || day.title || (index === 0 ? (plan.name || "Treino") : `Treino ${index + 1}`),
+      muscleGroup: day.muscleGroup || day.primaryMuscle || day.group || inferDayMuscleGroup(exercises),
+      notes: day.notes || day.observations || "",
+      exercises,
+      groups
+    };
+  }
+
+  function normalizePlanExercise(exercise = {}, index = 0) {
+    return {
+      ...exercise,
+      id: exercise.id || `exercise-${index + 1}-${String(exercise.name || "item").replace(/\s+/g, "-").toLowerCase()}`
+    };
+  }
+
+  function normalizeWorkoutGroup(group = {}, index = 0) {
+    const type = group.type === "superset" || group.type === "superserie" ? "superset" : "biset";
+    return {
+      id: group.id || `group-${index + 1}`,
+      type,
+      name: group.name || `${type === "biset" ? "Biset" : "Superserie"} ${index + 1}`,
+      exercises: Array.isArray(group.exercises)
+        ? group.exercises.map((exercise, exerciseIndex) => normalizePlanExercise(exercise, exerciseIndex))
+        : []
+    };
+  }
+
+  function inferDayMuscleGroup(exercises = []) {
+    const groups = exercises.map(exercise => exercise.muscleGroup).filter(Boolean);
+    return groups[0] || "";
+  }
+
+  function addWorkoutDay() {
+    setFormData(current => {
+      const days = normalizeWorkoutDays(current);
+      const nextIndex = days.length;
+      return {
+        ...current,
+        days: [
+          ...days,
+          normalizeWorkoutDay({
+            id: `day-${Date.now()}`,
+            dayNumber: nextIndex + 1,
+            name: `Treino ${nextIndex + 1}`,
+            muscleGroup: "",
+            notes: "",
+            exercises: []
+          }, nextIndex, current)
+        ]
+      };
+    });
+  }
+
+  function updateWorkoutDay(dayIndex, patch) {
+    setFormData(current => ({
+      ...current,
+      days: normalizeWorkoutDays(current).map((day, index) => (
+        index === dayIndex ? { ...day, ...patch } : day
+      ))
+    }));
+  }
+
+  function removeWorkoutDay(dayIndex) {
+    setFormData(current => ({
+      ...current,
+      days: normalizeWorkoutDays(current)
+        .filter((_, index) => index !== dayIndex)
+        .map((day, index) => ({ ...day, dayNumber: index + 1 }))
+    }));
+    setExpandedWorkoutDay(null);
+    setExerciseTargetDayIndex("");
+  }
+
+  function countDayExercises(day = {}) {
+    const normalCount = (day.exercises || []).length;
+    const groupCount = (day.groups || []).reduce((total, group) => total + (group.exercises || []).length, 0);
+    return normalCount + groupCount;
+  }
+
+  function getDayGroupName(type, groups = []) {
+    const groupNumber = groups.filter(group => group.type === type).length + 1;
+    return `${type === "biset" ? "Biset" : "Superserie"} ${groupNumber}`;
+  }
+
+  function createWorkoutGroup(dayIndex, type) {
+    setFormData(current => ({
+      ...current,
+      days: normalizeWorkoutDays(current).map((day, index) => {
+        if (index !== dayIndex) return day;
+        const groupSize = type === "biset" ? 2 : Math.max(2, day.exercises.length);
+        const selectedExercises = day.exercises.slice(0, groupSize);
+        if (selectedExercises.length < 2) return day;
+
+        const nextGroup = {
+          id: `group-${Date.now()}`,
+          type,
+          name: getDayGroupName(type, day.groups || []),
+          exercises: selectedExercises
+        };
+
+        return {
+          ...day,
+          exercises: day.exercises.slice(groupSize),
+          groups: [...(day.groups || []), nextGroup]
+        };
+      })
+    }));
+  }
+
+  function undoWorkoutGroup(dayIndex, groupId) {
+    setFormData(current => ({
+      ...current,
+      days: normalizeWorkoutDays(current).map((day, index) => {
+        if (index !== dayIndex) return day;
+        const group = (day.groups || []).find(item => item.id === groupId);
+        if (!group) return day;
+
+        return {
+          ...day,
+          exercises: [...(day.exercises || []), ...(group.exercises || [])],
+          groups: (day.groups || []).filter(item => item.id !== groupId)
+        };
+      })
+    }));
+  }
+
+  function moveWorkoutGroupExercise(dayIndex, groupId, exerciseIndex, direction) {
+    setFormData(current => ({
+      ...current,
+      days: normalizeWorkoutDays(current).map((day, index) => {
+        if (index !== dayIndex) return day;
+        return {
+          ...day,
+          groups: (day.groups || []).map(group => {
+            if (group.id !== groupId) return group;
+            const nextIndex = exerciseIndex + direction;
+            if (nextIndex < 0 || nextIndex >= (group.exercises || []).length) return group;
+            const exercises = [...group.exercises];
+            const [movedExercise] = exercises.splice(exerciseIndex, 1);
+            exercises.splice(nextIndex, 0, movedExercise);
+            return { ...group, exercises };
+          })
+        };
+      })
+    }));
+  }
+
+  function getExerciseInitial(exercise = {}) {
+    return String(exercise.name || "?").trim().charAt(0).toUpperCase() || "?";
+  }
+
+  function getExerciseImage(exercise = {}) {
+    return exercise.imageUrl || exercise.image || exercise.coverUrl || "";
+  }
+
+  function formatExercisePrescription(exercise = {}) {
+    const sets = exercise.sets ? `${exercise.sets} series` : "series nao definidas";
+    const reps = exercise.reps ? `x ${exercise.reps} reps` : "x reps livres";
+    return `${sets} ${reps}`;
+  }
+
+  function formatExerciseDetails(exercise = {}) {
+    return [exercise.weight, exercise.rest].filter(Boolean).join(" - ");
+  }
+
+  function getExerciseTypeLabel(type = "normal") {
+    if (type === "drop_set") return "Drop set";
+    if (type === "biset") return "Biset";
+    if (type === "superset") return "Superserie";
+    return "Normal";
+  }
+
+  function renderPlanDayExercises(day = {}) {
+    const exercises = day.exercises || [];
+    const groups = day.groups || [];
+    if (exercises.length === 0 && groups.length === 0) {
+      return <p>Este dia ainda nao tem exercicios.</p>;
+    }
+
+    return (
+      <>
+        {exercises.map((exercise, exerciseIndex) => renderExerciseRow(exercise, exerciseIndex))}
+        {groups.length > 0 && (
+          <div className="profile-plan-group-section">
+            <strong>{groups.some(group => group.type === "superset") ? "Superseries" : "Bisets"}</strong>
+            {groups.map((group, groupIndex) => renderWorkoutGroup(group, groupIndex))}
+          </div>
+        )}
+      </>
+    );
+  }
+
+  function renderExerciseRow(exercise, exerciseIndex, options = {}) {
+    return (
+      <div key={exercise.id || `${exercise.name || "exercise"}-${exerciseIndex}`} className="profile-plan-exercise-row">
+        <div className="profile-plan-exercise-thumb">
+          {getExerciseImage(exercise) ? <img src={getExerciseImage(exercise)} alt="" /> : <span>{getExerciseInitial(exercise)}</span>}
+        </div>
+        <div className="profile-plan-exercise-copy">
+          <div className="profile-plan-exercise-title-row">
+            <strong>{exercise.name || `Exercicio ${exerciseIndex + 1}`}</strong>
+            <em>{getExerciseTypeLabel(exercise.type)}</em>
+          </div>
+          <span>{formatExercisePrescription(exercise)}</span>
+          {(exercise.muscleGroup || exercise.equipment || formatExerciseDetails(exercise)) && (
+            <small>{[exercise.muscleGroup, exercise.equipment, formatExerciseDetails(exercise)].filter(Boolean).join(" - ")}</small>
+          )}
+          {exercise.notes && <p>{exercise.notes}</p>}
+          {options.editable && (
+            <button type="button" onClick={() => startEditPlanExercise(options.dayIndex, exercise, options.groupId || null)}>Editar</button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function renderWorkoutGroup(group = {}, groupIndex = 0, options = {}) {
+    return (
+      <div key={group.id || groupIndex} className={`profile-plan-exercise-group profile-plan-exercise-group-${group.type}`}>
+        <div className="profile-plan-exercise-group-header">
+          <span>{group.name || `${group.type === "biset" ? "Biset" : "Superserie"} ${groupIndex + 1}`}</span>
+          {options.editable && (
+            <button type="button" onClick={() => undoWorkoutGroup(options.dayIndex, group.id)}>Desfazer</button>
+          )}
+        </div>
+        <div className="profile-plan-exercise-group-body">
+          {(group.exercises || []).map((exercise, exerciseIndex) => (
+            <div key={exercise.id || exerciseIndex} className="profile-plan-group-exercise-line">
+              <i />
+              <div>
+                <strong>{exercise.name || `Exercicio ${exerciseIndex + 1}`}</strong>
+                <span>{formatExercisePrescription(exercise)}</span>
+              </div>
+              {options.editable && (
+                <div className="profile-plan-group-reorder">
+                  <button type="button" onClick={() => startEditPlanExercise(options.dayIndex, exercise, group.id)}>Editar</button>
+                  <button type="button" onClick={() => moveWorkoutGroupExercise(options.dayIndex, group.id, exerciseIndex, -1)}>Subir</button>
+                  <button type="button" onClick={() => moveWorkoutGroupExercise(options.dayIndex, group.id, exerciseIndex, 1)}>Descer</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function renderEditableWorkoutGroups(day = {}, dayIndex = 0) {
+    const groups = day.groups || [];
+    if (groups.length === 0) return null;
+
+    return (
+      <div className="profile-plan-group-section">
+        <strong>Grupos do dia</strong>
+        {groups.map((group, groupIndex) => renderWorkoutGroup(group, groupIndex, { editable: true, dayIndex }))}
+      </div>
+    );
   }
 
   return (
@@ -1138,7 +1557,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
           gap: "6px"
         }}
       >
-        <IconPlus /> {showNewWorkout ? "Fechar" : "Novo Treino"}
+        <IconPlus /> {showNewWorkout ? "Fechar" : "Novo Plano"}
       </button>
 
       {showNewWorkout && (
@@ -1169,12 +1588,12 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
           </div>
 
           <div className="student-form-field" style={{ marginBottom: "12px" }}>
-            <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Nome do Treino</label>
+            <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Nome do Plano</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData(f => ({ ...f, name: e.target.value }))}
-              placeholder="Ex: Treino A - Peito/Tríceps"
+              placeholder="Ex: Plano hipertrofia - 3 dias"
               style={{
                 width: "100%",
                 padding: "8px 10px",
@@ -1194,10 +1613,119 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
               onChange={(e) => setFormData(f => ({ ...f, active: e.target.checked }))}
               style={{ cursor: "pointer" }}
             />
-            <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7" }}>Treino ativo</label>
+            <label style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7" }}>Plano ativo</label>
+          </div>
+
+          <div className="profile-plan-days-editor">
+            <div className="profile-plan-days-header">
+              <div>
+                <h4>Dias do plano</h4>
+                <p>Organize a ficha por dias antes de detalhar os exercicios.</p>
+              </div>
+              <button type="button" onClick={addWorkoutDay}>Adicionar dia</button>
+            </div>
+
+            {normalizeWorkoutDays(formData).length === 0 ? (
+              <div className="profile-plan-day-empty">Nenhum dia criado ainda.</div>
+            ) : (
+              <div className="profile-plan-day-list">
+                {normalizeWorkoutDays(formData).map((day, dayIndex) => (
+                  <div key={day.id || dayIndex} className="profile-plan-day-card">
+                    <div className="profile-plan-day-card-top">
+                      <span className="profile-plan-day-badge">Dia {dayIndex + 1}</span>
+                      <div className="profile-plan-day-actions">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedWorkoutDay(expandedWorkoutDay === `form-${dayIndex}` ? null : `form-${dayIndex}`)}
+                        >
+                          {expandedWorkoutDay === `form-${dayIndex}` ? "Fechar detalhe" : "Abrir detalhe"}
+                        </button>
+                        <button type="button" onClick={() => removeWorkoutDay(dayIndex)}>Remover</button>
+                      </div>
+                    </div>
+
+                    <div className="profile-plan-day-fields">
+                      <input
+                        type="text"
+                        value={day.name}
+                        onChange={(event) => updateWorkoutDay(dayIndex, { name: event.target.value })}
+                        placeholder="Nome do treino do dia"
+                      />
+                      <input
+                        type="text"
+                        value={day.muscleGroup}
+                        onChange={(event) => updateWorkoutDay(dayIndex, { muscleGroup: event.target.value })}
+                        placeholder="Grupo muscular principal"
+                      />
+                    </div>
+                    <textarea
+                      value={day.notes}
+                      onChange={(event) => updateWorkoutDay(dayIndex, { notes: event.target.value })}
+                      placeholder="Observacoes do dia"
+                    />
+
+                    <div className="profile-plan-day-summary">
+                      <span>{countDayExercises(day)} exercicio{countDayExercises(day) === 1 ? "" : "s"}</span>
+                      {day.muscleGroup && <span>{day.muscleGroup}</span>}
+                    </div>
+
+                    {expandedWorkoutDay === `form-${dayIndex}` && (
+                      <div className="profile-plan-day-detail">
+                        <strong>{day.name || `Dia ${dayIndex + 1}`}</strong>
+                        <div className="profile-plan-group-actions">
+                          <button
+                            type="button"
+                            onClick={() => createWorkoutGroup(dayIndex, "biset")}
+                            disabled={(day.exercises || []).length < 2}
+                          >
+                            Criar biset
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => createWorkoutGroup(dayIndex, "superset")}
+                            disabled={(day.exercises || []).length < 2}
+                          >
+                            Criar superserie
+                          </button>
+                        </div>
+                        {(day.exercises || []).length > 0 ? (
+                          (day.exercises || []).map((exercise, exerciseIndex) => renderExerciseRow(exercise, exerciseIndex, { editable: true, dayIndex }))
+                        ) : (
+                          <p>Nenhum exercicio normal fora de grupos.</p>
+                        )}
+                        {renderEditableWorkoutGroups(day, dayIndex)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <h4 style={{ fontSize: "12px", fontWeight: "600", color: "#C2CAD7", margin: "12px 0 8px 0" }}>Exercícios</h4>
+          {editingExerciseContext && (
+            <div className="profile-plan-editor-status">
+              Editando exercicio do Dia {editingExerciseContext.dayIndex + 1}
+              <button type="button" onClick={resetExerciseEditor}>Cancelar edicao</button>
+            </div>
+          )}
+
+          {normalizeWorkoutDays(formData).length > 0 && (
+            <div className="profile-plan-exercise-target">
+              <label>Adicionar exercicio em</label>
+              <select
+                value={exerciseTargetDayIndex}
+                onChange={(event) => setExerciseTargetDayIndex(event.target.value)}
+              >
+                <option value="">Somente na lista geral</option>
+                {normalizeWorkoutDays(formData).map((day, dayIndex) => (
+                  <option key={day.id || dayIndex} value={dayIndex}>
+                    Dia {dayIndex + 1} - {day.name || `Treino ${dayIndex + 1}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "12px" }}>
             {formData.exercises.map((ex, idx) => (
@@ -1240,11 +1768,42 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                 <option key={exercise.name} value={exercise.name}>{exercise.name}</option>
               ))}
             </select>
+            <select
+              value={exerciseForm.type || "normal"}
+              onChange={(e) => setExerciseForm(f => ({ ...f, type: e.target.value }))}
+              style={{
+                padding: "8px 10px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontSize: "12px",
+                boxSizing: "border-box",
+                fontFamily: "inherit"
+              }}
+            >
+              <option value="normal">Normal</option>
+              <option value="drop_set">Drop set</option>
+              <option value="biset">Biset</option>
+              <option value="superset">Superserie</option>
+            </select>
             <input
               type="text"
               value={exerciseForm.name}
               onChange={(e) => setExerciseForm(f => ({ ...f, name: e.target.value }))}
               placeholder="Nome do exercício"
+              style={{
+                padding: "8px 10px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontSize: "12px",
+                boxSizing: "border-box",
+                fontFamily: "inherit"
+              }}
+            />
+            <input
+              type="text"
+              value={exerciseForm.imageUrl || ""}
+              onChange={(e) => setExerciseForm(f => ({ ...f, imageUrl: e.target.value }))}
+              placeholder="Imagem ou icone"
               style={{
                 padding: "8px 10px",
                 border: "1px solid #d1d5db",
@@ -1385,13 +1944,13 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
               marginBottom: "12px"
             }}
           >
-            + Adicionar Exercício
+            {editingExerciseContext ? "Salvar exercicio" : "+ Adicionar Exercício"}
           </button>
 
           <div style={{ display: "flex", gap: "8px" }}>
             <button
               onClick={saveWorkout}
-              disabled={saving || !formData.name.trim() || formData.exercises.length === 0}
+              disabled={saving || !formData.name.trim() || ((formData.exercises || []).length === 0 && normalizeWorkoutDays(formData).length === 0)}
               style={{
                 flex: 1,
                 padding: "8px",
@@ -1404,7 +1963,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                 cursor: "pointer"
               }}
             >
-              {editingWorkoutId ? "Salvar alterações" : "Salvar treino"}
+              {editingWorkoutId ? "Salvar plano" : "Salvar plano"}
             </button>
             <button
               onClick={() => {
@@ -1433,21 +1992,36 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {workoutPlans.map(plan => (
-            <div key={plan.id} style={{
-              background: "#243B5C",
-              padding: "12px",
-              borderRadius: "8px",
-              border: plan.active ? `2px solid ${theme.primary}` : "1px solid #e5e7eb"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "8px" }}>
-                <div onClick={() => setExpandedWorkout(expandedWorkout === plan.id ? null : plan.id)} style={{ flex: 1, cursor: "pointer" }}>
+            <div key={plan.id} className={`profile-plan-card profile-plan-card-${getPlanStatus(plan).toLowerCase()}`}>
+              <div className="profile-plan-card-main">
+                <button
+                  type="button"
+                  className="profile-plan-cover"
+                  onClick={() => setExpandedWorkout(expandedWorkout === plan.id ? null : plan.id)}
+                  aria-label={`Visualizar ${plan.name}`}
+                >
+                  {plan.coverUrl || plan.imageUrl ? <img src={plan.coverUrl || plan.imageUrl} alt="" /> : <span>{getPlanCoverInitial(plan)}</span>}
+                </button>
+                <div className="profile-plan-copy" onClick={() => setExpandedWorkout(expandedWorkout === plan.id ? null : plan.id)}>
                   <p style={{ fontSize: "12px", fontWeight: "600", margin: "0", color: "#FFFFFF" }}>
                     {plan.name}
                     {plan.active && <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 6px", background: theme.light, color: theme.dark, borderRadius: "4px" }}>Ativo</span>}
                   </p>
                   <p style={{ fontSize: "10px", color: "#91A0B6", margin: "4px 0 0 0" }}>{plan.exercises?.length || 0} exercício{(plan.exercises?.length || 0) === 1 ? "" : "s"}</p>
                 </div>
-                <div style={{ display: "flex", gap: "4px" }}>
+                  <div className="profile-plan-meta-row">
+                    <span className={`profile-plan-status profile-plan-status-${getPlanStatus(plan).toLowerCase()}`}>{getPlanStatus(plan)}</span>
+                    <small>Comecou em {plan.startDate || plan.createdAt || "sem data"}</small>
+                    <small>{getPlanDayCount(plan)} dia{getPlanDayCount(plan) === 1 ? "" : "s"} de treino</small>
+                  </div>
+                </div>
+                <div className="profile-plan-actions">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedWorkout(expandedWorkout === plan.id ? null : plan.id)}
+                  >
+                    {expandedWorkout === plan.id ? "Fechar" : "Visualizar"}
+                  </button>
                   <button
                     onClick={() => startEditWorkout(plan)}
                     style={{
@@ -1461,7 +2035,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                       fontWeight: "700"
                     }}
                   >
-                    Editar treino
+                    Editar plano
                   </button>
                   <button
                     onClick={() => toggleWorkoutActive(plan)}
@@ -1509,6 +2083,13 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                     <IconCopy />
                   </button>
                   <button
+                    type="button"
+                    onClick={() => finalizeWorkout(plan)}
+                    disabled={getPlanStatus(plan) === "Finalizado"}
+                  >
+                    Finalizar
+                  </button>
+                  <button
                     onClick={() => deleteWorkout(plan.id)}
                     style={{
                       padding: "4px 8px",
@@ -1523,22 +2104,42 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                     ×
                   </button>
                 </div>
-              </div>
 
-              {expandedWorkout === plan.id && plan.exercises && (
-                <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #e5e7eb" }}>
-                  {plan.exercises.map((ex, idx) => (
-                    <div key={idx} style={{ fontSize: "11px", padding: "4px 0", display: "flex", justifyContent: "space-between" }}>
-                      <span>
-                        <strong>{ex.name}</strong>
-                        {(ex.muscleGroup || ex.equipment) && (
-                          <span style={{ color: "#91A0B6" }}> - {[ex.muscleGroup, ex.equipment].filter(Boolean).join(" / ")}</span>
-                        )}
-                        {ex.instructions && <p style={{ color: "#6b7280", margin: "2px 0 0 0" }}>{ex.instructions}</p>}
-                      </span>
-                      <span style={{ color: "#91A0B6" }}>{ex.sets}s x {ex.reps}r {ex.weight ? `@ ${ex.weight}` : ""}</span>
+              {expandedWorkout === plan.id && (
+                <div className="profile-plan-expanded">
+                  {normalizeWorkoutDays(plan).length > 0 ? (
+                    <div className="profile-plan-day-list">
+                      {normalizeWorkoutDays(plan).map((day, dayIndex) => (
+                        <div key={day.id || dayIndex} className="profile-plan-day-card profile-plan-day-card-readonly">
+                          <div className="profile-plan-day-card-top">
+                            <span className="profile-plan-day-badge">Dia {dayIndex + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => setExpandedWorkoutDay(expandedWorkoutDay === `${plan.id}-${dayIndex}` ? null : `${plan.id}-${dayIndex}`)}
+                            >
+                              {expandedWorkoutDay === `${plan.id}-${dayIndex}` ? "Fechar detalhe" : "Abrir detalhe"}
+                            </button>
+                          </div>
+                          <div className="profile-plan-day-copy">
+                            <strong>{day.name || `Treino ${dayIndex + 1}`}</strong>
+                            <span>{day.muscleGroup || "Grupo nao definido"}</span>
+                            {day.notes && <p>{day.notes}</p>}
+                          </div>
+                          <div className="profile-plan-day-summary">
+                            <span>{countDayExercises(day)} exercicio{countDayExercises(day) === 1 ? "" : "s"}</span>
+                            {(day.groups || []).length > 0 && <span>{(day.groups || []).length} grupo{(day.groups || []).length === 1 ? "" : "s"}</span>}
+                          </div>
+                          {expandedWorkoutDay === `${plan.id}-${dayIndex}` && (
+                            <div className="profile-plan-day-detail">
+                              {renderPlanDayExercises(day)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    <p>Nenhum dia cadastrado neste plano.</p>
+                  )}
                 </div>
               )}
             </div>

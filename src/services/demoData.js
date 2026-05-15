@@ -69,9 +69,129 @@ const workoutTemplate = [
   { name: "Prancha", sets: "3", reps: "40s", weight: "", rest: "45s", muscleGroup: "Core", equipment: "Solo", notes: "Manter quadril alinhado." }
 ];
 
+function exercise(id, data) {
+  return {
+    id,
+    type: "normal",
+    imageUrl: "",
+    instructions: "",
+    ...data
+  };
+}
+
+function flattenWorkoutDays(days) {
+  return days.flatMap(day => [
+    ...(day.exercises || []),
+    ...(day.groups || []).flatMap(group => group.exercises || [])
+  ]).map(item => ({ ...item }));
+}
+
+const eduardaWorkoutDays = [
+  {
+    id: "eduarda-dia-1",
+    dayNumber: 1,
+    name: "Inferiores e gluteos",
+    muscleGroup: "Pernas",
+    notes: "Priorizar amplitude segura e controle de joelho.",
+    exercises: [
+      exercise("eduarda-agachamento-goblet", { name: "Agachamento goblet", type: "drop_set", sets: "4", reps: "10", weight: "18kg", rest: "90s", muscleGroup: "Pernas", equipment: "Halter", notes: "Ultima serie em drop set com reducao de carga." }),
+      exercise("eduarda-elevacao-pelvica", { name: "Elevacao pelvica", sets: "4", reps: "12", weight: "50kg", rest: "90s", muscleGroup: "Gluteos", equipment: "Barra", notes: "Pausa de 1s no topo." })
+    ],
+    groups: [
+      {
+        id: "eduarda-biset-1",
+        type: "biset",
+        name: "Biset 1",
+        exercises: [
+          exercise("eduarda-leg-press", { name: "Leg press 45", type: "biset", sets: "3", reps: "12", weight: "90kg", rest: "0s", muscleGroup: "Pernas", equipment: "Maquina", notes: "Sem travar os joelhos." }),
+          exercise("eduarda-mesa-flexora", { name: "Mesa flexora", type: "biset", sets: "3", reps: "12", weight: "25kg", rest: "75s", muscleGroup: "Posterior", equipment: "Maquina", notes: "Controlar fase excentrica." })
+        ]
+      }
+    ]
+  },
+  {
+    id: "eduarda-dia-2",
+    dayNumber: 2,
+    name: "Superiores push/pull",
+    muscleGroup: "Costas / peito",
+    notes: "Manter postura e evitar compensacao lombar.",
+    exercises: [
+      exercise("eduarda-puxada-frontal", { name: "Puxada aberta frontal", sets: "4", reps: "10", weight: "35kg", rest: "75s", muscleGroup: "Costas", equipment: "Polia", notes: "Puxar cotovelos para baixo." }),
+      exercise("eduarda-supino-halter", { name: "Supino reto com halteres", sets: "3", reps: "12", weight: "12kg", rest: "75s", muscleGroup: "Peito", equipment: "Halter", notes: "Descida controlada." })
+    ],
+    groups: [
+      {
+        id: "eduarda-superset-1",
+        type: "superset",
+        name: "Superserie 1",
+        exercises: [
+          exercise("eduarda-remada-baixa", { name: "Remada baixa", type: "superset", sets: "3", reps: "12", weight: "30kg", rest: "0s", muscleGroup: "Costas", equipment: "Maquina", notes: "Escapulas encaixadas." }),
+          exercise("eduarda-desenvolvimento", { name: "Desenvolvimento com halteres", type: "superset", sets: "3", reps: "10", weight: "8kg", rest: "0s", muscleGroup: "Ombros", equipment: "Halter", notes: "Nao elevar demais os ombros." }),
+          exercise("eduarda-face-pull", { name: "Face pull", type: "superset", sets: "3", reps: "15", weight: "15kg", rest: "90s", muscleGroup: "Ombros", equipment: "Polia", notes: "Finalizar com cotovelos altos." })
+        ]
+      }
+    ]
+  },
+  {
+    id: "eduarda-dia-3",
+    dayNumber: 3,
+    name: "Bracos e core",
+    muscleGroup: "Biceps / triceps / core",
+    notes: "Treino mais curto para encaixar em aula avulsa.",
+    exercises: [
+      exercise("eduarda-rosca-direta", { name: "Rosca direta com barra W", sets: "3", reps: "12", weight: "15kg", rest: "60s", muscleGroup: "Biceps", equipment: "Barra W", notes: "Cotovelos proximos ao corpo." }),
+      exercise("eduarda-prancha", { name: "Prancha", sets: "3", reps: "40s", weight: "", rest: "45s", muscleGroup: "Core", equipment: "Solo", notes: "Quadril alinhado." })
+    ],
+    groups: [
+      {
+        id: "eduarda-biset-2",
+        type: "biset",
+        name: "Biset 2",
+        exercises: [
+          exercise("eduarda-triceps-corda", { name: "Triceps corda", type: "biset", sets: "3", reps: "12", weight: "18kg", rest: "0s", muscleGroup: "Triceps", equipment: "Polia", notes: "Abrir a corda no final." }),
+          exercise("eduarda-abdominal-reto", { name: "Abdominal reto", type: "biset", sets: "3", reps: "20", weight: "", rest: "60s", muscleGroup: "Core", equipment: "Solo", notes: "Sem puxar o pescoco." })
+        ]
+      }
+    ]
+  }
+];
+
+const eduardaWorkoutPlan = {
+  id: "eduarda-plano-3-dias",
+  name: "Plano Eduarda - 3 dias",
+  createdAt: "15/05/2026",
+  startDate: "15/05/2026",
+  status: "ativo",
+  active: true,
+  days: eduardaWorkoutDays.map(day => ({
+    ...day,
+    exercises: day.exercises.map(item => ({ ...item })),
+    groups: day.groups.map(group => ({
+      ...group,
+      exercises: group.exercises.map(item => ({ ...item }))
+    }))
+  })),
+  exercises: flattenWorkoutDays(eduardaWorkoutDays)
+};
+
 export function getDemoWorkoutPlans(studentId) {
   const student = demoStudents.find(item => item.id === studentId);
   if (!student) return [];
+
+  if (studentId === "demo-aluno-05") {
+    return [{
+      ...eduardaWorkoutPlan,
+      days: eduardaWorkoutPlan.days.map(day => ({
+        ...day,
+        exercises: day.exercises.map(item => ({ ...item })),
+        groups: day.groups.map(group => ({
+          ...group,
+          exercises: group.exercises.map(item => ({ ...item }))
+        }))
+      })),
+      exercises: eduardaWorkoutPlan.exercises.map(item => ({ ...item }))
+    }];
+  }
 
   return [{
     id: "treino-a",

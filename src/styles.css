@@ -5564,3 +5564,644 @@ body .reports-student-row p:last-child {
     text-align: left;
   }
 }
+
+.profile-plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-plan-card {
+  background: #243B5C;
+  border: 1px solid #4A6388;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.profile-plan-card-ativo {
+  border-color: #F2CF7C;
+}
+
+.profile-plan-card-main {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.profile-plan-cover {
+  width: 74px;
+  height: 74px;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #FFFFFF;
+  color: #6B7280;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.profile-plan-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-plan-cover span {
+  font-size: 34px;
+  font-weight: 500;
+}
+
+.profile-plan-copy {
+  min-width: 0;
+  cursor: pointer;
+}
+
+.profile-plan-copy p,
+.profile-plan-copy small {
+  margin: 4px 0 0;
+  color: #C2CAD7;
+  font-size: 12px;
+}
+
+.profile-plan-copy > p:first-child {
+  margin: 0;
+  color: #FFFFFF;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.profile-plan-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.profile-plan-meta-row small,
+.profile-plan-status {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(242, 207, 124, 0.1);
+  color: #F2CF7C;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.profile-plan-status-finalizado {
+  background: rgba(145, 160, 182, 0.18);
+  color: #C2CAD7;
+}
+
+.profile-plan-status-rascunho {
+  background: rgba(74, 99, 136, 0.42);
+  color: #C2CAD7;
+}
+
+.profile-plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.profile-plan-actions button {
+  border: 1px solid rgba(242, 207, 124, 0.22) !important;
+  border-radius: 999px !important;
+  background: rgba(242, 207, 124, 0.12) !important;
+  color: #F2CF7C !important;
+  padding: 7px 10px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  cursor: pointer;
+}
+
+.profile-plan-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.profile-plan-actions .profile-plan-danger {
+  border-color: rgba(239, 68, 68, 0.28) !important;
+  background: rgba(239, 68, 68, 0.14) !important;
+  color: #FCA5A5 !important;
+}
+
+.profile-plan-days-editor,
+.profile-plan-expanded {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid rgba(74, 99, 136, 0.75);
+  border-radius: 8px;
+  background: rgba(20, 35, 57, 0.42);
+}
+
+.profile-plan-days-header,
+.profile-plan-day-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-plan-days-header h4,
+.profile-plan-days-header p,
+.profile-plan-day-copy p,
+.profile-plan-day-detail p {
+  margin: 0;
+}
+
+.profile-plan-days-header h4 {
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.profile-plan-days-header p {
+  margin-top: 3px;
+  color: #91A0B6;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.profile-plan-days-header button,
+.profile-plan-day-card-top button,
+.profile-plan-day-actions button {
+  border: 1px solid rgba(242, 207, 124, 0.28);
+  border-radius: 999px;
+  background: rgba(242, 207, 124, 0.13);
+  color: #F2CF7C;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.profile-plan-day-empty {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px dashed rgba(145, 160, 182, 0.35);
+  border-radius: 8px;
+  color: #91A0B6;
+  font-size: 12px;
+}
+
+.profile-plan-day-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.profile-plan-day-card {
+  padding: 11px;
+  border: 1px solid rgba(74, 99, 136, 0.8);
+  border-radius: 8px;
+  background: rgba(36, 59, 92, 0.82);
+}
+
+.profile-plan-day-card-readonly {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.profile-plan-day-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #00B894;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.profile-plan-day-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.profile-plan-day-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.profile-plan-day-fields input,
+.profile-plan-day-card textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(145, 160, 182, 0.45);
+  border-radius: 8px;
+  background: #142339;
+  color: #FFFFFF;
+  padding: 9px 10px;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.profile-plan-day-card textarea {
+  min-height: 54px;
+  margin-top: 8px;
+  resize: vertical;
+}
+
+.profile-plan-day-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.profile-plan-day-summary span {
+  border-radius: 999px;
+  background: rgba(145, 160, 182, 0.16);
+  color: #C2CAD7;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.profile-plan-day-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 9px;
+}
+
+.profile-plan-day-copy strong {
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.profile-plan-day-copy span,
+.profile-plan-day-copy p {
+  color: #C2CAD7;
+  font-size: 12px;
+}
+
+.profile-plan-day-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(145, 160, 182, 0.22);
+  color: #C2CAD7;
+  font-size: 12px;
+}
+
+.profile-plan-day-detail strong {
+  color: #FFFFFF;
+}
+
+.profile-plan-editor-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid rgba(242, 207, 124, 0.25);
+  border-radius: 8px;
+  background: rgba(242, 207, 124, 0.1);
+  color: #F2CF7C;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.profile-plan-editor-status button,
+.profile-plan-exercise-copy button {
+  border: 1px solid rgba(242, 207, 124, 0.28);
+  border-radius: 999px;
+  background: rgba(242, 207, 124, 0.13);
+  color: #F2CF7C;
+  padding: 6px 9px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.profile-plan-group-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.profile-plan-group-actions button,
+.profile-plan-exercise-group-header button,
+.profile-plan-group-reorder button {
+  border: 1px solid rgba(242, 207, 124, 0.28);
+  border-radius: 999px;
+  background: rgba(242, 207, 124, 0.13);
+  color: #F2CF7C;
+  padding: 6px 9px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.profile-plan-group-actions button:disabled,
+.profile-plan-group-reorder button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.profile-plan-group-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(145, 160, 182, 0.2);
+}
+
+.profile-plan-group-section > strong {
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.profile-plan-exercise-group {
+  overflow: hidden;
+  border: 1px solid rgba(242, 207, 124, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.profile-plan-exercise-group-superset {
+  border-color: rgba(0, 184, 148, 0.32);
+}
+
+.profile-plan-exercise-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(242, 207, 124, 0.1);
+}
+
+.profile-plan-exercise-group-superset .profile-plan-exercise-group-header {
+  background: rgba(0, 184, 148, 0.12);
+}
+
+.profile-plan-exercise-group-header span {
+  color: #F2CF7C;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.profile-plan-exercise-group-superset .profile-plan-exercise-group-header span {
+  color: #55E6C1;
+}
+
+.profile-plan-exercise-group-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 10px 12px 10px 18px;
+}
+
+.profile-plan-exercise-group-body::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 11px;
+  width: 4px;
+  border-radius: 999px;
+  background: #F2CF7C;
+}
+
+.profile-plan-exercise-group-superset .profile-plan-exercise-group-body::before {
+  background: #00B894;
+}
+
+.profile-plan-group-exercise-line {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  min-height: 45px;
+  padding: 7px 0;
+}
+
+.profile-plan-group-exercise-line i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #F2CF7C;
+}
+
+.profile-plan-exercise-group-superset .profile-plan-group-exercise-line i {
+  background: #00B894;
+}
+
+.profile-plan-group-exercise-line strong {
+  display: block;
+  overflow: hidden;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-plan-group-exercise-line span {
+  display: block;
+  margin-top: 3px;
+  color: #C2CAD7;
+  font-size: 11px;
+}
+
+.profile-plan-group-reorder {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.profile-plan-exercise-target {
+  display: grid;
+  grid-template-columns: minmax(0, 0.55fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 10px;
+  padding: 10px;
+  border: 1px solid rgba(74, 99, 136, 0.8);
+  border-radius: 8px;
+  background: rgba(20, 35, 57, 0.42);
+}
+
+.profile-plan-exercise-target label {
+  color: #C2CAD7;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.profile-plan-exercise-target select {
+  min-width: 0;
+  border: 1px solid rgba(145, 160, 182, 0.45);
+  border-radius: 8px;
+  background: #142339;
+  color: #FFFFFF;
+  padding: 9px 10px;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.profile-plan-exercise-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  min-height: 82px;
+  overflow: hidden;
+  border: 1px solid rgba(145, 160, 182, 0.18);
+  border-radius: 0;
+  background: rgba(74, 99, 136, 0.45);
+}
+
+.profile-plan-exercise-thumb {
+  width: 64px;
+  min-height: 82px;
+  display: grid;
+  place-items: center;
+  background: #FFFFFF;
+  color: #6B7280;
+}
+
+.profile-plan-exercise-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-plan-exercise-thumb span {
+  font-size: 30px;
+  font-weight: 500;
+}
+
+.profile-plan-exercise-copy {
+  min-width: 0;
+  padding: 12px 14px;
+}
+
+.profile-plan-exercise-title-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.profile-plan-exercise-title-row em {
+  border-radius: 999px;
+  background: rgba(242, 207, 124, 0.13);
+  color: #F2CF7C;
+  padding: 3px 7px;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.profile-plan-exercise-copy strong,
+.profile-plan-exercise-copy span,
+.profile-plan-exercise-copy small,
+.profile-plan-exercise-copy p {
+  display: block;
+}
+
+.profile-plan-exercise-copy strong {
+  overflow: hidden;
+  color: #FFFFFF;
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-plan-exercise-copy span {
+  margin-top: 4px;
+  color: #C2CAD7;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.profile-plan-exercise-copy small {
+  margin-top: 4px;
+  color: #91A0B6;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.profile-plan-exercise-copy p {
+  margin: 6px 0 0;
+  color: #C2CAD7;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.profile-plan-exercise-copy button {
+  margin-top: 8px;
+}
+
+.profile-plan-day-exercise-preview {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(145, 160, 182, 0.14);
+}
+
+.profile-plan-day-exercise-preview span {
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.profile-plan-day-exercise-preview small {
+  color: #91A0B6;
+  font-size: 11px;
+  text-align: right;
+}
+
+@media (max-width: 560px) {
+  .profile-plan-days-header,
+  .profile-plan-day-card-top,
+  .profile-plan-day-exercise-preview {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .profile-plan-day-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-plan-exercise-target {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-plan-editor-status,
+  .profile-plan-exercise-title-row {
+    align-items: flex-start;
+    grid-template-columns: 1fr;
+  }
+
+  .profile-plan-group-exercise-line {
+    grid-template-columns: 12px minmax(0, 1fr);
+  }
+
+  .profile-plan-group-reorder {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}
