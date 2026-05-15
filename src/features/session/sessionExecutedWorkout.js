@@ -327,21 +327,82 @@ export function addExecutedExercise(executedWorkout, exercise = {}, options = {}
   }, { type: "add-exercise", exerciseId: nextExercise.executionId, insertIndex });
 }
 
-export function createBisetGroup(executedWorkout, exerciseIds = []) {
-  const groupId = `biset-${Date.now()}-${(executedWorkout.groups || []).length}`;
+export function addExecutedExercises(executedWorkout, exercises = [], options = {}) {
+  const afterIndex = options.afterExerciseId ? findExerciseIndex(executedWorkout, options.afterExerciseId) : -1;
+  const insertIndex = afterIndex >= 0 ? afterIndex + 1 : executedWorkout.exercises.length;
+  const nextExercises = [...executedWorkout.exercises];
+  const addedExercises = exercises.map((exercise, index) => normalizeExecutedExercise(
+    exercise,
+    executedWorkout.exercises.length + index,
+    {
+      executionId: `exercise-${Date.now()}-${executedWorkout.exercises.length + index}`,
+      addedDuringSession: true
+    }
+  ));
+
+  nextExercises.splice(insertIndex, 0, ...addedExercises);
+
+  const nextWorkout = {
+    ...executedWorkout,
+    exercises: nextExercises
+  };
+
+  const withChange = appendChange(nextWorkout, {
+    type: "add-exercises",
+    exerciseIds: addedExercises.map(exercise => exercise.executionId),
+    insertIndex
+  });
+
+  if (options.groupType && addedExercises.length >= 2) {
+    return createExerciseGroup(withChange, addedExercises.map(exercise => exercise.executionId), { type: options.groupType });
+  }
+
+  return withChange;
+}
+
+function getGroupTypeLabel(type) {
+  return type === "superset" ? "Superserie" : "Biset";
+}
+
+export function createExerciseGroup(executedWorkout, exerciseIds = [], options = {}) {
+  const groupType = options.type || (exerciseIds.length > 2 ? "superset" : "biset");
+  const sameTypeCount = (executedWorkout.groups || []).filter(group => group.type === groupType).length;
+  const groupId = `${groupType}-${Date.now()}-${(executedWorkout.groups || []).length}`;
   const nextWorkout = {
     ...executedWorkout,
     groups: [
       ...(executedWorkout.groups || []),
       {
         id: groupId,
-        type: "biset",
+        type: groupType,
+        name: options.name || `${getGroupTypeLabel(groupType)} ${sameTypeCount + 1}`,
         exerciseIds: [...exerciseIds]
       }
     ]
   };
 
-  return appendChange(nextWorkout, { type: "create-biset", groupId, exerciseIds });
+  return appendChange(nextWorkout, { type: "create-group", groupId, groupType, exerciseIds });
+}
+
+export function createBisetGroup(executedWorkout, exerciseIds = []) {
+  return createExerciseGroup(executedWorkout, exerciseIds, { type: "biset" });
+}
+
+export function reorderExerciseGroup(executedWorkout, groupId, exerciseIds = []) {
+  const existingExerciseIds = new Set((executedWorkout.exercises || []).map(exercise => exercise.executionId));
+  const nextWorkout = {
+    ...executedWorkout,
+    groups: (executedWorkout.groups || []).map(group => {
+      if (group.id !== groupId) return group;
+      const allowedIds = new Set(group.exerciseIds || []);
+      return {
+        ...group,
+        exerciseIds: exerciseIds.filter(exerciseId => allowedIds.has(exerciseId) && existingExerciseIds.has(exerciseId))
+      };
+    })
+  };
+
+  return appendChange(nextWorkout, { type: "reorder-group", groupId, exerciseIds });
 }
 
 export function removeBisetGroup(executedWorkout, groupId) {

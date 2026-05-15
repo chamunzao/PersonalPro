@@ -32,11 +32,14 @@ import { persistSessionNotesDraft } from './sessionNotes';
 import { buildSessionCheckoutSummary, hasSessionCheckoutChanges } from './sessionCheckoutUtils';
 import { EXERCISE_QUICK_ACTIONS, appendExerciseQuickAction } from './sessionExerciseQuickActions';
 import { applySessionSetAction, buildSessionSetRowsWithAdjustment, buildSessionWorkoutRows, getCompactSetCount } from './sessionWorkoutLayout';
-import { addDropSetStep, addExecutedExercise, addExecutedSet, createBisetGroup, duplicateExecutedSet, ensureExecutedWorkout, removeBisetGroup, removeDropSetStep, removeExecutedSet, transformSetToDropSet, undoDropSet, updateDropSetStep, updateExecutedSetMeta } from './sessionExecutedWorkout';
+import { addDropSetStep, addExecutedExercise, addExecutedExercises, addExecutedSet, createExerciseGroup, duplicateExecutedSet, ensureExecutedWorkout, removeBisetGroup, removeDropSetStep, removeExecutedSet, reorderExerciseGroup, transformSetToDropSet, undoDropSet, updateDropSetStep, updateExecutedSetMeta } from './sessionExecutedWorkout';
 import { buildSessionExecutionPanel, completeCurrentSessionSet, stepCurrentSessionSetValue, updateCurrentSessionSetValue } from './sessionExecutionPanel';
+import { buildSessionExerciseGroupBlocks, getExerciseGroupCandidateIds, getExerciseGroupLabel } from './sessionExerciseGroups';
+import { buildExercisePickerFilters, filterExercisePickerLibrary, toggleExercisePickerSelection } from './sessionExercisePicker';
 import { hasOpenSetActionMenu, isSetMenuInteractionTarget } from './sessionSetMenus';
 import { ReplacementFlow } from '../schedule/ReplacementFlow';
 import { buildReplacementOverride } from '../schedule/replacementActions';
+import { EXERCISE_LIBRARY } from '../workouts/workoutPresets';
 
 function IconCheck() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -201,6 +204,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
   const [exerciseAdjustments, setExerciseAdjustments] = useState({});
   const [setActionMenus, setSetActionMenus] = useState({});
   const [addExerciseForms, setAddExerciseForms] = useState({});
+  const [exercisePickers, setExercisePickers] = useState({});
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
   const [savingKey, setSavingKey] = useState(null);
 
@@ -210,6 +214,7 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
   }, [selectedDateISO]);
 
   const selectedDateBR = formatDate(selectedDate);
+  const exercisePickerFilters = useMemo(() => buildExercisePickerFilters(EXERCISE_LIBRARY), []);
 
   const classes = useMemo(
     () => getClassesForDate(selectedDateISO, students, scheduleOverrides),
@@ -677,13 +682,104 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     }));
   }
 
-  function createBisetWithNextExercise(classKey, activeWorkout, sessionWorkout, exerciseIndex) {
-    const currentExercise = sessionWorkout.exercises?.[exerciseIndex];
-    const nextExercise = sessionWorkout.exercises?.[exerciseIndex + 1];
-    if (!currentExercise || !nextExercise) return;
-    updateExecutedWorkout(classKey, activeWorkout, executedWorkout => createBisetGroup(
+  function getExercisePickerKey(classKey, afterExerciseId) {
+    return `${classKey}-${afterExerciseId || "end"}`;
+  }
+
+  function updateExercisePicker(classKey, afterExerciseId, patch) {
+    const pickerKey = getExercisePickerKey(classKey, afterExerciseId);
+    setExercisePickers(prev => ({
+      ...prev,
+      [pickerKey]: {
+        selectedNames: [],
+        search: "",
+        muscleGroup: "",
+        equipment: "",
+        sets: "3",
+        reps: "10",
+        weight: "",
+        rest: "60s",
+        notes: "",
+        ...(prev[pickerKey] || {}),
+        ...patch
+      }
+    }));
+  }
+
+  function toggleExercisePickerItem(classKey, afterExerciseId, exerciseName) {
+    const pickerKey = getExercisePickerKey(classKey, afterExerciseId);
+    setExercisePickers(prev => {
+      const current = prev[pickerKey] || {};
+      return {
+        ...prev,
+        [pickerKey]: {
+          search: "",
+          muscleGroup: "",
+          equipment: "",
+          sets: "3",
+          reps: "10",
+          weight: "",
+          rest: "60s",
+          notes: "",
+          ...current,
+          selectedNames: toggleExercisePickerSelection(current.selectedNames || [], exerciseName)
+        }
+      };
+    });
+  }
+
+  function addSelectedExercisesFromPicker(classKey, activeWorkout, afterExerciseId, groupType = "") {
+    const pickerKey = getExercisePickerKey(classKey, afterExerciseId);
+    const picker = exercisePickers[pickerKey] || {};
+    const selectedNames = picker.selectedNames || [];
+    if (selectedNames.length === 0) return;
+
+    const exercisesToAdd = selectedNames.map(name => {
+      const libraryExercise = EXERCISE_LIBRARY.find(item => item.name === name) || { name };
+      return {
+        ...libraryExercise,
+        sets: picker.sets || "3",
+        reps: picker.reps || "10",
+        weight: picker.weight || "",
+        rest: picker.rest || "",
+        notes: picker.notes || ""
+      };
+    });
+
+    updateExecutedWorkout(classKey, activeWorkout, executedWorkout => addExecutedExercises(
       executedWorkout,
-      [currentExercise.executionId, nextExercise.executionId]
+      exercisesToAdd,
+      { afterExerciseId, groupType: groupType && selectedNames.length >= 2 ? groupType : "" }
+    ));
+
+    setExercisePickers(prev => ({
+      ...prev,
+      [pickerKey]: {
+        selectedNames: [],
+        search: "",
+        muscleGroup: "",
+        equipment: "",
+        sets: "3",
+        reps: "10",
+        weight: "",
+        rest: "60s",
+        notes: ""
+      }
+    }));
+  }
+
+  function createExerciseGroupFromIndex(classKey, activeWorkout, sessionWorkout, exerciseIndex, groupType = "biset", count = 2) {
+    const exerciseIds = getExerciseGroupCandidateIds(sessionWorkout.exercises || [], exerciseIndex, count);
+    if (exerciseIds.length < count) {
+      window.alert(groupType === "superset"
+        ? "Selecione um exercicio que tenha pelo menos dois proximos exercicios para criar uma superserie."
+        : "Selecione um exercicio que tenha um proximo exercicio para criar um biset.");
+      return;
+    }
+    updateExecutedWorkout(classKey, activeWorkout, executedWorkout => createExerciseGroup(
+      executedWorkout,
+      exerciseIds,
+      { type: groupType }
     ));
   }
 
@@ -691,6 +787,16 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
     const group = (sessionWorkout.groups || []).find(item => item.exerciseIds?.includes(exerciseId));
     if (!group) return;
     updateExecutedWorkout(classKey, activeWorkout, executedWorkout => removeBisetGroup(executedWorkout, group.id));
+  }
+
+  function moveExerciseInsideGroup(classKey, activeWorkout, group, exerciseId, direction) {
+    const exerciseIds = [...(group.exerciseIds || [])];
+    const index = exerciseIds.indexOf(exerciseId);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= exerciseIds.length) return;
+    const [item] = exerciseIds.splice(index, 1);
+    exerciseIds.splice(nextIndex, 0, item);
+    updateExecutedWorkout(classKey, activeWorkout, executedWorkout => reorderExerciseGroup(executedWorkout, group.id, exerciseIds));
   }
 
   function updateExecutedDropStep(classKey, activeWorkout, exerciseId, seriesId, stepId, patch) {
@@ -898,11 +1004,19 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
             const editingWorkout = editingWorkoutKey === classKey;
             const workoutForm = workoutEditForms[classKey] || { name: activeWorkout?.name || "", active: activeWorkout?.active !== false, exercises: activeWorkout?.exercises || [] };
             const sessionWorkout = draft.executedWorkout || (activeWorkout ? ensureExecutedWorkout(null, activeWorkout) : null);
-            const sessionExercises = (sessionWorkout?.exercises || activeWorkout?.exercises || []).map(exercise => {
-              const groupIndex = (sessionWorkout?.groups || []).findIndex(group => group.exerciseIds?.includes(exercise.executionId));
-              return groupIndex >= 0
-                ? { ...exercise, groupName: `Biset ${groupIndex + 1}` }
-                : exercise;
+            const sessionExercises = (sessionWorkout?.exercises || activeWorkout?.exercises || []).map((exercise, exerciseIndex) => {
+              const groupIndex = (sessionWorkout?.groups || []).findIndex(group => group.exerciseIds?.includes(exercise.executionId || `exercise-${exerciseIndex}`));
+              if (groupIndex < 0) return exercise;
+              const group = sessionWorkout.groups[groupIndex];
+              return {
+                ...exercise,
+                groupName: getExerciseGroupLabel(group, groupIndex),
+                groupType: group.type || "biset"
+              };
+            });
+            const sessionExerciseBlocks = buildSessionExerciseGroupBlocks({
+              exercises: sessionExercises,
+              groups: sessionWorkout?.groups || []
             });
             const centerSummary = buildSessionClassCenterSummary({
               workout: sessionWorkout || activeWorkout,
@@ -1060,25 +1174,35 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                         <div className="session-current-set-panel">
                           <div className="session-current-set-header">
                             <div>
-                              <span>Execucao agora</span>
+                              <span>{executionPanel.groupLabel || "Execucao agora"}</span>
                               <strong>{executionPanel.exerciseName}</strong>
                               <small>{executionPanel.seriesTitle} · {executionPanel.exerciseProgressLabel}</small>
                             </div>
                             <div className="session-current-set-tools">
                               <span>{executionPanel.workoutProgressLabel}</span>
-                              <button
-                                type="button"
-                                className="session-set-menu-button"
-                                onClick={() => toggleSetActionMenu(classKey, executionPanel.exerciseId, executionPanel.setKey)}
-                                aria-label="Acoes da serie atual"
-                              >
-                                ...
-                              </button>
-                              {setActionMenus[`${classKey}-${executionPanel.exerciseId}-${executionPanel.setKey}`] && (
+                              {!executionPanel.isGroupSet && (
+                                <button
+                                  type="button"
+                                  className="session-set-menu-button"
+                                  onClick={() => toggleSetActionMenu(classKey, executionPanel.exerciseId, executionPanel.setKey)}
+                                  aria-label="Acoes da serie atual"
+                                >
+                                  ...
+                                </button>
+                              )}
+                              {!executionPanel.isGroupSet && setActionMenus[`${classKey}-${executionPanel.exerciseId}-${executionPanel.setKey}`] && (
                                 <div className="session-set-menu session-current-set-menu">
                                   <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, "drop-set")}>
                                     <strong>Adicionar drop set</strong>
                                     <small>Somente nesta serie</small>
+                                  </button>
+                                  <button type="button" onClick={() => createExerciseGroupFromIndex(classKey, activeWorkout, sessionWorkout, executionPanel.exerciseIndex, "biset", 2)}>
+                                    <strong>Criar biset</strong>
+                                    <small>Com o proximo exercicio</small>
+                                  </button>
+                                  <button type="button" onClick={() => createExerciseGroupFromIndex(classKey, activeWorkout, sessionWorkout, executionPanel.exerciseIndex, "superset", 3)}>
+                                    <strong>Criar superserie</strong>
+                                    <small>Com os dois proximos exercicios</small>
                                   </button>
                                   {executionPanel.isDropSet && (
                                     <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, "undo-drop-set")}>
@@ -1110,6 +1234,103 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                               )}
                             </div>
                           </div>
+                          {executionPanel.isGroupSet && (
+                            <div className={`session-current-biset-panel ${executionPanel.groupType === "superset" ? "session-current-biset-panel-superset" : ""}`}>
+                              <div className="session-current-biset-title">
+                                <strong>{executionPanel.groupLabel} · {executionPanel.seriesTitle}</strong>
+                                <span>{executionPanel.groupProgressLabel}</span>
+                              </div>
+                              <div className="session-current-biset-entries">
+                                {executionPanel.groupSetEntries.map((entry, entryIndex) => (
+                                  <div className="session-current-biset-entry" key={entry.entryId}>
+                                    <div className="session-current-biset-entry-title">
+                                      <span>{entryIndex + 1}. {entry.exerciseName}</span>
+                                      {entry.noSeries && <small>Sem serie nesta rodada</small>}
+                                    </div>
+                                    {!entry.noSeries && (
+                                      <div className="session-current-biset-fields">
+                                        <label className="session-current-set-field">
+                                          <span>Carga</span>
+                                          <div>
+                                            <button
+                                              type="button"
+                                              onClick={() => updateDraft(classKey, current => stepCurrentSessionSetValue(current, executionPanel, "weightDone", -2.5, { entryId: entry.entryId }))}
+                                              aria-label={`Diminuir carga de ${entry.exerciseName}`}
+                                            >
+                                              -
+                                            </button>
+                                            <input
+                                              type="text"
+                                              value={entry.weightValue}
+                                              onChange={(event) => updateDraft(classKey, current => updateCurrentSessionSetValue(current, executionPanel, "weightDone", event.target.value, { entryId: entry.entryId }))}
+                                              placeholder={entry.weightPlaceholder}
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={() => updateDraft(classKey, current => stepCurrentSessionSetValue(current, executionPanel, "weightDone", 2.5, { entryId: entry.entryId }))}
+                                              aria-label={`Aumentar carga de ${entry.exerciseName}`}
+                                            >
+                                              +
+                                            </button>
+                                          </div>
+                                        </label>
+                                        <label className="session-current-set-field">
+                                          <span>Reps</span>
+                                          <div>
+                                            <button
+                                              type="button"
+                                              onClick={() => updateDraft(classKey, current => stepCurrentSessionSetValue(current, executionPanel, "repsDone", -1, { entryId: entry.entryId }))}
+                                              aria-label={`Diminuir repeticoes de ${entry.exerciseName}`}
+                                            >
+                                              -
+                                            </button>
+                                            <input
+                                              type="text"
+                                              value={entry.repsValue}
+                                              onChange={(event) => updateDraft(classKey, current => updateCurrentSessionSetValue(current, executionPanel, "repsDone", event.target.value, { entryId: entry.entryId }))}
+                                              placeholder={entry.repsPlaceholder}
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={() => updateDraft(classKey, current => stepCurrentSessionSetValue(current, executionPanel, "repsDone", 1, { entryId: entry.entryId }))}
+                                              aria-label={`Aumentar repeticoes de ${entry.exerciseName}`}
+                                            >
+                                              +
+                                            </button>
+                                          </div>
+                                        </label>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="session-current-set-footer">
+                                <span>{executionPanel.groupProgressLabel}</span>
+                                <button
+                                  type="button"
+                                  className="session-action-primary"
+                                  disabled={!executionPanel.canComplete}
+                                  onClick={() => updateDraft(classKey, current => completeCurrentSessionSet(current, executionPanel))}
+                                >
+                                  {executionPanel.groupType === "superset" ? "Completar superserie" : "Completar biset"}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          {!executionPanel.isGroupSet && executionPanel.groupExercises?.length > 0 && (
+                            <div className={`session-current-group-strip ${executionPanel.groupType === "superset" ? "session-current-group-strip-superset" : ""}`}>
+                              {executionPanel.groupExercises.map(groupExercise => (
+                                <span
+                                  key={groupExercise.id}
+                                  className={groupExercise.id === executionPanel.exerciseId ? "session-current-group-active" : ""}
+                                >
+                                  {groupExercise.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {!executionPanel.isGroupSet && (
+                            <>
                           <div className="session-current-set-grid">
                             <label className="session-current-set-field">
                               <span>Carga</span>
@@ -1179,14 +1400,13 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                                     onChange={(event) => updateExecutedDropStep(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, step.id, { reps: event.target.value })}
                                     placeholder="Reps"
                                   />
-                                  <label>
-                                    <input
-                                      type="checkbox"
-                                      checked={!!step.completed}
-                                      onChange={(event) => updateExecutedDropStep(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, step.id, { completed: event.target.checked })}
-                                    />
-                                    OK
-                                  </label>
+                                  <button
+                                    type="button"
+                                    className={step.completed ? "session-drop-complete-button session-drop-complete-button-done" : "session-drop-complete-button"}
+                                    onClick={() => updateExecutedDropStep(classKey, activeWorkout, executionPanel.exerciseId, executionPanel.setKey, step.id, { completed: !step.completed })}
+                                  >
+                                    {step.completed ? "Concluida" : "Completar"}
+                                  </button>
                                   {step.role !== "main" && (
                                     <button
                                       type="button"
@@ -1211,14 +1431,42 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                               Completar serie
                             </button>
                           </div>
+                            </>
+                          )}
                         </div>
                       )}
                       {buildSessionWorkoutRows({ exercises: sessionExercises, draft }).map(row => {
                         const { exercise, index } = row;
                         const expandedKey = `${classKey}-${index}`;
                         const isExpanded = !!expandedExercises[expandedKey];
+                        const exerciseIdForGroup = exercise.executionId || `exercise-${index}`;
+                        const exerciseGroup = (sessionWorkout?.groups || []).find(group => group.exerciseIds?.includes(exerciseIdForGroup));
+                        const groupPosition = exerciseGroup ? exerciseGroup.exerciseIds.indexOf(exerciseIdForGroup) : -1;
+                        const groupSize = exerciseGroup?.exerciseIds?.length || 0;
+                        const groupExerciseNames = exerciseGroup
+                          ? exerciseGroup.exerciseIds
+                            .map(groupExerciseId => sessionExercises.find(item => (item.executionId || "") === groupExerciseId)?.name)
+                            .filter(Boolean)
+                          : [];
+                        const pickerKey = getExercisePickerKey(classKey, exerciseIdForGroup);
+                        const picker = exercisePickers[pickerKey] || { selectedNames: [], search: "", muscleGroup: "", equipment: "", sets: "3", reps: "10", weight: "", rest: "60s", notes: "" };
+                        const pickerResults = filterExercisePickerLibrary(EXERCISE_LIBRARY, picker).slice(0, 8);
                         return (
-                          <div key={`compact-${exercise.name}-${index}`} className={`session-exercise ${isExpanded ? "session-exercise-expanded" : ""}`}>
+                          <div key={`compact-${exercise.name}-${index}`} className={`session-exercise ${exerciseGroup ? "session-exercise-grouped" : ""} ${exerciseGroup && groupPosition === 0 ? "session-exercise-grouped-first" : ""} ${exerciseGroup && groupPosition > 0 && groupPosition < groupSize - 1 ? "session-exercise-grouped-middle" : ""} ${exerciseGroup && groupPosition === groupSize - 1 ? "session-exercise-grouped-last" : ""} ${exercise.groupType === "superset" ? "session-exercise-grouped-superset" : ""} ${isExpanded ? "session-exercise-expanded" : ""}`}>
+                            {exerciseGroup && groupPosition === 0 && (
+                              <div className="session-exercise-group-header">
+                                <div>
+                                  <span>{getExerciseGroupLabel(exerciseGroup, (sessionWorkout?.groups || []).indexOf(exerciseGroup))}</span>
+                                  <strong>{groupExerciseNames.join(" + ")}</strong>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeBisetForExercise(classKey, activeWorkout, sessionWorkout, exerciseIdForGroup)}
+                                >
+                                  Desfazer
+                                </button>
+                              </div>
+                            )}
                             <button
                               type="button"
                               className="session-exercise-summary"
@@ -1277,9 +1525,13 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                                                 <strong>Adicionar drop set</strong>
                                                 <small>Somente nesta serie</small>
                                               </button>
-                                              <button type="button" onClick={() => createBisetWithNextExercise(classKey, activeWorkout, sessionWorkout, index)}>
+                                              <button type="button" onClick={() => createExerciseGroupFromIndex(classKey, activeWorkout, sessionWorkout, index, "biset", 2)}>
                                                 <strong>Criar biset com proximo</strong>
                                                 <small>Agrupa dois exercicios</small>
+                                              </button>
+                                              <button type="button" onClick={() => createExerciseGroupFromIndex(classKey, activeWorkout, sessionWorkout, index, "superset", 3)}>
+                                                <strong>Criar superserie</strong>
+                                                <small>Agrupa tres exercicios</small>
                                               </button>
                                               <button type="button" onClick={() => applyExecutedSetAction(classKey, activeWorkout, exerciseId, setIndex, "add-set")}>
                                                 <strong>Adicionar serie</strong>
@@ -1308,9 +1560,21 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                                                 </button>
                                               )}
                                               <button type="button" onClick={() => removeBisetForExercise(classKey, activeWorkout, sessionWorkout, exerciseId)}>
-                                                <strong>Desfazer biset</strong>
+                                                <strong>Desfazer grupo</strong>
                                                 <small>Mantem os exercicios</small>
                                               </button>
+                                              {exerciseGroup && (
+                                                <>
+                                                  <button type="button" onClick={() => moveExerciseInsideGroup(classKey, activeWorkout, exerciseGroup, exerciseId, -1)}>
+                                                    <strong>Mover acima no grupo</strong>
+                                                    <small>Ajusta a ordem do bloco</small>
+                                                  </button>
+                                                  <button type="button" onClick={() => moveExerciseInsideGroup(classKey, activeWorkout, exerciseGroup, exerciseId, 1)}>
+                                                    <strong>Mover abaixo no grupo</strong>
+                                                    <small>Ajusta a ordem do bloco</small>
+                                                  </button>
+                                                </>
+                                              )}
                                               <button
                                                 type="button"
                                                 className="session-set-menu-danger"
@@ -1387,14 +1651,13 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                                                   onChange={(event) => updateExecutedDropStep(classKey, activeWorkout, exerciseId, setIndex, step.id, { reps: event.target.value })}
                                                   placeholder={setRow.repsPlaceholder || "Reps"}
                                                 />
-                                                <label>
-                                                  <input
-                                                    type="checkbox"
-                                                    checked={!!step.completed}
-                                                    onChange={(event) => updateExecutedDropStep(classKey, activeWorkout, exerciseId, setIndex, step.id, { completed: event.target.checked })}
-                                                  />
-                                                  OK
-                                                </label>
+                                                <button
+                                                  type="button"
+                                                  className={step.completed ? "session-drop-complete-button session-drop-complete-button-done" : "session-drop-complete-button"}
+                                                  onClick={() => updateExecutedDropStep(classKey, activeWorkout, exerciseId, setIndex, step.id, { completed: !step.completed })}
+                                                >
+                                                  {step.completed ? "Concluida" : "Completar"}
+                                                </button>
                                                 <button
                                                   type="button"
                                                   onClick={() => removeExecutedDropStep(classKey, activeWorkout, exerciseId, setIndex, step.id)}
@@ -1435,41 +1698,80 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                                     </button>
                                   ))}
                                 </div>
-                                <div className="session-add-exercise-form">
+                                <div className="session-add-exercise-form session-exercise-picker">
                                   <strong>Adicionar exercicio abaixo</strong>
-                                  <div className="session-add-exercise-grid">
+                                  <div className="session-exercise-picker-search">
                                     <input
                                       type="text"
-                                      value={addExerciseForms[`${classKey}-${exercise.executionId || `exercise-${index}`}`]?.name || ""}
-                                      onChange={(event) => updateAddExerciseForm(classKey, exercise.executionId || `exercise-${index}`, { name: event.target.value })}
-                                      placeholder="Exercicio"
+                                      value={picker.search || ""}
+                                      onChange={(event) => updateExercisePicker(classKey, exerciseIdForGroup, { search: event.target.value })}
+                                      placeholder="Buscar exercicio"
                                     />
-                                    <input
-                                      type="text"
-                                      value={addExerciseForms[`${classKey}-${exercise.executionId || `exercise-${index}`}`]?.sets || ""}
-                                      onChange={(event) => updateAddExerciseForm(classKey, exercise.executionId || `exercise-${index}`, { sets: event.target.value })}
-                                      placeholder="Series"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={addExerciseForms[`${classKey}-${exercise.executionId || `exercise-${index}`}`]?.reps || ""}
-                                      onChange={(event) => updateAddExerciseForm(classKey, exercise.executionId || `exercise-${index}`, { reps: event.target.value })}
-                                      placeholder="Reps"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={addExerciseForms[`${classKey}-${exercise.executionId || `exercise-${index}`}`]?.weight || ""}
-                                      onChange={(event) => updateAddExerciseForm(classKey, exercise.executionId || `exercise-${index}`, { weight: event.target.value })}
-                                      placeholder="Carga"
-                                    />
+                                    <select
+                                      value={picker.muscleGroup || ""}
+                                      onChange={(event) => updateExercisePicker(classKey, exerciseIdForGroup, { muscleGroup: event.target.value })}
+                                    >
+                                      <option value="">Todos os musculos</option>
+                                      {exercisePickerFilters.muscleGroups.map(option => (
+                                        <option key={option} value={option}>{option}</option>
+                                      ))}
+                                    </select>
+                                    <select
+                                      value={picker.equipment || ""}
+                                      onChange={(event) => updateExercisePicker(classKey, exerciseIdForGroup, { equipment: event.target.value })}
+                                    >
+                                      <option value="">Todos equipamentos</option>
+                                      {exercisePickerFilters.equipment.map(option => (
+                                        <option key={option} value={option}>{option}</option>
+                                      ))}
+                                    </select>
                                   </div>
-                                  <button
-                                    type="button"
-                                    className="session-action-muted"
-                                    onClick={() => addExecutedExerciseFromForm(classKey, activeWorkout, exercise.executionId || `exercise-${index}`)}
-                                  >
-                                    Adicionar ao treino executado
-                                  </button>
+                                  <div className="session-exercise-picker-list">
+                                    {pickerResults.map(option => {
+                                      const selected = (picker.selectedNames || []).includes(option.name);
+                                      return (
+                                        <button
+                                          key={option.name}
+                                          type="button"
+                                          className={selected ? "session-exercise-picker-item session-exercise-picker-item-selected" : "session-exercise-picker-item"}
+                                          onClick={() => toggleExercisePickerItem(classKey, exerciseIdForGroup, option.name)}
+                                        >
+                                          <span>{option.name}</span>
+                                          <small>{[option.muscleGroup, option.equipment].filter(Boolean).join(" / ")}</small>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                  <div className="session-add-exercise-grid session-exercise-picker-config">
+                                    <input type="text" value={picker.sets || ""} onChange={(event) => updateExercisePicker(classKey, exerciseIdForGroup, { sets: event.target.value })} placeholder="Series" />
+                                    <input type="text" value={picker.reps || ""} onChange={(event) => updateExercisePicker(classKey, exerciseIdForGroup, { reps: event.target.value })} placeholder="Reps" />
+                                    <input type="text" value={picker.weight || ""} onChange={(event) => updateExercisePicker(classKey, exerciseIdForGroup, { weight: event.target.value })} placeholder="Carga" />
+                                    <input type="text" value={picker.rest || ""} onChange={(event) => updateExercisePicker(classKey, exerciseIdForGroup, { rest: event.target.value })} placeholder="Descanso" />
+                                  </div>
+                                  <input
+                                    type="text"
+                                    value={picker.notes || ""}
+                                    onChange={(event) => updateExercisePicker(classKey, exerciseIdForGroup, { notes: event.target.value })}
+                                    placeholder="Observacao para os exercicios adicionados"
+                                  />
+                                  <div className="session-exercise-picker-actions">
+                                    <button
+                                      type="button"
+                                      className="session-action-muted"
+                                      disabled={(picker.selectedNames || []).length === 0}
+                                      onClick={() => addSelectedExercisesFromPicker(classKey, activeWorkout, exerciseIdForGroup)}
+                                    >
+                                      Adicionar exercicio
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="session-action-primary"
+                                      disabled={(picker.selectedNames || []).length < 2}
+                                      onClick={() => addSelectedExercisesFromPicker(classKey, activeWorkout, exerciseIdForGroup, (picker.selectedNames || []).length > 2 ? "superset" : "biset")}
+                                    >
+                                      Adicionar como {(picker.selectedNames || []).length > 2 ? "superserie" : "biset"}
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -1804,6 +2106,18 @@ function SessionTab({ students, records, setRecords, payments, scheduleOverrides
                     />
                   </label>
                 </div>
+
+                {sessionExerciseBlocks.some(block => block.type === "group") && (
+                  <div className="session-executed-groups-summary">
+                    <span>Agrupamentos executados</span>
+                    {sessionExerciseBlocks.filter(block => block.type === "group").map(block => (
+                      <div key={block.id}>
+                        <strong>{block.label}</strong>
+                        <small>{block.exercises.map(exercise => exercise.name).join(" + ")}</small>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="session-save-row" style={{ gridTemplateColumns: activeWorkout ? undefined : "1fr" }}>
                   <button

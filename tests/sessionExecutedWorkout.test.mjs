@@ -1,14 +1,17 @@
 import assert from "node:assert/strict";
 import {
   addExecutedExercise,
+  addExecutedExercises,
   addExecutedSet,
   addDropSetStep,
   createBisetGroup,
+  createExerciseGroup,
   createExecutedWorkoutFromPlan,
   duplicateExecutedSet,
   removeDropSetStep,
   undoDropSet,
   removeBisetGroup,
+  reorderExerciseGroup,
   removeExecutedSet,
   transformSetToDropSet,
   updateExecutedSetMeta,
@@ -110,8 +113,47 @@ assert.equal(withInsertedExercise.exercises[1].series.length, 2, "new exercise s
 const withBiset = createBisetGroup(withInsertedExercise, ["exercise-0", withInsertedExercise.exercises[1].executionId]);
 assert.equal(withBiset.groups.length, 1, "creating a biset should add one group");
 assert.equal(withBiset.groups[0].type, "biset", "group should be marked as biset");
+assert.equal(withBiset.groups[0].name, "Biset 1", "biset groups should receive a visible name");
 assert.deepEqual(withBiset.groups[0].exerciseIds, ["exercise-0", withInsertedExercise.exercises[1].executionId], "biset should keep exercise order");
+
+const reorderedBiset = reorderExerciseGroup(withBiset, withBiset.groups[0].id, [withInsertedExercise.exercises[1].executionId, "exercise-0"]);
+assert.deepEqual(
+  reorderedBiset.groups[0].exerciseIds,
+  [withInsertedExercise.exercises[1].executionId, "exercise-0"],
+  "group exercise order should be adjustable without changing exercise data"
+);
+assert.deepEqual(
+  reorderedBiset.exercises.map(exercise => exercise.name),
+  ["Remada aberta", "Pullover", "Puxada frontal"],
+  "reordering a group should not reorder or delete the workout exercises"
+);
+
+const withSuperset = createExerciseGroup(withInsertedExercise, ["exercise-0", withInsertedExercise.exercises[1].executionId, "exercise-1"], { type: "superset" });
+assert.equal(withSuperset.groups[0].type, "superset", "groups with more than two exercises should support supersets");
+assert.equal(withSuperset.groups[0].name, "Superserie 1", "superset groups should receive a visible name");
 
 const withoutBiset = removeBisetGroup(withBiset, withBiset.groups[0].id);
 assert.equal(withoutBiset.groups.length, 0, "undoing a biset should remove only the group");
 assert.equal(withoutBiset.exercises.length, 3, "undoing a biset should preserve exercises and data");
+assert.deepEqual(
+  withoutBiset.exercises.map(exercise => exercise.name),
+  ["Remada aberta", "Pullover", "Puxada frontal"],
+  "undoing a group should keep exercises in the workout as normal exercises"
+);
+
+const withMultipleAdded = addExecutedExercises(executed, [
+  { name: "Cadeira extensora", sets: "3", reps: "12", weight: "20 kg", rest: "60s" },
+  { name: "Mesa flexora", sets: "3", reps: "12", weight: "18 kg", rest: "60s" }
+], { afterExerciseId: "exercise-0", groupType: "biset" });
+
+assert.deepEqual(
+  withMultipleAdded.exercises.map(exercise => exercise.name),
+  ["Remada aberta", "Cadeira extensora", "Mesa flexora", "Puxada frontal"],
+  "multiple selected exercises should be inserted together after the selected exercise"
+);
+assert.deepEqual(
+  withMultipleAdded.groups[0].exerciseIds,
+  [withMultipleAdded.exercises[1].executionId, withMultipleAdded.exercises[2].executionId],
+  "multiple selected exercises can be added directly as a biset group"
+);
+assert.equal(withMultipleAdded.exercises[1].addedDuringSession, true, "multiple added exercises should be saved as session adaptations");

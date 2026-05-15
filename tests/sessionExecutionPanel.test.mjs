@@ -162,3 +162,95 @@ const incompleteDropPanel = buildSessionExecutionPanel({ workout: incompleteDrop
 assert.equal(incompleteDropPanel.canComplete, false, "drop set should wait for all internal steps before completing the main series");
 assert.equal(incompleteDropPanel.dropSteps.length, 2, "drop set panel should expose internal steps without counting them as normal series");
 assert.equal(incompleteDropPanel.dropSteps[0].label, "Serie principal", "drop set panel should identify the main step");
+
+const bisetWorkout = {
+  name: "Pernas",
+  groups: [
+    { id: "group-1", type: "biset", name: "Biset 1", exerciseIds: ["extensora", "flexora"] }
+  ],
+  exercises: [
+    {
+      executionId: "extensora",
+      name: "Cadeira extensora",
+      series: [
+        { id: "extensora-set-0", targetReps: "12", targetWeight: "30 kg" }
+      ]
+    },
+    {
+      executionId: "flexora",
+      name: "Mesa flexora",
+      series: [
+        { id: "flexora-set-0", targetReps: "12", targetWeight: "25 kg" }
+      ]
+    }
+  ]
+};
+
+const bisetPanel = buildSessionExecutionPanel({ workout: bisetWorkout, draft: {} });
+
+assert.equal(bisetPanel.groupLabel, "Biset 1", "execution panel should follow the current biset group");
+assert.deepEqual(
+  bisetPanel.groupExercises.map(exercise => exercise.name),
+  ["Cadeira extensora", "Mesa flexora"],
+  "execution panel should expose the exercises connected to the current biset"
+);
+
+const bisetRoundWorkout = {
+  name: "Pernas",
+  groups: [
+    { id: "group-1", type: "biset", name: "Biset 1", exerciseIds: ["agachamento", "supino"] }
+  ],
+  exercises: [
+    {
+      executionId: "agachamento",
+      name: "Agachamento livre",
+      series: [
+        { id: "agachamento-set-0", targetReps: "10", targetWeight: "40 kg" },
+        { id: "agachamento-set-1", targetReps: "10", targetWeight: "42 kg" }
+      ]
+    },
+    {
+      executionId: "supino",
+      name: "Supino reto",
+      series: [
+        { id: "supino-set-0", targetReps: "12", targetWeight: "30 kg" },
+        { id: "supino-set-1", targetReps: "12", targetWeight: "32 kg" }
+      ]
+    }
+  ]
+};
+
+const bisetRoundPanel = buildSessionExecutionPanel({ workout: bisetRoundWorkout, draft: {} });
+
+assert.equal(bisetRoundPanel.isGroupSet, true, "biset execution should use a group round panel");
+assert.equal(bisetRoundPanel.seriesTitle, "Rodada 1/2", "biset panel should advance by round");
+assert.equal(bisetRoundPanel.groupProgressLabel, "0/2 rodadas concluidas", "biset panel should show round progress");
+assert.deepEqual(
+  bisetRoundPanel.groupSetEntries.map(entry => ({
+    exerciseName: entry.exerciseName,
+    weightPlaceholder: entry.weightPlaceholder,
+    repsPlaceholder: entry.repsPlaceholder
+  })),
+  [
+    { exerciseName: "Agachamento livre", weightPlaceholder: "40 kg", repsPlaceholder: "10" },
+    { exerciseName: "Supino reto", weightPlaceholder: "30 kg", repsPlaceholder: "12" }
+  ],
+  "biset panel should expose editable fields for both exercises in the current round"
+);
+
+let bisetDraft = updateCurrentSessionSetValue({}, bisetRoundPanel, "weightDone", "40 kg", { entryId: "agachamento" });
+bisetDraft = updateCurrentSessionSetValue(bisetDraft, bisetRoundPanel, "repsDone", "10", { entryId: "agachamento" });
+bisetDraft = updateCurrentSessionSetValue(bisetDraft, bisetRoundPanel, "weightDone", "30 kg", { entryId: "supino" });
+bisetDraft = updateCurrentSessionSetValue(bisetDraft, bisetRoundPanel, "repsDone", "12", { entryId: "supino" });
+
+const readyBisetRoundPanel = buildSessionExecutionPanel({ workout: bisetRoundWorkout, draft: bisetDraft });
+assert.equal(readyBisetRoundPanel.canComplete, true, "biset should be completable after both exercises have weight and reps");
+
+const completedBisetDraft = completeCurrentSessionSet(bisetDraft, readyBisetRoundPanel);
+
+assert.equal(completedBisetDraft.exerciseLogs[0]["agachamento-set-0"].completed, true, "completing biset should complete the first exercise series");
+assert.equal(completedBisetDraft.exerciseLogs[1]["supino-set-0"].completed, true, "completing biset should complete the second exercise series");
+
+const nextBisetRoundPanel = buildSessionExecutionPanel({ workout: bisetRoundWorkout, draft: completedBisetDraft });
+assert.equal(nextBisetRoundPanel.seriesTitle, "Rodada 2/2", "after completing a biset round, the next round should appear");
+assert.equal(nextBisetRoundPanel.groupProgressLabel, "1/2 rodadas concluidas", "biset progress should advance by round");
