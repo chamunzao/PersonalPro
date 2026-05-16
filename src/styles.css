@@ -5571,7 +5571,86 @@ body .reports-student-row p:last-child {
   gap: 12px;
 }
 
+.profile-workouts-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-workouts-visual-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px;
+  border: 1px solid rgba(74, 99, 136, 0.75);
+  border-radius: 8px;
+  background: rgba(20, 35, 57, 0.38);
+}
+
+.profile-workouts-visual-header span,
+.profile-workout-edit-panel-header span {
+  display: block;
+  color: #F2CF7C;
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.profile-workouts-visual-header strong,
+.profile-workout-edit-panel-header strong {
+  display: block;
+  margin-top: 3px;
+  color: #FFFFFF;
+  font-size: 17px;
+  font-weight: 850;
+}
+
+.profile-workouts-visual-header p,
+.profile-workout-edit-panel-header p {
+  margin: 5px 0 0;
+  color: #91A0B6;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.profile-workouts-visual-header button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  border: 0;
+  border-radius: 8px;
+  background: #F2CF7C;
+  color: #142339;
+  padding: 9px 13px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.profile-workout-edit-panel {
+  padding: 14px;
+  border: 1px solid rgba(242, 207, 124, 0.28);
+  border-radius: 8px;
+  background: #243B5C;
+}
+
+.profile-workout-edit-panel-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.8fr);
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(145, 160, 182, 0.24);
+}
+
 .profile-plan-card {
+  position: relative;
   background: #243B5C;
   border: 1px solid #4A6388;
   border-radius: 8px;
@@ -5584,9 +5663,9 @@ body .reports-student-row p:last-child {
 
 .profile-plan-card-main {
   display: grid;
-  grid-template-columns: 74px minmax(0, 1fr);
+  grid-template-columns: 74px minmax(0, 1fr) auto;
   gap: 12px;
-  align-items: center;
+  align-items: start;
   margin-bottom: 10px;
 }
 
@@ -5631,6 +5710,90 @@ body .reports-student-row p:last-child {
   color: #FFFFFF;
   font-size: 17px;
   font-weight: 800;
+}
+
+.profile-plan-copy > p:first-child span {
+  display: inline-flex;
+  margin-left: 8px;
+  border-radius: 999px;
+  background: #F2CF7C;
+  color: #142339;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 850;
+  vertical-align: middle;
+}
+
+.profile-plan-menu-wrap {
+  position: relative;
+}
+
+.profile-plan-menu-trigger {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(242, 207, 124, 0.22);
+  border-radius: 999px;
+  background: rgba(242, 207, 124, 0.1);
+  color: #F2CF7C;
+  font-size: 17px;
+  font-weight: 850;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.profile-plan-menu {
+  position: absolute;
+  z-index: 20;
+  top: 42px;
+  right: 0;
+  min-width: 178px;
+  overflow: hidden;
+  border: 1px solid rgba(74, 99, 136, 0.9);
+  border-radius: 8px;
+  background: #142339;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+}
+
+.profile-plan-menu button {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(145, 160, 182, 0.16);
+  background: transparent;
+  color: #FFFFFF;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-plan-menu button:hover {
+  background: rgba(242, 207, 124, 0.1);
+}
+
+.profile-plan-menu button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.profile-plan-menu .profile-plan-menu-danger {
+  color: #FCA5A5;
+}
+
+.profile-plan-inline-menu {
+  flex: 0 0 auto;
+}
+
+.profile-plan-inline-menu .profile-plan-menu-trigger {
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+}
+
+.profile-plan-inline-menu .profile-plan-menu {
+  top: 34px;
 }
 
 .profile-plan-meta-row {
@@ -5765,6 +5928,13 @@ body .reports-student-row p:last-child {
   background: rgba(255, 255, 255, 0.035);
 }
 
+.profile-plan-day-card-visual {
+  padding: 0;
+  overflow: hidden;
+  border-color: rgba(145, 160, 182, 0.18);
+  background: rgba(74, 99, 136, 0.38);
+}
+
 .profile-plan-day-badge {
   display: inline-flex;
   align-items: center;
@@ -5776,6 +5946,57 @@ body .reports-student-row p:last-child {
   color: #FFFFFF;
   font-size: 12px;
   font-weight: 850;
+}
+
+.profile-plan-day-badge-large {
+  min-width: 70px;
+  min-height: 54px;
+  padding: 7px 12px;
+  font-size: 14px;
+}
+
+.profile-plan-day-visual-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+}
+
+.profile-plan-day-visual-copy {
+  min-width: 0;
+}
+
+.profile-plan-day-visual-copy strong {
+  display: block;
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 850;
+}
+
+.profile-plan-day-visual-copy span,
+.profile-plan-day-visual-copy p {
+  display: block;
+  margin: 3px 0 0;
+  color: #C2CAD7;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.profile-plan-day-visual-copy p {
+  color: #91A0B6;
+}
+
+.profile-plan-day-open {
+  border: 1px solid rgba(242, 207, 124, 0.28);
+  border-radius: 999px;
+  background: rgba(242, 207, 124, 0.13);
+  color: #F2CF7C;
+  padding: 8px 11px;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .profile-plan-day-actions {
@@ -5826,6 +6047,18 @@ body .reports-student-row p:last-child {
   font-weight: 800;
 }
 
+.profile-plan-day-visual-meta {
+  margin-top: 0;
+  padding: 9px 12px;
+  border-top: 1px solid rgba(145, 160, 182, 0.14);
+  background: rgba(20, 35, 57, 0.22);
+}
+
+.profile-plan-day-visual-meta span {
+  background: rgba(20, 35, 57, 0.62);
+  color: #DCE4F0;
+}
+
 .profile-plan-day-copy {
   display: flex;
   flex-direction: column;
@@ -5850,7 +6083,7 @@ body .reports-student-row p:last-child {
   flex-direction: column;
   gap: 7px;
   margin-top: 10px;
-  padding-top: 10px;
+  padding: 10px 12px 12px;
   border-top: 1px solid rgba(145, 160, 182, 0.22);
   color: #C2CAD7;
   font-size: 12px;
@@ -5858,6 +6091,67 @@ body .reports-student-row p:last-child {
 
 .profile-plan-day-detail strong {
   color: #FFFFFF;
+}
+
+.profile-plan-day-detail-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-plan-day-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.profile-plan-day-detail-header strong {
+  display: block;
+  color: #FFFFFF;
+  font-size: 18px;
+  font-weight: 850;
+}
+
+.profile-plan-day-detail-header span {
+  display: block;
+  margin-top: 3px;
+  color: #91A0B6;
+  font-size: 12px;
+}
+
+.profile-plan-day-detail-tags,
+.profile-plan-exercise-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.profile-plan-day-detail-tags span,
+.profile-plan-exercise-tags span {
+  border-radius: 999px;
+  background: rgba(20, 35, 57, 0.66);
+  color: #DCE4F0;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.profile-plan-day-detail-note {
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(145, 160, 182, 0.16);
+  border-radius: 8px;
+  background: rgba(20, 35, 57, 0.34);
+  color: #C2CAD7;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.profile-plan-exercise-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .profile-plan-editor-status {
@@ -5917,27 +6211,29 @@ body .reports-student-row p:last-child {
 .profile-plan-group-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid rgba(145, 160, 182, 0.2);
 }
 
 .profile-plan-group-section > strong {
   color: #FFFFFF;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 850;
 }
 
 .profile-plan-exercise-group {
   overflow: hidden;
-  border: 1px solid rgba(242, 207, 124, 0.22);
+  border: 1px solid rgba(242, 207, 124, 0.34);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.035);
+  background: rgba(20, 35, 57, 0.36);
+  box-shadow: inset 4px 0 0 rgba(242, 207, 124, 0.9);
 }
 
 .profile-plan-exercise-group-superset {
   border-color: rgba(0, 184, 148, 0.32);
+  box-shadow: inset 4px 0 0 rgba(0, 184, 148, 0.9);
 }
 
 .profile-plan-exercise-group-header {
@@ -5954,9 +6250,17 @@ body .reports-student-row p:last-child {
 }
 
 .profile-plan-exercise-group-header span {
+  display: block;
   color: #F2CF7C;
   font-size: 13px;
   font-weight: 850;
+}
+
+.profile-plan-exercise-group-header small {
+  display: block;
+  margin-top: 3px;
+  color: #C2CAD7;
+  font-size: 11px;
 }
 
 .profile-plan-exercise-group-superset .profile-plan-exercise-group-header span {
@@ -5967,16 +6271,16 @@ body .reports-student-row p:last-child {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  padding: 10px 12px 10px 18px;
+  gap: 6px;
+  padding: 10px 12px 10px 20px;
 }
 
 .profile-plan-exercise-group-body::before {
   content: "";
   position: absolute;
-  top: 14px;
-  bottom: 14px;
-  left: 11px;
+  top: 18px;
+  bottom: 18px;
+  left: 12px;
   width: 4px;
   border-radius: 999px;
   background: #F2CF7C;
@@ -5990,12 +6294,15 @@ body .reports-student-row p:last-child {
   display: grid;
   grid-template-columns: 12px minmax(0, 1fr) auto;
   gap: 9px;
-  align-items: center;
-  min-height: 45px;
-  padding: 7px 0;
+  align-items: flex-start;
+  min-height: 58px;
+  padding: 9px 0;
 }
 
 .profile-plan-group-exercise-line i {
+  position: relative;
+  z-index: 1;
+  margin-top: 4px;
   width: 8px;
   height: 8px;
   border-radius: 999px;
@@ -6021,6 +6328,31 @@ body .reports-student-row p:last-child {
   margin-top: 3px;
   color: #C2CAD7;
   font-size: 11px;
+}
+
+.profile-plan-group-exercise-line small {
+  display: block;
+  margin-top: 3px;
+  color: #91A0B6;
+  font-size: 11px;
+}
+
+.profile-plan-group-exercise-line p {
+  margin: 6px 0 0;
+  color: #C2CAD7;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.profile-plan-group-exercise-line .profile-plan-exercise-tags span {
+  display: inline-flex;
+  margin-top: 0;
+  border-radius: 999px;
+  background: rgba(20, 35, 57, 0.66);
+  color: #DCE4F0;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .profile-plan-group-reorder {
@@ -6059,10 +6391,121 @@ body .reports-student-row p:last-child {
   font-size: 12px;
 }
 
+.profile-plan-edit-exercise-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.profile-plan-edit-exercise-list > p {
+  margin: 0;
+  color: #91A0B6;
+  font-size: 12px;
+}
+
+.profile-plan-edit-exercise-card {
+  overflow: hidden;
+  border: 1px solid rgba(74, 99, 136, 0.8);
+  border-radius: 8px;
+  background: rgba(36, 59, 92, 0.78);
+}
+
+.profile-plan-edit-exercise-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+}
+
+.profile-plan-edit-exercise-summary p,
+.profile-plan-edit-exercise-summary strong,
+.profile-plan-edit-exercise-summary small {
+  display: block;
+}
+
+.profile-plan-edit-exercise-summary p {
+  margin: 0;
+  color: #F2CF7C;
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.profile-plan-edit-exercise-summary strong {
+  margin-top: 3px;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.profile-plan-edit-exercise-summary small {
+  margin-top: 3px;
+  color: #91A0B6;
+  font-size: 11px;
+}
+
+.profile-plan-edit-exercise-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.profile-plan-edit-exercise-actions button {
+  border: 1px solid rgba(242, 207, 124, 0.28);
+  border-radius: 999px;
+  background: rgba(242, 207, 124, 0.13);
+  color: #F2CF7C;
+  padding: 6px 9px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.profile-plan-edit-exercise-actions .profile-plan-edit-exercise-danger {
+  border-color: rgba(248, 113, 113, 0.28);
+  background: rgba(248, 113, 113, 0.12);
+  color: #FCA5A5;
+}
+
+.profile-plan-edit-exercise-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 10px 10px;
+}
+
+.profile-plan-edit-exercise-fields > div {
+  display: contents !important;
+}
+
+.profile-plan-edit-exercise-fields input,
+.profile-plan-edit-exercise-fields select,
+.profile-plan-edit-exercise-fields textarea {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(145, 160, 182, 0.45) !important;
+  border-radius: 8px !important;
+  background: #142339 !important;
+  color: #FFFFFF !important;
+  padding: 9px 10px !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+}
+
+.profile-plan-edit-exercise-fields textarea {
+  min-height: 46px;
+  resize: vertical;
+}
+
 .profile-plan-exercise-row {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  min-height: 82px;
+  grid-template-columns: 72px minmax(0, 1fr);
+  min-height: 92px;
   overflow: hidden;
   border: 1px solid rgba(145, 160, 182, 0.18);
   border-radius: 0;
@@ -6070,8 +6513,8 @@ body .reports-student-row p:last-child {
 }
 
 .profile-plan-exercise-thumb {
-  width: 64px;
-  min-height: 82px;
+  width: 72px;
+  min-height: 92px;
   display: grid;
   place-items: center;
   background: #FFFFFF;
@@ -6091,7 +6534,7 @@ body .reports-student-row p:last-child {
 
 .profile-plan-exercise-copy {
   min-width: 0;
-  padding: 12px 14px;
+  padding: 12px 14px 11px;
 }
 
 .profile-plan-exercise-title-row {
@@ -6143,6 +6586,10 @@ body .reports-student-row p:last-child {
   line-height: 1.25;
 }
 
+.profile-plan-exercise-tags {
+  margin-top: 7px;
+}
+
 .profile-plan-exercise-copy p {
   margin: 6px 0 0;
   color: #C2CAD7;
@@ -6175,10 +6622,46 @@ body .reports-student-row p:last-child {
 }
 
 @media (max-width: 560px) {
+  .profile-workouts-visual-header,
+  .profile-workout-edit-panel-header,
+  .profile-plan-card-main {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-plan-menu-wrap {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+
+  .profile-plan-inline-menu {
+    position: relative;
+    top: auto;
+    right: auto;
+  }
+
+  .profile-workouts-visual-header button {
+    width: 100%;
+  }
+
   .profile-plan-days-header,
   .profile-plan-day-card-top,
   .profile-plan-day-exercise-preview {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .profile-plan-day-visual-main {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: flex-start;
+  }
+
+  .profile-plan-day-open {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .profile-plan-day-detail-header {
     flex-direction: column;
   }
 
@@ -6188,6 +6671,15 @@ body .reports-student-row p:last-child {
 
   .profile-plan-exercise-target {
     grid-template-columns: 1fr;
+  }
+
+  .profile-plan-edit-exercise-summary,
+  .profile-plan-edit-exercise-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-plan-edit-exercise-actions {
+    justify-content: flex-start;
   }
 
   .profile-plan-editor-status,

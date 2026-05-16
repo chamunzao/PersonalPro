@@ -947,6 +947,9 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
   const [expandedWorkoutDay, setExpandedWorkoutDay] = useState(null);
   const [exerciseTargetDayIndex, setExerciseTargetDayIndex] = useState("");
   const [editingExerciseContext, setEditingExerciseContext] = useState(null);
+  const [openPlanMenuId, setOpenPlanMenuId] = useState(null);
+  const [openWorkoutActionMenu, setOpenWorkoutActionMenu] = useState(null);
+  const [expandedExerciseEditorKey, setExpandedExerciseEditorKey] = useState(null);
 
   useEffect(() => {
     async function loadWorkoutModels() {
@@ -1016,6 +1019,8 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
     setExpandedWorkoutDay(null);
     setExerciseTargetDayIndex("");
     setEditingExerciseContext(null);
+    setExpandedExerciseEditorKey(null);
+    setOpenWorkoutActionMenu(null);
   }
 
   function startEditWorkout(plan) {
@@ -1033,6 +1038,8 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
     setExpandedWorkoutDay(null);
     setExerciseTargetDayIndex("");
     setEditingExerciseContext(null);
+    setExpandedExerciseEditorKey(null);
+    setOpenWorkoutActionMenu(null);
   }
 
   function addExercise() {
@@ -1159,6 +1166,7 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
       ...f,
       exercises: f.exercises.filter((_, i) => i !== idx)
     }));
+    setExpandedExerciseEditorKey(null);
   }
 
   function updateExercise(idx, patch) {
@@ -1238,6 +1246,14 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
     const explicitDays = plan.days || plan.trainingDays || plan.dayPlans || [];
     if (Array.isArray(explicitDays) && explicitDays.length > 0) return explicitDays.length;
     return (plan.exercises || []).length > 0 ? 1 : 0;
+  }
+
+  function getPlanExerciseCount(plan = {}) {
+    const days = normalizeWorkoutDays(plan);
+    if (days.length > 0) {
+      return days.reduce((total, day) => total + countDayExercises(day), 0);
+    }
+    return (plan.exercises || []).length;
   }
 
   function getPlanCoverInitial(plan = {}) {
@@ -1334,6 +1350,16 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
     }));
   }
 
+  function hasRelevantExerciseData(exercise = {}) {
+    return ["name", "sets", "reps", "weight", "rest", "notes", "muscleGroup", "equipment", "instructions", "imageUrl"]
+      .some(field => String(exercise[field] || "").trim());
+  }
+
+  function requestRemoveExercise(idx, exercise) {
+    if (hasRelevantExerciseData(exercise) && !window.confirm("Remover este exercicio do plano?")) return;
+    removeExercise(idx);
+  }
+
   function removeWorkoutDay(dayIndex) {
     setFormData(current => ({
       ...current,
@@ -1349,6 +1375,12 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
     const normalCount = (day.exercises || []).length;
     const groupCount = (day.groups || []).reduce((total, group) => total + (group.exercises || []).length, 0);
     return normalCount + groupCount;
+  }
+
+  function getShortText(value = "", maxLength = 86) {
+    const text = String(value || "").trim();
+    if (!text || text.length <= maxLength) return text;
+    return `${text.slice(0, maxLength - 3).trim()}...`;
   }
 
   function getDayGroupName(type, groups = []) {
@@ -1434,7 +1466,10 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
   }
 
   function formatExerciseDetails(exercise = {}) {
-    return [exercise.weight, exercise.rest].filter(Boolean).join(" - ");
+    const details = [];
+    if (exercise.weight) details.push(exercise.weight);
+    if (exercise.rest) details.push(`descanso ${exercise.rest}`);
+    return details.join(" · ");
   }
 
   function getExerciseTypeLabel(type = "normal") {
@@ -1447,26 +1482,43 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
   function renderPlanDayExercises(day = {}) {
     const exercises = day.exercises || [];
     const groups = day.groups || [];
+    const exerciseCount = countDayExercises(day);
     if (exercises.length === 0 && groups.length === 0) {
       return <p>Este dia ainda nao tem exercicios.</p>;
     }
 
     return (
-      <>
-        {exercises.map((exercise, exerciseIndex) => renderExerciseRow(exercise, exerciseIndex))}
+      <div className="profile-plan-day-detail-sheet">
+        <div className="profile-plan-day-detail-header">
+          <div>
+            <strong>{day.name || "Treino do dia"}</strong>
+            <span>{exerciseCount} exercicio{exerciseCount === 1 ? "" : "s"} neste dia</span>
+          </div>
+          {(day.muscleGroup || groups.length > 0) && (
+            <div className="profile-plan-day-detail-tags">
+              {day.muscleGroup && <span>{day.muscleGroup}</span>}
+              {groups.length > 0 && <span>{groups.length} grupo{groups.length === 1 ? "" : "s"}</span>}
+            </div>
+          )}
+        </div>
+        {day.notes && <p className="profile-plan-day-detail-note">{day.notes}</p>}
+        <div className="profile-plan-exercise-list">
+          {exercises.map((exercise, exerciseIndex) => renderExerciseRow(exercise, exerciseIndex))}
+        </div>
         {groups.length > 0 && (
           <div className="profile-plan-group-section">
-            <strong>{groups.some(group => group.type === "superset") ? "Superseries" : "Bisets"}</strong>
+            <strong>Grupos combinados</strong>
             {groups.map((group, groupIndex) => renderWorkoutGroup(group, groupIndex))}
           </div>
         )}
-      </>
+      </div>
     );
   }
 
   function renderExerciseRow(exercise, exerciseIndex, options = {}) {
+    const tags = [exercise.muscleGroup, exercise.equipment].filter(Boolean);
     return (
-      <div key={exercise.id || `${exercise.name || "exercise"}-${exerciseIndex}`} className="profile-plan-exercise-row">
+      <div key={exercise.id || `${exercise.name || "exercise"}-${exerciseIndex}`} className={`profile-plan-exercise-row${options.editable ? " profile-plan-exercise-row-editable" : ""}`}>
         <div className="profile-plan-exercise-thumb">
           {getExerciseImage(exercise) ? <img src={getExerciseImage(exercise)} alt="" /> : <span>{getExerciseInitial(exercise)}</span>}
         </div>
@@ -1476,8 +1528,11 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
             <em>{getExerciseTypeLabel(exercise.type)}</em>
           </div>
           <span>{formatExercisePrescription(exercise)}</span>
-          {(exercise.muscleGroup || exercise.equipment || formatExerciseDetails(exercise)) && (
-            <small>{[exercise.muscleGroup, exercise.equipment, formatExerciseDetails(exercise)].filter(Boolean).join(" - ")}</small>
+          {formatExerciseDetails(exercise) && <small>{formatExerciseDetails(exercise)}</small>}
+          {tags.length > 0 && (
+            <div className="profile-plan-exercise-tags">
+              {tags.map(tag => <span key={tag}>{tag}</span>)}
+            </div>
           )}
           {exercise.notes && <p>{exercise.notes}</p>}
           {options.editable && (
@@ -1489,32 +1544,144 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
   }
 
   function renderWorkoutGroup(group = {}, groupIndex = 0, options = {}) {
+    const groupExercises = group.exercises || [];
+    const groupTypeLabel = group.type === "biset" ? "Biset" : "Superserie";
+    const groupMenuKey = `group-${options.dayIndex ?? "view"}-${group.id || groupIndex}`;
     return (
       <div key={group.id || groupIndex} className={`profile-plan-exercise-group profile-plan-exercise-group-${group.type}`}>
         <div className="profile-plan-exercise-group-header">
-          <span>{group.name || `${group.type === "biset" ? "Biset" : "Superserie"} ${groupIndex + 1}`}</span>
+          <div>
+            <span>{group.name || `${groupTypeLabel} ${groupIndex + 1}`}</span>
+            <small>{groupExercises.length} exercicio{groupExercises.length === 1 ? "" : "s"} em sequencia</small>
+          </div>
           {options.editable && (
-            <button type="button" onClick={() => undoWorkoutGroup(options.dayIndex, group.id)}>Desfazer</button>
+            <div className="profile-plan-menu-wrap profile-plan-inline-menu">
+              <button
+                type="button"
+                className="profile-plan-menu-trigger"
+                onClick={() => setOpenWorkoutActionMenu(openWorkoutActionMenu === groupMenuKey ? null : groupMenuKey)}
+                aria-label={`Acoes do grupo ${group.name || groupTypeLabel}`}
+              >
+                ...
+              </button>
+              {openWorkoutActionMenu === groupMenuKey && (
+                <div className="profile-plan-menu">
+                  <button type="button" onClick={() => { undoWorkoutGroup(options.dayIndex, group.id); setOpenWorkoutActionMenu(null); }}>Desfazer grupo</button>
+                </div>
+              )}
+            </div>
           )}
         </div>
         <div className="profile-plan-exercise-group-body">
-          {(group.exercises || []).map((exercise, exerciseIndex) => (
+          {groupExercises.map((exercise, exerciseIndex) => {
+            const tags = [exercise.muscleGroup, exercise.equipment].filter(Boolean);
+            const groupExerciseMenuKey = `group-exercise-${options.dayIndex ?? "view"}-${group.id || groupIndex}-${exercise.id || exerciseIndex}`;
+            return (
             <div key={exercise.id || exerciseIndex} className="profile-plan-group-exercise-line">
               <i />
-              <div>
+              <div className="profile-plan-group-exercise-copy">
                 <strong>{exercise.name || `Exercicio ${exerciseIndex + 1}`}</strong>
                 <span>{formatExercisePrescription(exercise)}</span>
+                {formatExerciseDetails(exercise) && <small>{formatExerciseDetails(exercise)}</small>}
+                {tags.length > 0 && (
+                  <div className="profile-plan-exercise-tags">
+                    {tags.map(tag => <span key={tag}>{tag}</span>)}
+                  </div>
+                )}
+                {exercise.notes && <p>{exercise.notes}</p>}
               </div>
               {options.editable && (
                 <div className="profile-plan-group-reorder">
                   <button type="button" onClick={() => startEditPlanExercise(options.dayIndex, exercise, group.id)}>Editar</button>
-                  <button type="button" onClick={() => moveWorkoutGroupExercise(options.dayIndex, group.id, exerciseIndex, -1)}>Subir</button>
-                  <button type="button" onClick={() => moveWorkoutGroupExercise(options.dayIndex, group.id, exerciseIndex, 1)}>Descer</button>
+                  <div className="profile-plan-menu-wrap profile-plan-inline-menu">
+                    <button
+                      type="button"
+                      className="profile-plan-menu-trigger"
+                      onClick={() => setOpenWorkoutActionMenu(openWorkoutActionMenu === groupExerciseMenuKey ? null : groupExerciseMenuKey)}
+                      aria-label={`Acoes do exercicio ${exercise.name || exerciseIndex + 1}`}
+                    >
+                      ...
+                    </button>
+                    {openWorkoutActionMenu === groupExerciseMenuKey && (
+                      <div className="profile-plan-menu">
+                        <button type="button" onClick={() => { moveWorkoutGroupExercise(options.dayIndex, group.id, exerciseIndex, -1); setOpenWorkoutActionMenu(null); }}>Subir</button>
+                        <button type="button" onClick={() => { moveWorkoutGroupExercise(options.dayIndex, group.id, exerciseIndex, 1); setOpenWorkoutActionMenu(null); }}>Descer</button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
+      </div>
+    );
+  }
+
+  function renderEditableExerciseCard(exercise = {}, idx = 0) {
+    const editorKey = exercise.id || `general-${idx}`;
+    const isExpanded = expandedExerciseEditorKey === editorKey;
+    const exerciseMenuKey = `exercise-${editorKey}`;
+    const summary = [
+      exercise.muscleGroup,
+      exercise.weight,
+      exercise.rest ? `descanso ${exercise.rest}` : ""
+    ].filter(Boolean).join(" - ");
+
+    return (
+      <div key={editorKey} className="profile-plan-edit-exercise-card">
+        <div className="profile-plan-edit-exercise-summary">
+          <div>
+            <span>Exercicio {idx + 1}</span>
+            <strong>{exercise.name || "Novo exercicio"} - {exercise.sets || "-"}x{exercise.reps || "-"}</strong>
+            {summary && <small>{summary}</small>}
+          </div>
+          <div className="profile-plan-edit-exercise-actions">
+            <button
+              type="button"
+              onClick={() => setExpandedExerciseEditorKey(isExpanded ? null : editorKey)}
+            >
+              {isExpanded ? "Recolher" : "Expandir"}
+            </button>
+            <div className="profile-plan-menu-wrap profile-plan-inline-menu">
+              <button
+                type="button"
+                className="profile-plan-menu-trigger"
+                onClick={() => setOpenWorkoutActionMenu(openWorkoutActionMenu === exerciseMenuKey ? null : exerciseMenuKey)}
+                aria-label={`Acoes do exercicio ${exercise.name || idx + 1}`}
+              >
+                ...
+              </button>
+              {openWorkoutActionMenu === exerciseMenuKey && (
+                <div className="profile-plan-menu">
+                  <button type="button" className="profile-plan-menu-danger" onClick={() => { requestRemoveExercise(idx, exercise); setOpenWorkoutActionMenu(null); }}>Remover exercicio</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {isExpanded && (
+          <div className="profile-plan-edit-exercise-fields">
+            <input type="text" value={exercise.name || ""} onChange={(event) => updateExercise(idx, { name: event.target.value })} placeholder="Exercicio" />
+            <input type="text" value={exercise.muscleGroup || ""} onChange={(event) => updateExercise(idx, { muscleGroup: event.target.value })} placeholder="Grupo muscular" />
+            <input type="text" value={exercise.equipment || ""} onChange={(event) => updateExercise(idx, { equipment: event.target.value })} placeholder="Equipamento" />
+            <input type="text" value={exercise.sets || ""} onChange={(event) => updateExercise(idx, { sets: event.target.value })} placeholder="Series" />
+            <input type="text" value={exercise.reps || ""} onChange={(event) => updateExercise(idx, { reps: event.target.value })} placeholder="Repeticoes" />
+            <input type="text" value={exercise.weight || ""} onChange={(event) => updateExercise(idx, { weight: event.target.value })} placeholder="Carga" />
+            <input type="text" value={exercise.rest || ""} onChange={(event) => updateExercise(idx, { rest: event.target.value })} placeholder="Descanso" />
+            <select value={exercise.type || "normal"} onChange={(event) => updateExercise(idx, { type: event.target.value })}>
+              <option value="normal">Normal</option>
+              <option value="drop_set">Drop set</option>
+              <option value="biset">Biset</option>
+              <option value="superset">Superserie</option>
+            </select>
+            <input type="text" value={exercise.imageUrl || ""} onChange={(event) => updateExercise(idx, { imageUrl: event.target.value })} placeholder="Imagem ou icone" />
+            <textarea value={exercise.notes || ""} onChange={(event) => updateExercise(idx, { notes: event.target.value })} placeholder="Observacoes" />
+            <textarea value={exercise.instructions || ""} onChange={(event) => updateExercise(idx, { instructions: event.target.value })} placeholder="Instrucao tecnica" />
+          </div>
+        )}
       </div>
     );
   }
@@ -1532,36 +1699,39 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-      <button
-        onClick={() => {
-          if (showNewWorkout) {
-            resetWorkoutForm();
-            setShowNewWorkout(false);
-          } else {
-            resetWorkoutForm();
-            setShowNewWorkout(true);
-          }
-        }}
-        style={{
-          padding: "10px 16px",
-          background: theme.primary,
-          color: "#142339",
-          border: "none",
-          borderRadius: "6px",
-          fontSize: "13px",
-          fontWeight: "600",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          gap: "6px"
-        }}
-      >
-        <IconPlus /> {showNewWorkout ? "Fechar" : "Novo Plano"}
-      </button>
+    <div className="profile-workouts-shell">
+      <div className="profile-workouts-visual-header">
+        <div>
+          <span>Planos de treino</span>
+          <strong>{workoutPlans.length} plano{workoutPlans.length === 1 ? "" : "s"} cadastrado{workoutPlans.length === 1 ? "" : "s"}</strong>
+          <p>Visualize a ficha do aluno e entre em edicao apenas quando precisar montar ou ajustar o plano.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (showNewWorkout) {
+              resetWorkoutForm();
+              setShowNewWorkout(false);
+            } else {
+              resetWorkoutForm();
+              setShowNewWorkout(true);
+            }
+          }}
+        >
+          <IconPlus /> {showNewWorkout ? "Fechar edicao" : "Novo Plano"}
+        </button>
+      </div>
 
       {showNewWorkout && (
-        <div style={{ background: "#243B5C", padding: "16px", borderRadius: "8px", border: `1px solid ${theme.light}` }}>
+        <div className="profile-workout-edit-panel">
+          <div className="profile-workout-edit-panel-header">
+            <div>
+              <span>Modo edicao</span>
+              <strong>{editingWorkoutId ? "Editar plano" : "Novo plano"}</strong>
+            </div>
+            <p>Altere dias, exercicios, grupos e observacoes sem sair do perfil do aluno.</p>
+          </div>
+
           <div className="student-form-field" style={{ marginBottom: "12px" }}>
             <label style={{ fontSize: "11px", fontWeight: "600", color: "#C2CAD7", display: "block", marginBottom: "4px" }}>Usar template</label>
             <select
@@ -1640,7 +1810,21 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                         >
                           {expandedWorkoutDay === `form-${dayIndex}` ? "Fechar detalhe" : "Abrir detalhe"}
                         </button>
-                        <button type="button" onClick={() => removeWorkoutDay(dayIndex)}>Remover</button>
+                        <div className="profile-plan-menu-wrap profile-plan-inline-menu">
+                          <button
+                            type="button"
+                            className="profile-plan-menu-trigger"
+                            onClick={() => setOpenWorkoutActionMenu(openWorkoutActionMenu === `day-${dayIndex}` ? null : `day-${dayIndex}`)}
+                            aria-label={`Acoes do dia ${dayIndex + 1}`}
+                          >
+                            ...
+                          </button>
+                          {openWorkoutActionMenu === `day-${dayIndex}` && (
+                            <div className="profile-plan-menu">
+                              <button type="button" className="profile-plan-menu-danger" onClick={() => { removeWorkoutDay(dayIndex); setOpenWorkoutActionMenu(null); }}>Remover dia</button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -1727,13 +1911,41 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
             </div>
           )}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "12px" }}>
-            {formData.exercises.map((ex, idx) => (
-              <div key={idx} style={{ background: "#243B5C", padding: "10px", borderRadius: "6px", border: "1px solid #4A6388" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+          <div className="profile-plan-edit-exercise-list">
+            {formData.exercises.map((ex, idx) => {
+              const editorKey = ex.id || `general-${idx}`;
+              const isExpanded = expandedExerciseEditorKey === editorKey;
+              const exerciseMenuKey = `exercise-${editorKey}`;
+              const summary = [ex.muscleGroup, ex.weight, ex.rest ? `descanso ${ex.rest}` : ""].filter(Boolean).join(" - ");
+              return (
+              <div key={editorKey} className="profile-plan-edit-exercise-card">
+                <div className="profile-plan-edit-exercise-summary">
                   <p style={{ fontSize: "11px", color: "#6b7280", margin: 0, fontWeight: "700" }}>Exercício {idx + 1}</p>
-                  <button onClick={() => removeExercise(idx)} style={{ background: "#fee2e2", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "12px", fontWeight: "700", borderRadius: "4px", padding: "4px 8px" }}>Remover</button>
+                  <strong>{ex.name || "Novo exercicio"} - {ex.sets || "-"}x{ex.reps || "-"}</strong>
+                  {summary && <small>{summary}</small>}
+                  <div className="profile-plan-edit-exercise-actions">
+                    <button type="button" onClick={() => setExpandedExerciseEditorKey(isExpanded ? null : editorKey)}>
+                      {isExpanded ? "Recolher" : "Expandir"}
+                    </button>
+                    <div className="profile-plan-menu-wrap profile-plan-inline-menu">
+                      <button
+                        type="button"
+                        className="profile-plan-menu-trigger"
+                        onClick={() => setOpenWorkoutActionMenu(openWorkoutActionMenu === exerciseMenuKey ? null : exerciseMenuKey)}
+                        aria-label={`Acoes do exercicio ${ex.name || idx + 1}`}
+                      >
+                        ...
+                      </button>
+                      {openWorkoutActionMenu === exerciseMenuKey && (
+                        <div className="profile-plan-menu">
+                          <button type="button" className="profile-plan-menu-danger" onClick={() => { requestRemoveExercise(idx, ex); setOpenWorkoutActionMenu(null); }}>Remover exercicio</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
+                {isExpanded && (
+                <div className="profile-plan-edit-exercise-fields">
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr)", gap: "8px", marginBottom: "8px" }}>
                   <input type="text" value={ex.name || ""} onChange={(e) => updateExercise(idx, { name: e.target.value })} placeholder="Exercício" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
                   <input type="text" value={ex.muscleGroup || ""} onChange={(e) => updateExercise(idx, { muscleGroup: e.target.value })} placeholder="Grupo muscular" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
@@ -1746,8 +1958,19 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                   <input type="text" value={ex.rest || ""} onChange={(e) => updateExercise(idx, { rest: e.target.value })} placeholder="Descanso" style={{ padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", minWidth: 0 }} />
                 </div>
                 <textarea value={ex.notes || ""} onChange={(e) => updateExercise(idx, { notes: e.target.value })} placeholder="Observações do exercício" style={{ width: "100%", minHeight: "44px", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "12px", boxSizing: "border-box", fontFamily: "inherit", resize: "vertical" }} />
+                  <select value={ex.type || "normal"} onChange={(e) => updateExercise(idx, { type: e.target.value })}>
+                    <option value="normal">Normal</option>
+                    <option value="drop_set">Drop set</option>
+                    <option value="biset">Biset</option>
+                    <option value="superset">Superserie</option>
+                  </select>
+                  <input type="text" value={ex.imageUrl || ""} onChange={(e) => updateExercise(idx, { imageUrl: e.target.value })} placeholder="Imagem ou icone" />
+                  <textarea value={ex.instructions || ""} onChange={(e) => updateExercise(idx, { instructions: e.target.value })} placeholder="Instrucao tecnica" />
+                </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "12px" }}>
@@ -2003,18 +2226,37 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                   {plan.coverUrl || plan.imageUrl ? <img src={plan.coverUrl || plan.imageUrl} alt="" /> : <span>{getPlanCoverInitial(plan)}</span>}
                 </button>
                 <div className="profile-plan-copy" onClick={() => setExpandedWorkout(expandedWorkout === plan.id ? null : plan.id)}>
-                  <p style={{ fontSize: "12px", fontWeight: "600", margin: "0", color: "#FFFFFF" }}>
+                  <p>
                     {plan.name}
-                    {plan.active && <span style={{ marginLeft: "8px", fontSize: "10px", padding: "2px 6px", background: theme.light, color: theme.dark, borderRadius: "4px" }}>Ativo</span>}
+                    {plan.active && <span>Ativo</span>}
                   </p>
-                  <p style={{ fontSize: "10px", color: "#91A0B6", margin: "4px 0 0 0" }}>{plan.exercises?.length || 0} exercício{(plan.exercises?.length || 0) === 1 ? "" : "s"}</p>
-                </div>
+                  <small>{getPlanExerciseCount(plan)} exercicio{getPlanExerciseCount(plan) === 1 ? "" : "s"}</small>
                   <div className="profile-plan-meta-row">
                     <span className={`profile-plan-status profile-plan-status-${getPlanStatus(plan).toLowerCase()}`}>{getPlanStatus(plan)}</span>
                     <small>Comecou em {plan.startDate || plan.createdAt || "sem data"}</small>
                     <small>{getPlanDayCount(plan)} dia{getPlanDayCount(plan) === 1 ? "" : "s"} de treino</small>
                   </div>
                 </div>
+                <div className="profile-plan-menu-wrap">
+                  <button
+                    type="button"
+                    className="profile-plan-menu-trigger"
+                    onClick={() => setOpenPlanMenuId(openPlanMenuId === plan.id ? null : plan.id)}
+                    aria-label={`Acoes do plano ${plan.name}`}
+                  >
+                    ...
+                  </button>
+                  {openPlanMenuId === plan.id && (
+                    <div className="profile-plan-menu">
+                      <button type="button" onClick={() => { duplicateWorkout(plan); setOpenPlanMenuId(null); }}>Duplicar</button>
+                      <button type="button" onClick={() => { toggleWorkoutActive(plan); setOpenPlanMenuId(null); }}>{plan.active ? "Tornar rascunho" : "Tornar ativo"}</button>
+                      <button type="button" onClick={() => { saveWorkoutAsModel(plan); setOpenPlanMenuId(null); }}>Salvar como modelo</button>
+                      <button type="button" disabled={getPlanStatus(plan) === "Finalizado"} onClick={() => { finalizeWorkout(plan); setOpenPlanMenuId(null); }}>Finalizar</button>
+                      <button type="button" className="profile-plan-menu-danger" onClick={() => { deleteWorkout(plan.id); setOpenPlanMenuId(null); }}>Excluir</button>
+                    </div>
+                  )}
+                </div>
+              </div>
                 <div className="profile-plan-actions">
                   <button
                     type="button"
@@ -2022,86 +2264,8 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                   >
                     {expandedWorkout === plan.id ? "Fechar" : "Visualizar"}
                   </button>
-                  <button
-                    onClick={() => startEditWorkout(plan)}
-                    style={{
-                      padding: "7px 10px",
-                      background: theme.light,
-                      border: "none",
-                      color: theme.dark,
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      fontSize: "12px",
-                      fontWeight: "700"
-                    }}
-                  >
-                    Editar plano
-                  </button>
-                  <button
-                    onClick={() => toggleWorkoutActive(plan)}
-                    title={plan.active ? "Desativar" : "Ativar"}
-                    style={{
-                      padding: "4px 8px",
-                      background: "none",
-                      border: `1px solid ${theme.primary}`,
-                      color: theme.primary,
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      fontSize: "10px",
-                      fontWeight: "600"
-                    }}
-                  >
-                    {plan.active ? "Ativo" : "Ativar"}
-                  </button>
-                  <button
-                    onClick={() => saveWorkoutAsModel(plan)}
-                    style={{
-                      padding: "4px 8px",
-                      background: "rgba(242, 207, 124, 0.14)",
-                      border: "none",
-                      color: theme.primary,
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      fontSize: "10px",
-                      fontWeight: "700"
-                    }}
-                  >
-                    Modelo
-                  </button>
-                  <button
-                    onClick={() => duplicateWorkout(plan)}
-                    style={{
-                      padding: "4px 8px",
-                      background: "#f3f4f6",
-                      border: "none",
-                      color: "#6b7280",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      fontSize: "12px"
-                    }}
-                  >
-                    <IconCopy />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => finalizeWorkout(plan)}
-                    disabled={getPlanStatus(plan) === "Finalizado"}
-                  >
-                    Finalizar
-                  </button>
-                  <button
-                    onClick={() => deleteWorkout(plan.id)}
-                    style={{
-                      padding: "4px 8px",
-                      background: "#fee2e2",
-                      border: "none",
-                      color: "#dc2626",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      fontSize: "12px"
-                    }}
-                  >
-                    ×
+                  <button type="button" onClick={() => startEditWorkout(plan)}>
+                    Editar
                   </button>
                 </div>
 
@@ -2110,24 +2274,26 @@ function WorkoutsTabContent({ studentId, workoutPlans, setWorkoutPlans, showNewW
                   {normalizeWorkoutDays(plan).length > 0 ? (
                     <div className="profile-plan-day-list">
                       {normalizeWorkoutDays(plan).map((day, dayIndex) => (
-                        <div key={day.id || dayIndex} className="profile-plan-day-card profile-plan-day-card-readonly">
-                          <div className="profile-plan-day-card-top">
-                            <span className="profile-plan-day-badge">Dia {dayIndex + 1}</span>
+                        <div key={day.id || dayIndex} className="profile-plan-day-card profile-plan-day-card-readonly profile-plan-day-card-visual">
+                          <div className="profile-plan-day-visual-main">
+                            <span className="profile-plan-day-badge profile-plan-day-badge-large">Dia {dayIndex + 1}</span>
+                            <div className="profile-plan-day-visual-copy">
+                              <strong>{day.name || `Treino ${dayIndex + 1}`}</strong>
+                              <span>{day.muscleGroup || "Grupo nao definido"}</span>
+                              {day.notes && <p>{getShortText(day.notes)}</p>}
+                            </div>
                             <button
                               type="button"
+                              className="profile-plan-day-open"
                               onClick={() => setExpandedWorkoutDay(expandedWorkoutDay === `${plan.id}-${dayIndex}` ? null : `${plan.id}-${dayIndex}`)}
                             >
                               {expandedWorkoutDay === `${plan.id}-${dayIndex}` ? "Fechar detalhe" : "Abrir detalhe"}
                             </button>
                           </div>
-                          <div className="profile-plan-day-copy">
-                            <strong>{day.name || `Treino ${dayIndex + 1}`}</strong>
-                            <span>{day.muscleGroup || "Grupo nao definido"}</span>
-                            {day.notes && <p>{day.notes}</p>}
-                          </div>
-                          <div className="profile-plan-day-summary">
+                          <div className="profile-plan-day-summary profile-plan-day-visual-meta">
                             <span>{countDayExercises(day)} exercicio{countDayExercises(day) === 1 ? "" : "s"}</span>
                             {(day.groups || []).length > 0 && <span>{(day.groups || []).length} grupo{(day.groups || []).length === 1 ? "" : "s"}</span>}
+                            {(day.exercises || []).length > 0 && <span>{(day.exercises || []).length} {(day.exercises || []).length === 1 ? "normal" : "normais"}</span>}
                           </div>
                           {expandedWorkoutDay === `${plan.id}-${dayIndex}` && (
                             <div className="profile-plan-day-detail">
