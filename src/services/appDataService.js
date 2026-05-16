@@ -2,9 +2,9 @@ import {
   db,
   collection,
   getDocs
-} from '../firebase';
-import { DEMO_EMAIL, getDemoAppData } from './demoData';
-import { getThemeKey } from './settingsService';
+} from '../firebase.js';
+import { DEMO_EMAIL, getDemoAppData } from './demoData.js';
+import { getThemeKey } from './settingsService.js';
 
 function mapStudentDoc(studentDoc) {
   return {
@@ -45,26 +45,65 @@ function mapScheduleOverrideDoc(overrideDoc) {
   };
 }
 
-export async function loadAppData(userId, userEmail = "") {
-  const isDemoAccount = String(userEmail || "").toLowerCase() === DEMO_EMAIL;
+async function readCollection({ path, mapDoc, fallback = [], required = false, deps }) {
+  const { collectionFn, getDocsFn } = deps;
 
   try {
-    const themeKey = await getThemeKey(userId);
-    const studentsSnap = await getDocs(collection(db, `users/${userId}/students`));
-    const recordsSnap = await getDocs(collection(db, `users/${userId}/records`));
-    const paymentsSnap = await getDocs(collection(db, `users/${userId}/payments`));
-    const overridesSnap = await getDocs(collection(db, `users/${userId}/scheduleOverrides`));
+    const snap = await getDocsFn(collectionFn(db, path));
+    return {
+      data: snap.docs.map(mapDoc),
+      empty: snap.empty
+    };
+  } catch (error) {
+    console.error(`Error loading Firestore collection ${path}:`, error);
+    if (required) throw error;
+    return {
+      data: fallback,
+      empty: true,
+      error
+    };
+  }
+}
 
-    if (isDemoAccount && studentsSnap.empty) {
+export async function loadAppData(userId, userEmail = "", deps = {}) {
+  const isDemoAccount = String(userEmail || "").toLowerCase() === DEMO_EMAIL;
+  const resolvedDeps = {
+    collectionFn: deps.collectionFn || collection,
+    getDocsFn: deps.getDocsFn || getDocs,
+    getThemeKeyFn: deps.getThemeKeyFn || getThemeKey
+  };
+
+  try {
+    let themeKey = null;
+    try {
+      themeKey = await resolvedDeps.getThemeKeyFn(userId);
+    } catch (error) {
+      console.warn("Theme settings could not be loaded. Continuing with default theme.", error);
+    }
+
+    const studentsResult = await readCollection({
+      path: `users/${userId}/students`,
+      mapDoc: mapStudentDoc,
+      required: true,
+      deps: resolvedDeps
+    });
+
+    const [recordsResult, paymentsResult, overridesResult] = await Promise.all([
+      readCollection({ path: `users/${userId}/records`, mapDoc: mapRecordDoc, deps: resolvedDeps }),
+      readCollection({ path: `users/${userId}/payments`, mapDoc: mapPaymentDoc, deps: resolvedDeps }),
+      readCollection({ path: `users/${userId}/scheduleOverrides`, mapDoc: mapScheduleOverrideDoc, deps: resolvedDeps })
+    ]);
+
+    if (isDemoAccount && studentsResult.empty) {
       return getDemoAppData();
     }
 
     return {
       themeKey,
-      students: studentsSnap.docs.map(mapStudentDoc),
-      records: recordsSnap.docs.map(mapRecordDoc),
-      payments: paymentsSnap.docs.map(mapPaymentDoc),
-      scheduleOverrides: overridesSnap.docs.map(mapScheduleOverrideDoc)
+      students: studentsResult.data,
+      records: recordsResult.data,
+      payments: paymentsResult.data,
+      scheduleOverrides: overridesResult.data
     };
   } catch (error) {
     if (isDemoAccount) {

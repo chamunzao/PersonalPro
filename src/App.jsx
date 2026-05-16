@@ -72,6 +72,19 @@ function IconMore() {
   return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>;
 }
 
+function getAppDataErrorMessage(error) {
+  if (error?.code === "permission-denied") {
+    return "Sem permissao para carregar dados no Firebase. Publique as regras do Firestore para o projeto correto e tente novamente.";
+  }
+  if (error?.code === "unauthenticated") {
+    return "Sua sessao expirou. Entre novamente para carregar os dados.";
+  }
+  if (error?.code === "unavailable") {
+    return "Firebase indisponivel no momento. Verifique a conexao e tente novamente.";
+  }
+  return "Erro ao carregar dados";
+}
+
 function getTabIcon(id) {
   const icons = {
     dashboard: <IconHome />,
@@ -147,7 +160,7 @@ export default function App() {
         setScheduleOverrides(data.scheduleOverrides);
       } catch (error) {
         console.error("Error loading data:", error);
-        alert("Erro ao carregar dados");
+        alert(getAppDataErrorMessage(error));
       } finally {
         setLoadingData(false);
       }

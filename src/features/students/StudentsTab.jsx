@@ -81,6 +81,19 @@ const DEFAULT_ANAMNESIS = {
   notes: ""
 };
 
+function getFirestoreStudentErrorMessage(error) {
+  if (error?.code === "permission-denied") {
+    return "Sem permissao para acessar os alunos no Firebase. Verifique se as regras do Firestore foram publicadas para o projeto correto.";
+  }
+  if (error?.code === "unauthenticated") {
+    return "Sua sessao expirou. Entre novamente para carregar ou cadastrar alunos.";
+  }
+  if (error?.code === "unavailable") {
+    return "Firebase indisponivel no momento. Verifique a conexao e tente novamente.";
+  }
+  return "Erro ao salvar aluno. Veja o console para detalhes.";
+}
+
 function getRecordParts(recordKey) {
   const [date, studentId, ...timeParts] = recordKey.split("_");
   return {
@@ -2491,7 +2504,9 @@ function StudentsTab({ students, setStudents, records, scheduleOverrides, setSch
       resetForm();
     } catch (error) {
       console.error("Error saving student:", error);
-      alert("Erro ao salvar aluno");
+      const message = getFirestoreStudentErrorMessage(error);
+      setFormError(message);
+      alert(message);
     } finally {
       setSaving(false);
     }

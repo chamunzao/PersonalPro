@@ -3,7 +3,7 @@ import {
   doc,
   getDoc,
   setDoc
-} from '../firebase';
+} from '../firebase.js';
 
 const THEME_SETTINGS_PATH = 'settings/theme';
 
